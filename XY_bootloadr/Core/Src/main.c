@@ -24,7 +24,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "boot_jump.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -91,10 +91,6 @@ int main(void)
   MX_USART1_UART_Init();
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
-  if (Boot_IsValidApp(APP_ADDRESS))
-  {
-      Boot_JumpToApp(APP_ADDRESS);
-  }
   /* USER CODE END 2 */
 
   /* Infinite loop */

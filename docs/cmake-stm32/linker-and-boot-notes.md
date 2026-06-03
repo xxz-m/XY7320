@@ -1,0 +1,205 @@
+# STM32 Bootloader 与链接脚本笔记
+
+## 为什么 Bootloader 和 APP 要分地址
+
+STM32 上电后默认从内部 Flash 起始地址运行：
+
+```text
+0x08000000
+```
+
+如果有 Bootloader，那么 Bootloader 应该放在最前面。
+
+APP 不能再从 `0x08000000` 开始，否则会覆盖 Bootloader。
+
+当前规划：
+
+```text
+Bootloader 起始：0x08000000
+APP 起始：       0x08010000
+```
+
+## Bootloader 链接脚本
+
+当前 Bootloader 的链接脚本：
+
+```text
+XY_bootloadr/STM32F407ZGTX_FLASH.ld
+```
+
+关键配置：
+
+```ld
+FLASH (rx) : ORIGIN = 0x8000000, LENGTH = 64K
+```
+
+意思是：
+
+```text
+Bootloader 从 0x08000000 开始放
+最多使用 64KB
+```
+
+这正好覆盖 STM32F407 的 Sector0~Sector3。
+
+## APP 链接脚本后续要怎么改
+
+APP 工程后续应该使用类似配置：
+
+```ld
+FLASH (rx) : ORIGIN = 0x08010000, LENGTH = 960K
+```
+
+因为：
+
+```text
+1MB - 64KB = 960KB
+```
+
+如果 APP 不改链接脚本，它还是会链接到 `0x08000000`，这样 Bootloader 跳转时读到的 APP 向量表就是错的。
+
+## APP 向量表偏移
+
+APP 运行后，中断向量表也要指向 APP 起始地址。
+
+常见做法是在 APP 初始化早期设置：
+
+```c
+SCB->VTOR = 0x08010000;
+```
+
+或者在 STM32 HAL 工程里配置 `VECT_TAB_OFFSET`。
+
+要保证：
+
+```text
+APP 的链接地址
+APP 的向量表地址
+Bootloader 的 APP_ADDRESS
+```
+
+三者一致。
+
+当前应该都是：
+
+```text
+0x08010000
+```
+
+## STM32F407 Flash Sector
+
+STM32F407ZGTx 内部 Flash 为 1MB。
+
+Sector 分布：
+
+```text
+Sector0:  0x08000000 ~ 0x08003FFF, 16KB
+Sector1:  0x08004000 ~ 0x08007FFF, 16KB
+Sector2:  0x08008000 ~ 0x0800BFFF, 16KB
+Sector3:  0x0800C000 ~ 0x0800FFFF, 16KB
+Sector4:  0x08010000 ~ 0x0801FFFF, 64KB
+Sector5:  0x08020000 ~ 0x0803FFFF, 128KB
+Sector6:  0x08040000 ~ 0x0805FFFF, 128KB
+Sector7:  0x08060000 ~ 0x0807FFFF, 128KB
+Sector8:  0x08080000 ~ 0x0809FFFF, 128KB
+Sector9:  0x080A0000 ~ 0x080BFFFF, 128KB
+Sector10: 0x080C0000 ~ 0x080DFFFF, 128KB
+Sector11: 0x080E0000 ~ 0x080FFFFF, 128KB
+```
+
+当前 Bootloader 用 Sector0~3。
+APP 从 Sector4 开始。
+
+## Flash 擦除和写入
+
+STM32F4 Flash 擦除单位是 Sector。
+
+写入前必须擦除。
+
+Flash 的特性：
+
+```text
+擦除后全是 0xFF
+写入只能把 bit 从 1 变成 0
+不能直接把 0 写回 1
+```
+
+所以如果某个地址已经写过，再写新数据前必须擦除对应 Sector。
+
+## Bootloader 跳转 APP 的基本流程
+
+Bootloader 跳转 APP 时，APP 首地址处必须是向量表。
+
+APP 首地址：
+
+```text
+0x08010000
+```
+
+这个地址处存的是 APP 的初始 MSP。
+
+`0x08010004` 处存的是 APP 的 Reset_Handler。
+
+跳转步骤：
+
+```text
+1. 读取 0x08010000 作为 MSP。
+2. 读取 0x08010004 作为 Reset_Handler。
+3. 关闭中断。
+4. 关闭 SysTick。
+5. 清 NVIC 中断使能和挂起。
+6. 设置 MSP。
+7. 设置 SCB->VTOR = 0x08010000。
+8. 调用 APP Reset_Handler。
+```
+
+## 如何判断 APP 是否有效
+
+常见判断方式是看 APP 首 word 是否像 SRAM 地址。
+
+STM32F407 SRAM 地址一般从：
+
+```text
+0x20000000
+```
+
+开始。
+
+mOTA 中使用：
+
+```c
+#define FIRMWARE_HEAD_DATA       0x20000000
+#define FIRMWARE_HEAD_DATA_MASK  0x2FF00000
+```
+
+含义是：
+
+```text
+读取 APP 首 word
+用 mask 过滤
+判断它是否像一个合法 SRAM 栈顶地址
+```
+
+例如：
+
+```text
+0x20013238 & 0x2FF00000 = 0x20000000
+```
+
+就认为 APP 头部像有效固件。
+
+## 当前阶段二还没做什么
+
+当前只完成 Bootloader 端 mOTA core 和 Flash 链路编译通过。
+
+还没完成：
+
+```text
+APP 工程链接地址修改
+APP 向量表偏移验证
+串口接入
+YModem 接入
+固件包下载流程
+```
+
+后续接跳转 APP 时，要重点检查 APP 工程配置。
