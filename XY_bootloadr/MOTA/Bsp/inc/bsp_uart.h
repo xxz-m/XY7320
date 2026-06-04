@@ -155,7 +155,7 @@ BSP_UART_ERR    BSP_UART_SendBlocking       (BSP_UART_ID  id, const uint8_t *dat
 BSP_UART_ERR    BSP_UART_Send               (BSP_UART_ID  id, const uint8_t *data, uint16_t len, uint16_t timeout);
 #endif
 #if (ENABLE_DEBUG_PRINT && EANBLE_PRINTF_USING_RTT == 0)
-void            BSP_Printf                  (const char *fmt, ...);
+/* BSP_Printf 由 common.h/bsp_uart_stm32.h 映射到 BSP_LogPrintf 或 RTT */
 #endif
 BSP_UART_ERR    BSP_UART_SetTxIndicate      (BSP_UART_ID  id, uint8_t (*TX_Complete)(struct UART_STRUCT *uart));
 BSP_UART_ERR    BSP_UART_ClearUserBuff      (BSP_UART_ID  id);

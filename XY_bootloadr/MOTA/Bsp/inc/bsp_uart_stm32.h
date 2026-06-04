@@ -6,6 +6,9 @@
 #if (ENABLE_DEBUG_PRINT)
     #if (EANBLE_PRINTF_USING_RTT)
     #define BSP_Printf(...)             SEGGER_RTT_printf(SEGGER_RTT_PRINTF_TERMINAL, __VA_ARGS__)
+    #else
+    #include "bsp_log.h"
+    #define BSP_Printf(...)             BSP_LogPrintf(__VA_ARGS__)
     #endif
 #else
     #define BSP_Printf(...)

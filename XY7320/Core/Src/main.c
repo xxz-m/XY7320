@@ -63,53 +63,22 @@ void SystemClock_Config(void);
   */
 int main(void)
 {
+  /* SystemInit() 已在启动时设置 VTOR = 0x08010000 */
+  
+  /* 直接寄存器操作，不依赖 HAL / SysTick / 中断 */
+  RCC->AHB1ENR |= RCC_AHB1ENR_GPIOFEN;
+  __DSB();
+  
+  GPIOF->MODER &= ~((3 << (9*2)) | (3 << (10*2)));
+  GPIOF->MODER |= (1 << (9*2)) | (1 << (10*2));
 
-  /* USER CODE BEGIN 1 */
-  /**
-   * 从 bootloader 跳转后必须做的两件事：
-   *   1. 重定位中断向量表到 APP 地址（0x08010000）
-   *   2. 重新开启全局中断（bootloader 跳转前关闭了）
-   */
-  __disable_irq();
-  SCB->VTOR = 0x08010000;
-  __enable_irq();
-  /* USER CODE END 1 */
-
-  /* MCU Configuration--------------------------------------------------------*/
-
-  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-  HAL_Init();
-
-  /* USER CODE BEGIN Init */
-
-  /* USER CODE END Init */
-
-  /* Configure the system clock */
-  SystemClock_Config();
-
-  /* USER CODE BEGIN SysInit */
-
-  /* USER CODE END SysInit */
-
-  /* Initialize all configured peripherals */
-  MX_GPIO_Init();
-  /* USER CODE BEGIN 2 */
-
-  /* USER CODE END 2 */
-
-  /* Infinite loop */
-  /* USER CODE BEGIN WHILE */
   while (1)
   {
-    /* USER CODE END WHILE */
-
-    /* USER CODE BEGIN 3 */
-    HAL_GPIO_WritePin(GPIOF, GPIO_PIN_10, GPIO_PIN_RESET);
-    HAL_Delay(500);
-    HAL_GPIO_WritePin(GPIOF, GPIO_PIN_10, GPIO_PIN_SET);
-    HAL_Delay(500);
+    GPIOF->ODR ^= (GPIO_PIN_9 | GPIO_PIN_10);
+    for (volatile uint32_t i = 0; i < 1000000; i++)
+    {
+    }
   }
-  /* USER CODE END 3 */
 }
 
 /**

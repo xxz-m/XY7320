@@ -53,16 +53,20 @@ include_directories(Core/Inc Drivers/STM32F4xx_HAL_Driver/Inc Drivers/STM32F4xx_
 include_directories(
     MOTA/Core
     MOTA/Config
-    MOTA/BSP/inc
+    MOTA/Bsp/inc
     MOTA/Port
+    Components/log/inc
+    Components/nanoprintf
+    Core/bootloader
 )
 add_definitions(-DDEBUG -DUSE_HAL_DRIVER -DSTM32F407xx)
 
 file(GLOB_RECURSE SOURCES
     "Core/*.*" "Drivers/*.*"
     "MOTA/Core/*.*"
-    "MOTA/BSP/src/*.*"
+    "MOTA/Bsp/src/*.*"
     "MOTA/Port/*.*"
+    "Components/log/src/*.*"
 )
 set(LINKER_SCRIPT ${CMAKE_SOURCE_DIR}/STM32F407ZGTX_FLASH.ld)
 

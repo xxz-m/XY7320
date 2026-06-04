@@ -24,7 +24,16 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "stm32f4xx_it.h"
+#include "string.h"
+#include "bsp_flash.h"
+#include "firmware_manage.h"
+#include "bootloader_define.h"
+#include "simple_update.h"
+#include "boot_jump.h"
+extern uint8_t uart2_rx_buf[UART2_RX_BUF_SIZE];
+extern volatile uint16_t uart2_rx_len;
+extern volatile uint8_t uart2_rx_done;
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -34,7 +43,14 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+// FLASH_TEST_ABS_ADDR   测试绝对地址，Sector 11 起始地址
+// FLASH_TEST_OFFSET     APP 分区内偏移
+// FLASH_TEST_ERASE_SIZE 擦除 128KB，也就是 Sector 11
+// FLASH_TEST_MAX_SIZE   最大测试 1024 字节
+#define FLASH_TEST_ABS_ADDR      0x080E0000U
+#define FLASH_TEST_OFFSET        (FLASH_TEST_ABS_ADDR - APP_ADDRESS)
+#define FLASH_TEST_ERASE_SIZE    0x20000U
+#define FLASH_TEST_MAX_SIZE      1024U
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -51,7 +67,7 @@
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
-
+static void MOTA_Flash_Test_By_Uart_Data(uint8_t *data, uint16_t len);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -91,8 +107,21 @@ int main(void)
   MX_USART1_UART_Init();
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
-  /* USER CODE END 2 */
+  BSP_Printf("bootloader start\r\n");
+  Simple_Update_Init();
 
+  /* 上电自动检查 APP 是否有效，有效就跳 */
+  if (Boot_IsValidApp(APP_ADDRESS))
+  {
+    BSP_Printf("APP valid, jumping...\r\n");
+    HAL_Delay(100);
+    Boot_JumpToApp(APP_ADDRESS);
+  }
+  BSP_Printf("no APP, waiting upgrade...\r\n");
+
+  HAL_UART_Receive_DMA(&huart2, uart2_rx_buf, UART2_RX_BUF_SIZE);
+  __HAL_UART_ENABLE_IT(&huart2, UART_IT_IDLE);
+  /* USER CODE END 2 */
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
@@ -100,10 +129,12 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    HAL_GPIO_WritePin(GPIOF, GPIO_PIN_9, GPIO_PIN_RESET);
-    HAL_Delay(500);
-    HAL_GPIO_WritePin(GPIOF, GPIO_PIN_9, GPIO_PIN_SET);
-    HAL_Delay(500);
+    if (uart2_rx_done)
+    {
+      uart2_rx_done = 0;
+      BSP_Printf("USART2 RX len = %d\r\n", uart2_rx_len);
+      Simple_Update_Process(uart2_rx_buf, uart2_rx_len);
+    }
   }
   /* USER CODE END 3 */
 }
@@ -155,7 +186,100 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
+static void MOTA_Flash_Test_By_Uart_Data(uint8_t *data, uint16_t len)
+{
+  struct BSP_FLASH *app_part = NULL;
+  uint8_t read_buf[FLASH_TEST_MAX_SIZE];
+  uint16_t test_len = len;
 
+  if (data == NULL || len == 0)
+  {
+    BSP_Printf("[flash test] invalid data\r\n");
+    return;
+  }
+
+  if (test_len > FLASH_TEST_MAX_SIZE)
+  {
+    test_len = FLASH_TEST_MAX_SIZE;
+    BSP_Printf("[flash test] data too long, cut to %d\r\n", test_len);
+  }
+
+  /*
+   * 当前 flash_port_stm32f4.c 是按 32bit word 写入。
+   * 测试阶段建议长度按 4 字节对齐。
+   */
+  if ((test_len % 4U) != 0U)
+  {
+    test_len = (test_len + 3U) & ~3U;
+    BSP_Printf("[flash test] align len to %d\r\n", test_len);
+  }
+
+  memset(read_buf, 0, sizeof(read_buf));
+
+  app_part = BSP_Flash_GetHandle(APP_PART_NAME);
+  if (app_part == NULL)
+  {
+    BSP_Printf("[flash test] get app part fail\r\n");
+    return;
+  }
+
+  BSP_Printf("[flash test] app addr: 0x%08lX, len: 0x%08lX\r\n",
+         app_part->addr,
+         app_part->len);
+
+  BSP_Printf("[flash test] erase offset: 0x%08lX, size: 0x%08lX\r\n",
+         (uint32_t)FLASH_TEST_OFFSET,
+         (uint32_t)FLASH_TEST_ERASE_SIZE);
+
+  if (BSP_Flash_Erase(app_part, FLASH_TEST_OFFSET, FLASH_TEST_ERASE_SIZE) < 0)
+  {
+    BSP_Printf("[flash test] erase fail\r\n");
+    return;
+  }
+
+  BSP_Printf("[flash test] erase ok\r\n");
+
+  if (BSP_Flash_Write(app_part, FLASH_TEST_OFFSET, data, test_len) < 0)
+  {
+    BSP_Printf("[flash test] write fail\r\n");
+    return;
+  }
+
+  BSP_Printf("[flash test] write ok\r\n");
+
+  if (BSP_Flash_Read(app_part, FLASH_TEST_OFFSET, read_buf, test_len) < 0)
+  {
+    BSP_Printf("[flash test] read fail\r\n");
+    return;
+  }
+
+  BSP_Printf("[flash test] read ok\r\n");
+
+  if (memcmp(read_buf, data, len) == 0)
+  {
+    BSP_Printf("[flash test] compare ok, raw len = %d, write len = %d\r\n",
+           len,
+           test_len);
+  }
+  else
+  {
+    BSP_Printf("[flash test] compare fail\r\n");
+
+    BSP_Printf("[flash test] send data first 16 bytes:\r\n");
+    for (uint16_t i = 0; i < len && i < 16; i++)
+    {
+      BSP_Printf("%02X ", data[i]);
+    }
+    BSP_Printf("\r\n");
+
+    BSP_Printf("[flash test] read data first 16 bytes:\r\n");
+    for (uint16_t i = 0; i < len && i < 16; i++)
+    {
+      BSP_Printf("%02X ", read_buf[i]);
+    }
+    BSP_Printf("\r\n");
+  }
+}
 /* USER CODE END 4 */
 
 /**
@@ -184,7 +308,7 @@ void assert_failed(uint8_t *file, uint32_t line)
 {
   /* USER CODE BEGIN 6 */
   /* User can add his own implementation to report the file name and line number,
-     ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
+     ex: BSP_Printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
   /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */
