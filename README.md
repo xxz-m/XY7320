@@ -1,205 +1,114 @@
-# XY_bootloadr & XY7320 - STM32F407ZGTx 双工程
+# XY7320 STM32F407 Bootloader 串口升级工程
 
-> 目标芯片：**STM32F407ZGTx**（1MB Flash / 192KB SRAM）  
-> 开发环境：CLion + STM32CubeCLT + arm-none-eabi-gcc + OpenOCD  
-> 参考组件：mOTA v2.0 + STM32F407 bootloader_ymodem 例程
+本仓库是 `STM32F407ZGTx` 的 Bootloader + APP 双工程，当前重点是通过串口把 APP 固件发送到 Bootloader，由 Bootloader 擦写 APP 分区，校验 APP 首地址后跳转运行。
 
-本仓库包含一套 **Bootloader + APP** 双分区 OTA 升级工程，正在按三阶段路线把官方 mOTA 框架移植到自研 STM32F407ZGTx 板子上。
-
-当前重点：`XY_bootloadr` 已完成 mOTA 阶段二的编译接入，后续需要继续验证 APP 区 Flash 擦写读回，然后再接串口和 YModem。
-
----
-
-## 1. 仓库结构
+## 工程结构
 
 ```text
-XY7320/
-├── README.md                         项目总览
-├── .gitignore
-│
-├── docs/                             项目资料文档
-│   ├── mota/
-│   │   └── mOTA移植步骤.md           三阶段移植指南，阶段二已按当前工程补充
-│   ├── project-docs/
-│   │   ├── dev-log.md                编写日志
-│   │   ├── project-structure.md      项目结构说明
-│   │   └── project-notes.md          项目知识补充与裁剪建议
-│   └── cmake-stm32/
-│       ├── cmake-stm32-notes.md      CMake / STM32 工程知识积累
-│       └── linker-and-boot-notes.md  链接脚本与 Bootloader 笔记
-│
-├── XY_bootloadr/                     工程一：Bootloader（64KB 救援程序）
-│   ├── XY_bootloadr.ioc              STM32CubeMX 工程
-│   ├── CMakeLists.txt                CLion 构建入口
-│   ├── CMakeLists_template.txt       CubeMX 重新生成时使用的模板
-│   ├── STM32F407ZGTX_FLASH.ld        链接脚本：Flash 限制 0x08000000 / 64K
-│   ├── STM32F407ZGTX_RAM.ld          链接脚本：SRAM 布局
-│   ├── stm32f4discovery.cfg          OpenOCD 调试配置
-│   │
-│   ├── Core/
-│   │   ├── Inc/                      CubeMX 生成的头文件
-│   │   ├── Src/                      CubeMX 生成的源文件 + main.c
-│   │   ├── Startup/
-│   │   └── bootloader/               自定义 bootloader 跳转逻辑
-│   │
-│   ├── MOTA/                         当前移植的 mOTA 组件
-│   │   ├── Core/                     mOTA core / firmware_manage / port 接口
-│   │   ├── Config/                   bootloader_config.h
-│   │   ├── Bsp/                      BSP Flash 抽象与占位 BSP 头文件
-│   │   └── Port/                     STM32F4 Flash read/write/erase 适配
-│   │
-│   └── Drivers/                      STM32 HAL + CMSIS
-│
-└── XY7320/                           工程二：APP（960KB 业务程序）
-    ├── XY7320.ioc
-    ├── CMakeLists.txt
-    ├── STM32F407ZGTX_FLASH.ld
-    ├── Core/
-    └── Drivers/
+XY7320_ST/
+├─ XY_bootloadr/                 Bootloader 工程
+├─ XY7320/                       APP 工程，链接地址 0x08010000
+├─ tools/QtUpgradeDemo/          Qt6 + CMake + QML + C++ 串口升级上位机 Demo
+├─ docs/
+│  ├─ project-docs/              项目记录、踩坑、结构说明
+│  ├─ cmake-stm32/               STM32 CMake、链接脚本、启动流程笔记
+│  └─ mota/                      mOTA 移植规划和串口升级流程
+└─ README.md
 ```
 
-> `cmake-build-*` 是 CLion 临时构建目录，应该被 `.gitignore` 排除，不入库。
+根目录 `mOTA/` 是官方/参考源码目录，本仓库默认不提交它，避免把大体积参考仓库混进项目源码。
 
----
+## Flash 分区
 
-## 2. Flash 分区图（STM32F407ZGTx 1MB）
-
-```text
-0x08000000 ┌──────────────────────┐
-           │   Bootloader  64KB   │  Sector 0~3（4 x 16KB）
-           │   XY_bootloadr       │  链接脚本 LENGTH = 64K
-0x08010000 ├──────────────────────┤
-           │                      │
-           │     APP    960KB     │  Sector 4~11（1 x 64KB + 7 x 128KB）
-           │     XY7320           │  链接脚本 LENGTH = 960K
-           │                      │
-0x080FFFFF └──────────────────────┘
-```
-
-| 区域 | 起始 | 长度 | 所在 Sector |
+| 分区 | 起始地址 | 大小 | 说明 |
 |---|---:|---:|---|
-| Bootloader | `0x08000000` | 64KB | Sector 0~3 |
-| APP | `0x08010000` | 960KB | Sector 4~11 |
+| Bootloader | `0x08000000` | `64KB` | Sector 0~3 |
+| APP | `0x08010000` | `960KB` | Sector 4~11 |
 
-约束：Bootloader 运行时严禁擦写 Sector 0~3，否则会破坏自身。
-
----
-
-## 3. Bootloader 启动流程
-
-```text
-系统上电 / 复位
-   |
-   v
-Bootloader: 0x08000000
-   |
-   |-- 判断 APP 首 word 是否像合法 SRAM 栈顶
-   |
-   |-- APP 有效：关闭中断、清 SysTick/NVIC、设置 VTOR/MSP、跳转 APP
-   |
-   `-- APP 无效：停留 Bootloader，后续阶段等待串口升级
-```
-
-APP 跳转后，APP 侧必须配合：
+APP 工程必须链接到 `0x08010000`。APP 启动后建议在 `main()` 早期设置：
 
 ```c
-SCB->VTOR = 0x08010000;
+SCB->VTOR = 0x08010000U;
 __enable_irq();
 ```
 
-否则中断向量表仍可能指向 Bootloader，或者中断没有重新打开。
+## 当前升级协议
 
----
-
-## 4. mOTA 阶段二当前状态
-
-阶段二目标：
+上位机先发送 12 字节小端头包：
 
 ```text
-mOTA core 加入工程
-bootloader_config.h 适配 STM32F407ZGTx 1MB Flash
-BSP Flash 抽象接到底层 STM32F4 Flash read/write/erase
-工程先编译通过
+magic    4 字节：0x41505055，对应 HEX 为 55 50 50 41
+app_size 4 字节：APP bin 文件大小
+crc32    4 字节：APP bin 文件 CRC32
 ```
 
-当前已完成：
+Bootloader 收到头包后擦除 APP 分区，打印 `OK` 后等待 APP 原始 bin 数据。上位机按设置的包大小和包间隔继续发送固件数据。
 
-| 项目 | 状态 |
-|---|---|
-| mOTA core 加入 `XY_bootloadr/MOTA/Core` | 已完成 |
-| `bootloader_config.h` 适配 1MB Flash / 64KB Bootloader | 已完成 |
-| 使用 `ONE_PART_PROJECT` 单分区方案 | 已完成 |
-| `BSP_Flash_Read/Write/Erase` 接入 Port 层 | 已完成 |
-| `flash_port_stm32f4.c` 实现 STM32F4 read/write/erase | 已完成 |
-| `bootloader_port.c` 阶段二简化 | 已完成 |
-| 阶段二工程编译 | 已通过 |
-| APP 区 Flash 擦写读回实机验证 | 待验证 |
-| 串口 / YModem | 未接入 |
-
-当前阶段二可以认为：**编译目标已通过，Flash 功能还建议补一次擦写读回验证。**
-
----
-
-## 5. 当前 mOTA 调用链
+当前 Qt 上位机界面会自动计算并显示头包 HEX，方便手动比对，例如：
 
 ```text
-Bootloader_Init()
-   |
-   v
-FM_Init()
-   |
-   v
-BSP_Flash_Init(APP 分区)
-
-固件写入相关流程
-   |
-   v
-BSP_Flash_Read / BSP_Flash_Write / BSP_Flash_Erase
-   |
-   v
-read / write / erase
-   |
-   v
-HAL_FLASH_Program / HAL_FLASHEx_Erase
+55 50 50 41 18 13 00 00 D8 22 25 85
 ```
 
-阶段二暂时不接串口和 YModem，所以 `bootloader_port.c` 中：
+## 已处理的问题
 
-```text
-Bootloader_Port_Init             空实现
-Bootloader_Port_HostDataProcess  空实现
-Bootloader_Port_Reset            空实现
-Bootloader_Port_JumpToAPP        保留真实跳转逻辑
-Bootloader_Port_SystemReset      保留系统复位
+### 1. Bootloader 接收数据被覆盖
+
+之前 USART2 DMA 接收缓冲和 Flash 写入处理共用同一个 buffer，主循环写 Flash 时，DMA 可能已经把下一包数据覆盖进来，导致 APP 首地址被写坏。
+
+现在采用两级 buffer：
+
+- `uart2_rx_buf`：DMA 接收专用
+- `uart2_proc_buf`：主循环业务处理专用
+
+IDLE 中断里先停止 DMA，计算长度，把 DMA buffer 快速复制到处理 buffer，然后立即恢复 DMA 接收。主循环只处理 `uart2_proc_buf`。
+
+### 2. APP 从 Bootloader 跳转后卡在 `__libc_init_array`
+
+CLion + arm-none-eabi-gcc 使用 GCC/newlib 启动链路，和 Keil 的启动/运行库不同。当前 APP CMake 已补充裸机链接配置：
+
+```cmake
+add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-fno-use-cxa-atexit>)
+add_link_options(--specs=nano.specs --specs=nosys.specs -nostartfiles)
 ```
 
----
+同时新增 `minimal_runtime.c` 提供空的 `_init()` / `_fini()`，这样可以保留启动文件里的 `bl __libc_init_array`，后续 APP 接入 C++ 全局对象或 FreeRTOS 时更稳。
 
-## 6. 资料文档入口
+### 3. APP 后续接入 RTOS
+
+后续 APP 如果会上 FreeRTOS，要特别注意：
+
+- APP 自己设置 `VTOR`
+- Bootloader 跳转前清理 SysTick、NVIC、DMA、外设中断
+- `SysTick / PendSV / SVC` 必须来自 APP 向量表
+- 中断优先级要符合 `configMAX_SYSCALL_INTERRUPT_PRIORITY`
+- 重新规划 MSP、任务栈和 FreeRTOS heap
+
+## 文档入口
 
 | 文档 | 内容 |
 |---|---|
-| [`docs/mota/mOTA移植步骤.md`](docs/mota/mOTA移植步骤.md) | 三阶段 mOTA 移植主文档，阶段二已补详细 |
-| [`docs/project-docs/dev-log.md`](docs/project-docs/dev-log.md) | 阶段二编写日志 |
-| [`docs/project-docs/project-structure.md`](docs/project-docs/project-structure.md) | 项目结构说明 |
-| [`docs/project-docs/project-notes.md`](docs/project-docs/project-notes.md) | 项目知识补充、文件作用、裁剪建议 |
-| [`docs/cmake-stm32/cmake-stm32-notes.md`](docs/cmake-stm32/cmake-stm32-notes.md) | CMake 与 STM32 工程知识 |
-| [`docs/cmake-stm32/linker-and-boot-notes.md`](docs/cmake-stm32/linker-and-boot-notes.md) | 链接脚本、Flash 分区、APP 跳转笔记 |
+| [项目笔记.md](docs/project-docs/项目笔记.md) | 后续开发约束、Bootloader 跳 APP、RTOS 注意事项 |
+| [踩坑记录.md](docs/project-docs/踩坑记录.md) | 本轮升级调试复盘，包括 `__libc_init_array` 和 DMA 覆盖问题 |
+| [开发日志.md](docs/project-docs/开发日志.md) | 项目阶段性开发记录 |
+| [项目结构.md](docs/project-docs/项目结构.md) | 仓库结构说明 |
+| [STM32_CMake笔记.md](docs/cmake-stm32/STM32_CMake笔记.md) | STM32 CMake 工程配置笔记 |
+| [链接脚本与启动流程.md](docs/cmake-stm32/链接脚本与启动流程.md) | Flash 分区、链接脚本、启动与跳转流程 |
+| [串口移植与升级流程规划.md](docs/mota/串口移植与升级流程规划.md) | 串口升级流程规划 |
 
----
+## 构建提示
 
-## 7. 下一步计划
+Bootloader 和 APP 都是 CLion / STM32CubeCLT / arm-none-eabi-gcc 工程。
 
-建议顺序：
-
-```text
-1. 做 APP 区 Flash 擦写读回测试。
-2. 确认 Bootloader 不会擦写 Sector 0~3。
-3. 先接串口收发，不急着接 YModem。
-4. USART2 DMA + IDLE 跑通。
-5. 接 data_transfer。
-6. 接 protocol_parser / YModem。
-7. 使用 APP.fpk 做升级测试。
+```powershell
+cmake --build XY_bootloadr/cmake-build-debug
+cmake --build XY7320/cmake-build-debug
 ```
 
-记住：串口是底层通道，YModem 是上层协议。先把串口通道打通，再接协议。
+Qt 上位机 Demo 位于：
+
+```text
+tools/QtUpgradeDemo/
+```
+
+使用 Qt6 + CMake 构建，需要本机安装 Qt 串口模块 `Qt6::SerialPort`。

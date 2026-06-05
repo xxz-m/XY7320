@@ -22,6 +22,7 @@
 #include "stm32f4xx_it.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "string.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -59,8 +60,10 @@ extern DMA_HandleTypeDef hdma_usart2_rx;
 extern UART_HandleTypeDef huart2;
 /* USER CODE BEGIN EV */
 uint8_t uart2_rx_buf[UART2_RX_BUF_SIZE];
+uint8_t uart2_proc_buf[UART2_RX_BUF_SIZE];
 volatile uint16_t uart2_rx_len = 0;
 volatile uint8_t uart2_rx_done = 0;
+volatile uint8_t uart2_rx_overflow = 0;
 /* USER CODE END EV */
 
 /******************************************************************************/
@@ -227,8 +230,18 @@ void USART2_IRQHandler(void)
 
     HAL_UART_DMAStop(&huart2);
 
-    uart2_rx_len = UART2_RX_BUF_SIZE - __HAL_DMA_GET_COUNTER(huart2.hdmarx);
-    uart2_rx_done = 1;
+    uint16_t rx_len = UART2_RX_BUF_SIZE - __HAL_DMA_GET_COUNTER(huart2.hdmarx);
+
+    if (uart2_rx_done == 0U)
+    {
+      uart2_rx_len = rx_len;
+      memcpy(uart2_proc_buf, uart2_rx_buf, rx_len);
+      uart2_rx_done = 1;
+    }
+    else
+    {
+      uart2_rx_overflow = 1;
+    }
 
     HAL_UART_Receive_DMA(&huart2, uart2_rx_buf, UART2_RX_BUF_SIZE);
   }

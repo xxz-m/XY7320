@@ -32,8 +32,10 @@
 #include "simple_update.h"
 #include "boot_jump.h"
 extern uint8_t uart2_rx_buf[UART2_RX_BUF_SIZE];
+extern uint8_t uart2_proc_buf[UART2_RX_BUF_SIZE];
 extern volatile uint16_t uart2_rx_len;
 extern volatile uint8_t uart2_rx_done;
+extern volatile uint8_t uart2_rx_overflow;
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -110,14 +112,7 @@ int main(void)
   BSP_Printf("bootloader start\r\n");
   Simple_Update_Init();
 
-  /* 上电自动检查 APP 是否有效，有效就跳 */
-  if (Boot_IsValidApp(APP_ADDRESS))
-  {
-    BSP_Printf("APP valid, jumping...\r\n");
-    HAL_Delay(100);
-    Boot_JumpToApp(APP_ADDRESS);
-  }
-  BSP_Printf("no APP, waiting upgrade...\r\n");
+  BSP_Printf("waiting upgrade...\r\n");
 
   HAL_UART_Receive_DMA(&huart2, uart2_rx_buf, UART2_RX_BUF_SIZE);
   __HAL_UART_ENABLE_IT(&huart2, UART_IT_IDLE);
@@ -133,7 +128,13 @@ int main(void)
     {
       uart2_rx_done = 0;
       BSP_Printf("USART2 RX len = %d\r\n", uart2_rx_len);
-      Simple_Update_Process(uart2_rx_buf, uart2_rx_len);
+      Simple_Update_Process(uart2_proc_buf, uart2_rx_len);
+    }
+
+    if (uart2_rx_overflow)
+    {
+      uart2_rx_overflow = 0;
+      BSP_Printf("USART2 RX overflow, slow down sender\r\n");
     }
   }
   /* USER CODE END 3 */
