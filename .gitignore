@@ -13,6 +13,8 @@ cmake-build-*.*/
 # Qt Creator local files
 tools/QtUpgradeDemo/build/
 tools/QtUpgradeDemo/.qtcreator/
+tools/XY7320Host/build/
+tools/XY7320Host/.qtcreator/
 
 # STM32 build outputs
 *.bin

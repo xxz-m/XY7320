@@ -8,7 +8,7 @@
 XY7320_ST/
 ├─ XY_bootloadr/                 Bootloader 工程
 ├─ XY7320/                       APP 工程，链接地址 0x08010000
-├─ tools/QtUpgradeDemo/          Qt6 + CMake + QML + C++ 串口升级上位机 Demo
+├─ tools/XY7320Host/             Qt6 + CMake + QML + C++ 串口升级上位机
 ├─ docs/
 │  ├─ project-docs/              项目记录、踩坑、结构说明
 │  ├─ cmake-stm32/               STM32 CMake、链接脚本、启动流程笔记
@@ -95,6 +95,7 @@ add_link_options(--specs=nano.specs --specs=nosys.specs -nostartfiles)
 | [STM32_CMake笔记.md](docs/cmake-stm32/STM32_CMake笔记.md) | STM32 CMake 工程配置笔记 |
 | [链接脚本与启动流程.md](docs/cmake-stm32/链接脚本与启动流程.md) | Flash 分区、链接脚本、启动与跳转流程 |
 | [串口移植与升级流程规划.md](docs/mota/串口移植与升级流程规划.md) | 串口升级流程规划 |
+| [XY7320Host串口升级上位机说明.md](docs/qt/XY7320Host串口升级上位机说明.md) | Qt 上位机串口、手动发包、UI 布局和构建说明 |
 
 ## 构建提示
 
@@ -105,10 +106,10 @@ cmake --build XY_bootloadr/cmake-build-debug
 cmake --build XY7320/cmake-build-debug
 ```
 
-Qt 上位机 Demo 位于：
+Qt 上位机位于：
 
 ```text
-tools/QtUpgradeDemo/
+tools/XY7320Host/
 ```
 
 使用 Qt6 + CMake 构建，需要本机安装 Qt 串口模块 `Qt6::SerialPort`。

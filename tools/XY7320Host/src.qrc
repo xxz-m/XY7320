@@ -1,0 +1,7 @@
+<RCC>
+    <qresource prefix="/xy7320host">
+        <file>assets/images/icon.ico</file>
+        <file>assets/images/loader.gif</file>
+        <file>assets/fonts/Font Awesome 6 Free-Solid-900.otf</file>
+    </qresource>
+</RCC>
