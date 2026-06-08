@@ -53,6 +53,14 @@ extern volatile uint8_t uart2_rx_overflow;
 #define FLASH_TEST_OFFSET        (FLASH_TEST_ABS_ADDR - APP_ADDRESS)
 #define FLASH_TEST_ERASE_SIZE    0x20000U
 #define FLASH_TEST_MAX_SIZE      1024U
+
+#define BOOT_KEY_GPIO_PORT       GPIOB
+#define BOOT_KEY_GPIO_PIN        GPIO_PIN_8
+#define BOOT_KEY_PRESSED_LEVEL   GPIO_PIN_RESET
+#define BOOT_KEY_WAIT_TIMEOUT_MS 10000U
+#define BOOT_KEY_SCAN_PERIOD_MS  10U
+#define BOOT_KEY_DEBOUNCE_MS     50U
+#define BOOT_KEY_LOG_PERIOD_MS   1000U
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -70,6 +78,9 @@ extern volatile uint8_t uart2_rx_overflow;
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
 static void MOTA_Flash_Test_By_Uart_Data(uint8_t *data, uint16_t len);
+static uint8_t Boot_Key_IsPressedDebounced(void);
+static uint8_t Boot_WaitUpgradeKey(uint32_t timeout_ms);
+static void Boot_EnterUpgradeMode(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -110,12 +121,30 @@ int main(void)
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
   BSP_Printf("bootloader start\r\n");
+  BSP_Printf("debug uart ready\r\n");
+  BSP_Printf("upgrade key: PB8, pressed level: LOW\r\n");
   Simple_Update_Init();
 
-  BSP_Printf("waiting upgrade...\r\n");
+  BSP_Printf("hold PB8 to enter upgrade mode, wait %lu ms...\r\n", (uint32_t)BOOT_KEY_WAIT_TIMEOUT_MS);
 
-  HAL_UART_Receive_DMA(&huart2, uart2_rx_buf, UART2_RX_BUF_SIZE);
-  __HAL_UART_ENABLE_IT(&huart2, UART_IT_IDLE);
+  if (Boot_WaitUpgradeKey(BOOT_KEY_WAIT_TIMEOUT_MS))
+  {
+    BSP_Printf("upgrade key pressed, stay bootloader\r\n");
+    Boot_EnterUpgradeMode();
+  }
+  else
+  {
+    BSP_Printf("upgrade key not pressed\r\n");
+
+    if (Boot_IsValidApp(APP_ADDRESS))
+    {
+      BSP_Printf("APP valid, jump to APP\r\n");
+      Boot_JumpToApp(APP_ADDRESS);
+    }
+
+    BSP_Printf("APP invalid, stay bootloader\r\n");
+    Boot_EnterUpgradeMode();
+  }
   /* USER CODE END 2 */
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
@@ -187,6 +216,74 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
+static uint8_t Boot_Key_IsPressedDebounced(void)
+{
+  uint32_t stable_time = 0U;
+
+  while (stable_time < BOOT_KEY_DEBOUNCE_MS)
+  {
+    if (HAL_GPIO_ReadPin(BOOT_KEY_GPIO_PORT, BOOT_KEY_GPIO_PIN) != BOOT_KEY_PRESSED_LEVEL)
+    {
+      return 0U;
+    }
+
+    HAL_Delay(BOOT_KEY_SCAN_PERIOD_MS);
+    stable_time += BOOT_KEY_SCAN_PERIOD_MS;
+  }
+
+  return 1U;
+}
+
+static uint8_t Boot_WaitUpgradeKey(uint32_t timeout_ms)
+{
+  uint32_t start_tick = HAL_GetTick();
+  uint32_t last_log_tick = start_tick;
+  uint32_t elapsed = 0U;
+  uint32_t remain = 0U;
+
+  BSP_Printf("boot wait start, timeout = %lu ms\r\n", (uint32_t)timeout_ms);
+
+  while ((HAL_GetTick() - start_tick) < timeout_ms)
+  {
+    elapsed = HAL_GetTick() - start_tick;
+
+    if ((HAL_GetTick() - last_log_tick) >= BOOT_KEY_LOG_PERIOD_MS)
+    {
+      remain = (timeout_ms > elapsed) ? (timeout_ms - elapsed) : 0U;
+      BSP_Printf("boot wait: %lu ms left, PB8=%d\r\n",
+                 (uint32_t)remain,
+                 (int)HAL_GPIO_ReadPin(BOOT_KEY_GPIO_PORT, BOOT_KEY_GPIO_PIN));
+      last_log_tick = HAL_GetTick();
+    }
+
+    if (HAL_GPIO_ReadPin(BOOT_KEY_GPIO_PORT, BOOT_KEY_GPIO_PIN) == BOOT_KEY_PRESSED_LEVEL)
+    {
+      BSP_Printf("PB8 low detected, debounce...\r\n");
+
+      if (Boot_Key_IsPressedDebounced())
+      {
+        BSP_Printf("PB8 debounce ok\r\n");
+        return 1U;
+      }
+
+      BSP_Printf("PB8 debounce failed\r\n");
+    }
+
+    HAL_Delay(BOOT_KEY_SCAN_PERIOD_MS);
+  }
+
+  BSP_Printf("boot wait timeout\r\n");
+  return 0U;
+}
+
+static void Boot_EnterUpgradeMode(void)
+{
+  BSP_Printf("waiting upgrade...\r\n");
+
+  HAL_UART_Receive_DMA(&huart2, uart2_rx_buf, UART2_RX_BUF_SIZE);
+  __HAL_UART_ENABLE_IT(&huart2, UART_IT_IDLE);
+}
+
 static void MOTA_Flash_Test_By_Uart_Data(uint8_t *data, uint16_t len)
 {
   struct BSP_FLASH *app_part = NULL;

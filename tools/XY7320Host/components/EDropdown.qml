@@ -30,6 +30,7 @@ Item {
     property int horizontalPadding: 24
     property real pressedScale: 0.96
     property int popupSpacing: 8
+    property bool scrollBarAlwaysVisible: false
 
     // === 弹出动画参数 ===
     property int popupEnterDuration: 260
@@ -261,8 +262,8 @@ Item {
 
                 ScrollBar.vertical: Basic.ScrollBar {
                     width: 4
-                    policy: ScrollBar.AsNeeded
-                    active: contentListView.moving || contentListView.dragging
+                    policy: root.scrollBarAlwaysVisible ? ScrollBar.AlwaysOn : ScrollBar.AsNeeded
+                    active: root.scrollBarAlwaysVisible || contentListView.moving || contentListView.dragging
 
                     contentItem: Rectangle {
                         implicitWidth: 4

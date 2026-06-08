@@ -614,6 +614,7 @@ Item {
                             }
 
                             RowLayout {
+                                z: packetSizeDropdown.opened ? 1000 : 0
                                 Layout.fillWidth: true
                                 spacing: 10
 
@@ -635,7 +636,9 @@ Item {
                                     headerHeight: 36
                                     radius: 8
                                     fontSize: 12
-                                    popupMaxHeight: 180
+                                    popupMaxHeight: 220
+                                    popupDirection: 1
+                                    scrollBarAlwaysVisible: true
                                     shadowEnabled: false
                                     Layout.fillWidth: true
                                     Layout.minimumWidth: 150
@@ -647,6 +650,7 @@ Item {
                             }
 
                             RowLayout {
+                                z: packetDelayDropdown.opened ? 900 : 0
                                 Layout.fillWidth: true
                                 spacing: 10
 
@@ -668,7 +672,9 @@ Item {
                                     headerHeight: 36
                                     radius: 8
                                     fontSize: 12
-                                    popupMaxHeight: 180
+                                    popupMaxHeight: 220
+                                    popupDirection: 1
+                                    scrollBarAlwaysVisible: true
                                     shadowEnabled: false
                                     Layout.fillWidth: true
                                     Layout.minimumWidth: 150
