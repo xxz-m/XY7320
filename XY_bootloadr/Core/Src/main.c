@@ -31,6 +31,7 @@
 #include "bootloader_define.h"
 #include "simple_update.h"
 #include "boot_jump.h"
+#include "app_version_config.h"
 extern uint8_t uart2_rx_buf[UART2_RX_BUF_SIZE];
 extern uint8_t uart2_proc_buf[UART2_RX_BUF_SIZE];
 extern volatile uint16_t uart2_rx_len;
@@ -45,11 +46,11 @@ extern volatile uint8_t uart2_rx_overflow;
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-// FLASH_TEST_ABS_ADDR   测试绝对地址，Sector 11 起始地址
+// FLASH_TEST_ABS_ADDR   测试绝对地址，Sector 10 起始地址
 // FLASH_TEST_OFFSET     APP 分区内偏移
 // FLASH_TEST_ERASE_SIZE 擦除 128KB，也就是 Sector 11
 // FLASH_TEST_MAX_SIZE   最大测试 1024 字节
-#define FLASH_TEST_ABS_ADDR      0x080E0000U
+#define FLASH_TEST_ABS_ADDR      0x080C0000U
 #define FLASH_TEST_OFFSET        (FLASH_TEST_ABS_ADDR - APP_ADDRESS)
 #define FLASH_TEST_ERASE_SIZE    0x20000U
 #define FLASH_TEST_MAX_SIZE      1024U
@@ -61,6 +62,7 @@ extern volatile uint8_t uart2_rx_overflow;
 #define BOOT_KEY_SCAN_PERIOD_MS  10U
 #define BOOT_KEY_DEBOUNCE_MS     50U
 #define BOOT_KEY_LOG_PERIOD_MS   1000U
+#define BOOT_UPGRADE_READY_ACK   "XYB1"
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -125,25 +127,33 @@ int main(void)
   BSP_Printf("upgrade key: PB8, pressed level: LOW\r\n");
   Simple_Update_Init();
 
-  BSP_Printf("hold PB8 to enter upgrade mode, wait %lu ms...\r\n", (uint32_t)BOOT_KEY_WAIT_TIMEOUT_MS);
-
-  if (Boot_WaitUpgradeKey(BOOT_KEY_WAIT_TIMEOUT_MS))
+  if (AppVersionConfig_ShouldEnterUpgrade())
   {
-    BSP_Printf("upgrade key pressed, stay bootloader\r\n");
+    BSP_Printf("version config requests upgrade, stay bootloader\r\n");
     Boot_EnterUpgradeMode();
   }
   else
   {
-    BSP_Printf("upgrade key not pressed\r\n");
+    BSP_Printf("hold PB8 to enter upgrade mode, wait %lu ms...\r\n", (uint32_t)BOOT_KEY_WAIT_TIMEOUT_MS);
 
-    if (Boot_IsValidApp(APP_ADDRESS))
+    if (Boot_WaitUpgradeKey(BOOT_KEY_WAIT_TIMEOUT_MS))
     {
-      BSP_Printf("APP valid, jump to APP\r\n");
-      Boot_JumpToApp(APP_ADDRESS);
+      BSP_Printf("upgrade key pressed, stay bootloader\r\n");
+      Boot_EnterUpgradeMode();
     }
+    else
+    {
+      BSP_Printf("upgrade key not pressed\r\n");
 
-    BSP_Printf("APP invalid, stay bootloader\r\n");
-    Boot_EnterUpgradeMode();
+      if (Boot_IsValidApp(APP_ADDRESS))
+      {
+        BSP_Printf("APP valid, jump to APP\r\n");
+        Boot_JumpToApp(APP_ADDRESS);
+      }
+
+      BSP_Printf("APP invalid, stay bootloader\r\n");
+      Boot_EnterUpgradeMode();
+    }
   }
   /* USER CODE END 2 */
   /* Infinite loop */
@@ -278,10 +288,13 @@ static uint8_t Boot_WaitUpgradeKey(uint32_t timeout_ms)
 
 static void Boot_EnterUpgradeMode(void)
 {
+  const uint8_t ack[] = BOOT_UPGRADE_READY_ACK;
+
   BSP_Printf("waiting upgrade...\r\n");
 
   HAL_UART_Receive_DMA(&huart2, uart2_rx_buf, UART2_RX_BUF_SIZE);
   __HAL_UART_ENABLE_IT(&huart2, UART_IT_IDLE);
+  (void)HAL_UART_Transmit(&huart2, (uint8_t *)ack, sizeof(ack) - 1U, 100U);
 }
 
 static void MOTA_Flash_Test_By_Uart_Data(uint8_t *data, uint16_t len)

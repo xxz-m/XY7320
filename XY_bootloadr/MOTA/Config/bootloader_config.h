@@ -77,7 +77,7 @@
  */
 #define ONCHIP_FLASH_SIZE                   (1024 * 1024)            /* 片上 flash 容量，单位: byte */
 #define BOOTLOADER_SIZE                     (64 * 1024)             /* 预留给 bootloader 的空间，单位: byte（最小需要大于本工程编译后的大小） */
-#define APP_PART_SIZE                       (ONCHIP_FLASH_SIZE - BOOTLOADER_SIZE)             /* 预留给 APP 分区的空间，单位: byte（注意页对齐） */
+#define APP_PART_SIZE                       (ONCHIP_FLASH_SIZE - BOOTLOADER_SIZE - (128 * 1024))             /* APP: 0x08010000~0x080DFFFF, Sector 11 reserved for config */
 #define DOWNLOAD_PART_SIZE                  0       /* 预留给 download 分区的空间，单位: byte（注意页对齐，不使用时，写0） */
 #define FACTORY_PART_SIZE                   0         /* 预留给 factory 分区的空间，单位: byte（注意页对齐，不使用时，写0） */
 
@@ -389,4 +389,3 @@
  *       这两个均是 weak 函数
  */
 // #define USING_CUSTOM_UPDATE_FLAG
-

@@ -107,18 +107,39 @@ Q_INVOKABLE void copyHeaderToClipboard();
 
 ## 自动升级流程
 
-自动升级流程用于正常使用：
+自动升级流程用于正常使用。当前版本已经改为固定码握手，不再依赖固定延时盲发头包和固件：
 
 ```text
 1. 选择串口、波特率和 APP bin。
 2. 点击开始升级。
 3. 上位机打开串口。
-4. 发送 12 字节头包。
-5. 按包大小和间隔连续发送固件。
-6. 更新进度和日志。
+4. 发送版本帧，等待 APP 返回 XYA1。
+5. 等待 Bootloader 返回 XYB1。
+6. 发送 12 字节头包，等待 Bootloader 返回 XYB2。
+7. 按包大小和间隔连续发送固件。
+8. 固件发送完成后等待 Bootloader 返回 XYB3。
+9. 收到 XYB3 后日志提示升级完成。
 ```
 
 自动和手动模式共用同一套包大小、包间隔、CRC32 和串口写入逻辑，避免两套逻辑长期漂移。
+
+固定码含义：
+
+```text
+XYA1  APP 已接收版本帧，即将写配置并复位
+XYB1  Bootloader 已进入升级模式，USART2 已准备接收
+XYB2  Bootloader 已接收头包并擦除 APP 区，正在等待 APP 数据
+XYB3  Bootloader 已接收完 APP，校验有效，即将跳转 APP
+```
+
+上位机状态机位于：
+
+```text
+tools/XY7320Host/backend/FirmwareUploader.cpp
+tools/XY7320Host/backend/FirmwareUploader.h
+```
+
+若自动升级超时，上位机日志会输出当前等待阶段和最后收到的 RX hex，用于判断卡在 APP、Bootloader 启动、头包擦除还是固件校验阶段。
 
 ## UI 与布局约束
 

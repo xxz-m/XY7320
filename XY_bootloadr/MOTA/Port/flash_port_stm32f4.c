@@ -2,7 +2,7 @@
 #include "string.h"
 #define FLASH_BASE_ADDR      0x08000000U
 #define APP_START_ADDR       0x08010000U
-#define FLASH_END_ADDR       0x08100000U
+#define FLASH_END_ADDR       0x080E0000U
 
 int read(long offset, uint8_t *buf, size_t size)
 {
@@ -104,7 +104,7 @@ int erase(long offset, size_t size)
     first_sector = get_sector(addr);
     last_sector = get_sector(addr + size - 1);
 
-    if (first_sector < FLASH_SECTOR_4 || last_sector > FLASH_SECTOR_11) {
+    if (first_sector < FLASH_SECTOR_4 || last_sector > FLASH_SECTOR_10) {
         return -1;
     }
 
