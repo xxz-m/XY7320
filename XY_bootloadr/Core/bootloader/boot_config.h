@@ -58,9 +58,7 @@
 /** APP 固件起始地址 */
 #define APP_ADDRESS             0x08010000U
 /** APP 区最大可用空间（1MB - 64KB = 960KB） */
-#define APP_PART_SIZE           0x000D0000U
-#define APP_CONFIG_ADDRESS      0x080E0000U
-#define APP_CONFIG_SIZE         0x00020000U
+#define APP_PART_SIZE           0x000F0000U
 
 /* ======================== SRAM 地址范围 ======================== */
 /* 用于判断 APP 栈顶是否合法 */

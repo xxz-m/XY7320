@@ -308,63 +308,6 @@ Item {
                             spacing: 10
 
                             Text {
-                                text: qsTr("版本")
-                                color: theme.textColor
-                                font.pixelSize: 13
-                                Layout.preferredWidth: root.formLabelWidth
-                            }
-
-                            EInput {
-                                text: firmwareUploader.versionText
-                                placeholderText: qsTr("yyyyMMddHHmm")
-                                radius: 8
-                                fontSize: 13
-                                shadowEnabled: false
-                                enabled: !firmwareUploader.busy
-                                Layout.fillWidth: true
-                                Layout.preferredHeight: 40
-                                onAccepted: firmwareUploader.versionText = text
-                            }
-
-                            EInput {
-                                text: "0x" + ("0" + Number(firmwareUploader.versionFlag).toString(16).toUpperCase()).slice(-2)
-                                readOnly: true
-                                radius: 8
-                                fontSize: 13
-                                shadowEnabled: false
-                                Layout.preferredWidth: 104
-                                Layout.preferredHeight: 40
-                            }
-                        }
-
-                        RowLayout {
-                            Layout.fillWidth: true
-                            spacing: 10
-
-                            Text {
-                                text: qsTr("版本帧")
-                                color: theme.textColor
-                                font.pixelSize: 13
-                                Layout.preferredWidth: root.formLabelWidth
-                            }
-
-                            EInput {
-                                text: firmwareUploader.versionFrameHex
-                                readOnly: true
-                                placeholderText: qsTr("选择 bin 后按修改时间生成")
-                                radius: 8
-                                fontSize: 13
-                                shadowEnabled: false
-                                Layout.fillWidth: true
-                                Layout.preferredHeight: 40
-                            }
-                        }
-
-                        RowLayout {
-                            Layout.fillWidth: true
-                            spacing: 10
-
-                            Text {
                                 text: qsTr("头包")
                                 color: theme.textColor
                                 font.pixelSize: 13
@@ -439,19 +382,6 @@ Item {
                                     rowSpacing: 10
 
                                     EButton {
-                                        text: qsTr("发送版本帧")
-                                        iconCharacter: "\uf1d8"
-                                        size: "xs"
-                                        radius: 8
-                                        shadowEnabled: false
-                                        enabled: !firmwareUploader.busy
-                                        Layout.fillWidth: true
-                                        Layout.minimumWidth: 132
-                                        Layout.preferredHeight: 40
-                                        onClicked: firmwareUploader.sendVersionFrameManual()
-                                    }
-
-                                    EButton {
                                         text: qsTr("发送头包")
                                         iconCharacter: "\uf35b"
                                         size: "xs"
@@ -480,7 +410,7 @@ Item {
 
                                 Text {
                                     text: firmwareUploader.manualHeaderSent
-                                          ? qsTr("头包已发送，可以继续发送固件。")
+                                          ? qsTr("头包已发送，可继续发送固件。")
                                           : qsTr("头包未发送。")
                                     color: firmwareUploader.manualHeaderSent
                                            ? theme.focusColor

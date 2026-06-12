@@ -19,9 +19,6 @@ class FirmwareUploader : public QObject
     Q_PROPERTY(QString fileName READ fileName NOTIFY fileInfoChanged)
     Q_PROPERTY(QString fileSizeText READ fileSizeText NOTIFY fileInfoChanged)
     Q_PROPERTY(QString crcHex READ crcHex NOTIFY fileInfoChanged)
-    Q_PROPERTY(QString versionText READ versionText WRITE setVersionText NOTIFY versionInfoChanged)
-    Q_PROPERTY(int versionFlag READ versionFlag WRITE setVersionFlag NOTIFY versionInfoChanged)
-    Q_PROPERTY(QString versionFrameHex READ versionFrameHex NOTIFY versionInfoChanged)
     Q_PROPERTY(QString headerHex READ headerHex NOTIFY headerHexChanged)
     Q_PROPERTY(int packetSize READ packetSize WRITE setPacketSize NOTIFY packetSizeChanged)
     Q_PROPERTY(int headerDelayMs READ headerDelayMs WRITE setHeaderDelayMs NOTIFY headerDelayMsChanged)
@@ -43,9 +40,6 @@ public:
     QString fileName() const;
     QString fileSizeText() const;
     QString crcHex() const;
-    QString versionText() const;
-    int versionFlag() const;
-    QString versionFrameHex() const;
     QString headerHex() const;
     int packetSize() const;
     int headerDelayMs() const;
@@ -60,8 +54,6 @@ public:
     void setPortName(const QString &portName);
     void setBaudRate(int baudRate);
     void setFilePath(const QString &filePath);
-    void setVersionText(const QString &versionText);
-    void setVersionFlag(int versionFlag);
     void setPacketSize(int packetSize);
     void setHeaderDelayMs(int headerDelayMs);
     void setPacketDelayMs(int packetDelayMs);
@@ -71,7 +63,6 @@ public:
     Q_INVOKABLE void openPort();
     Q_INVOKABLE void closePort();
     Q_INVOKABLE void start();
-    Q_INVOKABLE void sendVersionFrameManual();
     Q_INVOKABLE void sendHeaderManual();
     Q_INVOKABLE void sendFirmwareManual();
     Q_INVOKABLE void copyHeaderToClipboard();
@@ -84,7 +75,6 @@ signals:
     void baudRateChanged();
     void filePathChanged();
     void fileInfoChanged();
-    void versionInfoChanged();
     void headerHexChanged();
     void packetSizeChanged();
     void headerDelayMsChanged();
@@ -99,30 +89,14 @@ signals:
 private slots:
     void sendNextPacket();
     void checkSelectedFile();
-    void handleSerialReadyRead();
-    void handleHandshakeTimeout();
 
 private:
     static constexpr quint32 SimpleAppMagic = 0x41505055U;
     static constexpr int MaxPacketSize = 1024;
-    static constexpr int VersionTextLength = 12;
-    static constexpr int HandshakeTimeoutMs = 8000;
-
-    enum class AutoStage {
-        Idle,
-        WaitAppVersionAck,
-        WaitBootReady,
-        WaitHeaderAck,
-        SendingFirmware,
-        WaitFinishAck
-    };
 
     QByteArray makeHeader() const;
-    QByteArray makeVersionFrame() const;
-    bool validateVersionFrameInput();
     bool prepareFirmware();
     void updateFileInfo();
-    void updateVersionInfo();
     void updateHeaderHex();
     void updateFileSnapshot();
     void resetPreparedFirmware();
@@ -137,11 +111,6 @@ private:
     bool writeBytes(const QByteArray &data);
     void finish(bool ok, const QString &message);
     void closeSession();
-    void startHandshakeTimer();
-    void stopHandshakeTimer();
-    void consumeRxBuffer();
-    void handleHandshakeCode(const QByteArray &code);
-    QString stageName(AutoStage stage) const;
 
     QVariantList m_ports;
     QString m_portName;
@@ -150,9 +119,6 @@ private:
     QString m_fileName = QStringLiteral("-");
     QString m_fileSizeText = QStringLiteral("-");
     QString m_crcHex = QStringLiteral("-");
-    QString m_versionText;
-    int m_versionFlag = 0;
-    QString m_versionFrameHex;
     QString m_headerHex;
     int m_packetSize = 1024;
     int m_headerDelayMs = 3000;
@@ -161,16 +127,13 @@ private:
     bool m_busy = false;
     bool m_serialOpen = false;
     bool m_manualHeaderSent = false;
-    QString m_status = QStringLiteral("Ready");
+    QString m_status = QStringLiteral("就绪");
     QString m_logText;
 
     QSerialPort m_serial;
     QTimer m_sendTimer;
-    QTimer m_handshakeTimer;
     QTimer m_portRefreshTimer;
     QTimer m_fileRefreshTimer;
-    AutoStage m_autoStage = AutoStage::Idle;
-    QByteArray m_rxBuffer;
     QByteArray m_firmware;
     qsizetype m_offset = 0;
     quint32 m_crc = 0;
