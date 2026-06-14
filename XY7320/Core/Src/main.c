@@ -18,11 +18,17 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "dma.h"
+#include "tim.h"
+#include "usart.h"
 #include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "app_update_config.h"
+#include "app_main.h"
+#include "bsp_tim_os.h"
+#include "os.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -90,10 +96,20 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
+  MX_USART1_UART_Init();
+  MX_USART2_UART_Init();
+  MX_TIM14_Init();
   /* USER CODE BEGIN 2 */
+  OS_Init();
+  BSP_TIM_OS_Init(&htim14);
+  App_UpdateConfig_Init();
+  App_UpdateConfig_StartReceive();
 
   /* USER CODE END 2 */
-
+  App_Main_Init();    // 初始化 App 层
+  App_Main_Start();   // 创建所有任务
+  OS_Start();        // 启动调度器（不会返回）
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
@@ -101,10 +117,6 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    HAL_GPIO_WritePin(GPIOF, GPIO_PIN_10, GPIO_PIN_RESET);
-    HAL_Delay(500);
-    HAL_GPIO_WritePin(GPIOF, GPIO_PIN_10, GPIO_PIN_SET);
-    HAL_Delay(500);
   }
   /* USER CODE END 3 */
 }

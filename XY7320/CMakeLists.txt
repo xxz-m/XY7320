@@ -50,11 +50,58 @@ else ()
     add_compile_options(-Og -g)
 endif ()
 
-include_directories(Core/Inc Drivers/STM32F4xx_HAL_Driver/Inc Drivers/STM32F4xx_HAL_Driver/Inc/Legacy Drivers/CMSIS/Device/ST/STM32F4xx/Include Drivers/CMSIS/Include)
+include_directories(Core/Inc Drivers/STM32F4xx_HAL_Driver/Inc Drivers/STM32F4xx_HAL_Driver/Inc/Legacy Drivers/CMSIS/Device/ST/STM32F4xx/Include Drivers/CMSIS/Include
+
+    # ====== 分层架构目录（CubeMX 重新生成时保留） ======
+    # BSP 层 - 板级硬件驱动
+    BSP/uart
+    BSP/adc
+    BSP/tim
+    BSP/dma
+    BSP/gpio
+
+    # Middleware 层 - 第三方组件（预留）
+
+    # Services 层 - 服务封装
+    Services/uart_service
+    Services/adc_service
+    Services/led_service
+    Services/report
+
+    # Domain 层 - 领域算法与模型
+    Domain/filter
+    Domain/measurement
+    Domain/model
+
+    # App 层 - 业务编排
+    App
+    App/mode_manager
+    App/command
+    App/usecase
+
+    # System 层 - 系统基础设施
+    System/scheduler
+    System/event
+    System/queue
+
+    # Common 层 - 跨层共享
+    Common/types
+    Common/config
+    Common/utils
+)
 
 add_definitions(-DDEBUG -DUSE_HAL_DRIVER -DSTM32F407xx)
 
-file(GLOB_RECURSE SOURCES "Core/*.*" "Drivers/*.*")
+file(GLOB_RECURSE SOURCES "Core/*.*" "Drivers/*.*"
+    # ====== 分层架构源码（CubeMX 重新生成时保留） ======
+    "BSP/*.*"
+    "Middleware/*.*"
+    "Services/*.*"
+    "Domain/*.*"
+    "App/*.*"
+    "System/*.*"
+    "Common/*.*"
+)
 
 set(LINKER_SCRIPT ${CMAKE_SOURCE_DIR}/STM32F407ZGTX_FLASH.ld)
 

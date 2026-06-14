@@ -2,6 +2,8 @@
 mOTA/
 STM32F407/
 .uploads/
+.trae/
+XY7320/.trae/
 
 # CLion / CMake / IDE temporary files
 cmake-build-*/
@@ -9,12 +11,15 @@ cmake-build-*.*/
 .build/
 .cache/
 .idea/workspace.xml
+XY7320/.idea/encodings.xml
 
 # Qt Creator local files
 tools/QtUpgradeDemo/build/
 tools/QtUpgradeDemo/.qtcreator/
 tools/XY7320Host/build/
 tools/XY7320Host/.qtcreator/
+tools/XY7320Host/CMakeLists.txt.user
+tools/build-XY7320Host-Imported_Kit-Default/
 
 # STM32 build outputs
 *.bin

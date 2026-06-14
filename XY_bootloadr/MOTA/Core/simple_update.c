@@ -1,9 +1,10 @@
-//
+﻿//
 // Created by XYKJ on 2026/6/4.
 //
 
 #include "simple_update.h"
 #include "bsp_flash.h"
+#include "app_version_config.h"
 #include "bootloader_config.h"
 #include "bootloader_define.h"
 #include "usart.h"
@@ -11,6 +12,8 @@
 
 #define SIMPLE_APP_MAGIC        0x41505055U
 #define SIMPLE_UPDATE_MAX_FRAME 1024U
+#define SIMPLE_UPDATE_ACK_HEADER_READY "XYB2"
+#define SIMPLE_UPDATE_ACK_FINISH       "XYB3"
 
 typedef struct
 {
@@ -38,6 +41,7 @@ static uint32_t upgrade_write_offset = 0;
 
 static uint8_t Simple_Update_CheckAppValid(void);
 static void Simple_Update_JumpToApp(void);
+static void Simple_Update_SendAck(const char *ack);
 
 void Simple_Update_Init(void)
 {
@@ -115,6 +119,7 @@ void Simple_Update_Process(uint8_t *data, uint16_t len)
 
             BSP_Printf("OK\r\n");
             BSP_Printf("[simple update] waiting app data...\r\n");
+            Simple_Update_SendAck(SIMPLE_UPDATE_ACK_HEADER_READY);
             break;
         }
 
@@ -173,13 +178,32 @@ void Simple_Update_Process(uint8_t *data, uint16_t len)
             {
                 BSP_Printf("[simple update] receive done\r\n");
 
-                if (Simple_Update_CheckAppValid())
+                                if (Simple_Update_CheckAppValid())
                 {
                     BSP_Printf("[simple update] APP valid\r\n");
+
+                    {
+                        AppVersionConfig version_config;
+
+                        AppVersionConfig_Read(&version_config);
+                        if (AppVersionConfig_IsSlotValid(&version_config.a2))
+                        {
+                            if (AppVersionConfig_UpdateA2(version_config.a2.version, APP_VERSION_FLAG_DOWNLOADED) == 0)
+                            {
+                                BSP_Printf("[simple update] version flag cleared\r\n");
+                            }
+                            else
+                            {
+                                BSP_Printf("[simple update] version flag clear fail\r\n");
+                            }
+                        }
+                    }
+
                     BSP_Printf("[simple update] update ok, jump app\r\n");
 
                     upgrade_state = SIMPLE_UPGRADE_DONE;
 
+                    Simple_Update_SendAck(SIMPLE_UPDATE_ACK_FINISH);
                     HAL_Delay(100);
                     Simple_Update_JumpToApp();
                 }
@@ -206,6 +230,16 @@ void Simple_Update_Process(uint8_t *data, uint16_t len)
             break;
         }
     }
+}
+
+static void Simple_Update_SendAck(const char *ack)
+{
+    if (ack == NULL)
+    {
+        return;
+    }
+
+    (void)HAL_UART_Transmit(&huart2, (uint8_t *)ack, (uint16_t)strlen(ack), 100U);
 }
 
 static uint8_t Simple_Update_CheckAppValid(void)
@@ -278,3 +312,4 @@ static void Simple_Update_JumpToApp(void)
     {
     }
 }
+
