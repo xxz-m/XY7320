@@ -25,7 +25,6 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "app_update_config.h"
 #include "app_main.h"
 #include "bsp_tim_os.h"
 #include "os.h"
@@ -103,8 +102,6 @@ int main(void)
   /* USER CODE BEGIN 2 */
   OS_Init();
   BSP_TIM_OS_Init(&htim14);
-  App_UpdateConfig_Init();
-  App_UpdateConfig_StartReceive();
 
   /* USER CODE END 2 */
   App_Main_Init();    // 初始化 App 层

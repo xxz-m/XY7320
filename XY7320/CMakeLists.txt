@@ -59,6 +59,8 @@ include_directories(Core/Inc Drivers/STM32F4xx_HAL_Driver/Inc Drivers/STM32F4xx_
     BSP/tim
     BSP/dma
     BSP/gpio
+    BSP/flash
+
 
     # Middleware 层 - 第三方组件（预留）
 
@@ -66,12 +68,14 @@ include_directories(Core/Inc Drivers/STM32F4xx_HAL_Driver/Inc Drivers/STM32F4xx_
     Services/uart_service
     Services/adc_service
     Services/led_service
+    Services/upgrade
     Services/report
 
     # Domain 层 - 领域算法与模型
     Domain/filter
     Domain/measurement
     Domain/model
+    Domain/version_frame
 
     # App 层 - 业务编排
     App

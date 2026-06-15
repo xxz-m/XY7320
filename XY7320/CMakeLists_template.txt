@@ -58,6 +58,7 @@ include_directories(${includes}
     BSP/tim
     BSP/dma
     BSP/gpio
+    BSP/flash
 
     # Middleware 层 - 第三方组件（预留）
 
@@ -71,7 +72,7 @@ include_directories(${includes}
     Domain/filter
     Domain/measurement
     Domain/model
-
+    Domain/version_frame
     # App 层 - 业务编排
     App
     App/mode_manager

@@ -22,7 +22,7 @@
 #include "stm32f4xx_it.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "app_update_config.h"
+#include "bsp_uart_rcv.h"
 #include "usart.h"
 #include "bsp_tim_os.h"
 /* USER CODE END Includes */
@@ -228,7 +228,7 @@ void USART2_IRQHandler(void)
   /* USER CODE END USART2_IRQn 0 */
   HAL_UART_IRQHandler(&huart2);
   /* USER CODE BEGIN USART2_IRQn 1 */
-  App_UpdateConfig_HandleUartIdleIrq(&huart2);
+  Bsp_UartRcv_HandleIdleIrq(&huart2);
   /* USER CODE END USART2_IRQn 1 */
 }
 
