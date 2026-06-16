@@ -1,6 +1,8 @@
-//
-// Created by Administrator on 2026/6/14.
-//
+/**
+ * @file    task_led.cpp
+ * @brief   LED 任务实现
+ *          每次只执行一步逻辑，末尾让出 CPU
+ */
 
 #include "task_led.h"
 #include "led_service.h"
@@ -8,6 +10,6 @@
 
 extern "C" void Task_LED(void* arg)
 {
-    Led_service::Instance().Update();
+    LedService::Instance().Update();
     OS_DelayMs(10);
 }

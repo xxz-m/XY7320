@@ -1,18 +1,16 @@
 /**
  * @file    bsp_tim_os.c
- * @brief   OS 调度器定时器 - BSP 层实现
- *          读取 os_config.h 的 OS_TICK_MS，修正 CubeMX 生成的 PSC/ARR
- *          中断中调用 OS_Tick() 驱动调度器
+ * @brief   OS 调度器定时器 + 系统时间接口实现
+ *          通过回调注入驱动调度器，不直接依赖 System 层头文件
  *
  * 职责边界：
  *   CubeMX (tim.c)    → 负责时钟使能、GPIO、中断优先级等基础初始化
  *   BSP 层 (本文件)    → 只修正 PSC/ARR 为 OS 所需值，启动中断
  *
  * 依赖方向：BSP → Common/config（读取配置）
- *           BSP → System/scheduler（调用 OS_Tick）
+ *           BSP ← System（通过回调注入，无反向 include）
  */
 #include "bsp_tim_os.h"
-#include "os.h"
 #include "os_config.h"
 
 /* ============================================================
@@ -45,10 +43,17 @@
 #define BSP_TIM_OS_ARR        (1000u * OS_TICK_MS - 1u)
 
 /* ============================================================
+ *  内部状态
+ * ============================================================ */
+
+/** Tick 回调（由 main() 注入，指向 OS_Tick） */
+static BspTimOs_TickCallback s_tickCb = (BspTimOs_TickCallback)0;
+
+/* ============================================================
  *  接口实现
  * ============================================================ */
 
-void BSP_TIM_OS_Init(TIM_HandleTypeDef *htim)
+void BspTimOs_Init(TIM_HandleTypeDef *htim)
 {
     if (htim == NULL) {
         return;
@@ -72,7 +77,29 @@ void BSP_TIM_OS_Init(TIM_HandleTypeDef *htim)
     }
 }
 
-void BSP_TIM_OS_IRQHandler(void)
+void BspTimOs_SetTickCallback(BspTimOs_TickCallback cb)
 {
-    OS_Tick();
+    s_tickCb = cb;
+}
+
+void BspTimOs_IRQHandler(void)
+{
+    if (s_tickCb) {
+        s_tickCb();
+    }
+}
+
+uint32_t BspTimOs_GetTick(void)
+{
+    return HAL_GetTick();
+}
+
+void BspTimOs_DelayMs(uint32_t ms)
+{
+    HAL_Delay(ms);
+}
+
+void BspTimOs_SystemReset(void)
+{
+    NVIC_SystemReset();
 }

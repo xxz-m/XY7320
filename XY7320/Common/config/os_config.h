@@ -1,8 +1,7 @@
 /**
  * @file    os_config.h
- * @brief   OS 调度器业务配置
- *          只定义业务需求（Tick 周期、任务数量），不涉及硬件细节
- *          硬件参数由 BSP 层根据此配置自动计算
+ * @brief   OS 调度器配置
+ *          定义调度器运行参数，不依赖 HAL 头文件
  */
 #ifndef OS_CONFIG_H
 #define OS_CONFIG_H
@@ -10,6 +9,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include "main.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -37,8 +37,7 @@ extern "C" {
 
 /**
  * 空闲时 CPU 行为
- * 默认空操作，应用层可覆盖为低功耗指令
- * 示例：#define OS_IDLE_ACTION()  __WFI()
+ * __WFI()：Wait For Interrupt，Cortex-M 低功耗等待指令
  */
 #ifndef OS_IDLE_ACTION
 #define OS_IDLE_ACTION()  __WFI()

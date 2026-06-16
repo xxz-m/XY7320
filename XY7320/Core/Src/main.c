@@ -101,7 +101,8 @@ int main(void)
   MX_TIM14_Init();
   /* USER CODE BEGIN 2 */
   OS_Init();
-  BSP_TIM_OS_Init(&htim14);
+  BspTimOs_SetTickCallback(OS_Tick);
+  BspTimOs_Init(&htim14);
 
   /* USER CODE END 2 */
   App_Main_Init();    // 初始化 App 层

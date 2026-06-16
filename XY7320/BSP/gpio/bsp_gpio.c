@@ -1,30 +1,40 @@
-//
-// Created by Administrator on 2026/6/14.
-//
+/**
+ * @file    bsp_gpio.c
+ * @brief   GPIO 驱动实现
+ *          基于 HAL_GPIO 封装引脚的开关、翻转和状态读取
+ */
 
 #include "bsp_gpio.h"
 
-void BSP_GPIO_Init(BspGpio_t *dev) {
-    BSP_GPIO_Off(dev);
+void BspGpio_Init(BspGpio_t *dev)
+{
+    if (dev == NULL) return;
+    BspGpio_Off(dev);
 }
 
-void BSP_GPIO_On(BspGpio_t *dev) {
+void BspGpio_On(BspGpio_t *dev)
+{
+    if (dev == NULL) return;
     HAL_GPIO_WritePin(dev->port, dev->pin,
         dev->active_high ? GPIO_PIN_SET : GPIO_PIN_RESET);
 }
 
-void BSP_GPIO_Off(BspGpio_t *dev) {
+void BspGpio_Off(BspGpio_t *dev)
+{
+    if (dev == NULL) return;
     HAL_GPIO_WritePin(dev->port, dev->pin,
         dev->active_high ? GPIO_PIN_RESET : GPIO_PIN_SET);
 }
 
-void BSP_GPIO_Toggle(BspGpio_t *dev) {
+void BspGpio_Toggle(BspGpio_t *dev)
+{
+    if (dev == NULL) return;
     HAL_GPIO_TogglePin(dev->port, dev->pin);
 }
 
-bool BSP_GPIO_IsOn(BspGpio_t *dev) {
+bool BspGpio_IsOn(BspGpio_t *dev)
+{
+    if (dev == NULL) return false;
     GPIO_PinState state = HAL_GPIO_ReadPin(dev->port, dev->pin);
     return (state == GPIO_PIN_SET) ? dev->active_high : !dev->active_high;
 }
-
-

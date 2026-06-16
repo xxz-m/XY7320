@@ -1,36 +1,41 @@
-//
-// Created by Administrator on 2026/6/14.
-//
+/**
+ * @file    led_service.cpp
+ * @brief   LED 服务实现
+ *          通过 BspGpio_* 驱动板载 LED，支持 OFF/ON/BLINK/BREATHE 模式
+ */
 
 #include "led_service.h"
-#include "stm32f4xx_hal.h"
+#include "bsp_tim_os.h"
 
-Led_service::Led_service()
+LedService::LedService()
     : m_mode(Mode::OFF)
     , m_lastToggleTick(0)
     , m_blinkPeriodMs(500)
     , m_state(false)
 {
-    // 硬件配置封装在 Services 层内部
+    /* 硬件配置封装在 Services 层内部 */
     m_gpio.port = GPIOF;
     m_gpio.pin = GPIO_PIN_10;
     m_gpio.active_high = true;
 }
-Led_service& Led_service::Instance()
+
+LedService& LedService::Instance()
 {
-    static Led_service instance;
+    static LedService instance;
     return instance;
 }
-void Led_service::Init()
+
+void LedService::Init()
 {
-    BSP_GPIO_Init(&m_gpio);
+    BspGpio_Init(&m_gpio);
     TurnOff();
     m_mode = Mode::OFF;
     m_lastToggleTick = 0;
     m_state = false;
 }
 
-void Led_service::Set_mode(Mode mode) {
+void LedService::SetMode(Mode mode)
+{
     m_mode = mode;
     m_lastToggleTick = 0;
 
@@ -38,12 +43,12 @@ void Led_service::Set_mode(Mode mode) {
     else if (mode == Mode::ON) TurnOn();
 }
 
-Led_service::Mode Led_service::Get_mode() const
+LedService::Mode LedService::GetMode() const
 {
     return m_mode;
 }
 
-void Led_service::Update()
+void LedService::Update()
 {
     switch (m_mode) {
     case Mode::OFF:
@@ -56,28 +61,35 @@ void Led_service::Update()
         UpdateBlink();
         break;
     case Mode::BREATHE:
-        // 预留
+        /* TODO: 预留呼吸灯模式 */
         break;
     }
 }
 
-void Led_service::TurnOn()
+void LedService::TurnOn()
 {
-    BSP_GPIO_On(&m_gpio);
+    BspGpio_On(&m_gpio);
     m_state = true;
 }
 
-void Led_service::TurnOff()
+void LedService::TurnOff()
 {
-    BSP_GPIO_Off(&m_gpio);
+    BspGpio_Off(&m_gpio);
     m_state = false;
 }
 
-void Led_service::UpdateBlink() {
-    uint32_t now = HAL_GetTick();
+void LedService::TurnToggle()
+{
+    BspGpio_Toggle(&m_gpio);
+    m_state = !m_state;
+}
+
+void LedService::UpdateBlink()
+{
+    uint32_t now = BspTimOs_GetTick();
     if (now - m_lastToggleTick >= m_blinkPeriodMs) {
         m_lastToggleTick = now;
-        BSP_GPIO_Toggle(&m_gpio);
+        BspGpio_Toggle(&m_gpio);
         m_state = !m_state;
     }
 }

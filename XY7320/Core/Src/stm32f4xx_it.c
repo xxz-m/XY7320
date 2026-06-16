@@ -228,7 +228,7 @@ void USART2_IRQHandler(void)
   /* USER CODE END USART2_IRQn 0 */
   HAL_UART_IRQHandler(&huart2);
   /* USER CODE BEGIN USART2_IRQn 1 */
-  Bsp_UartRcv_HandleIdleIrq(&huart2);
+  BspUartRcv_HandleIdleIrq(&huart2);
   /* USER CODE END USART2_IRQn 1 */
 }
 
@@ -242,7 +242,7 @@ void TIM8_TRG_COM_TIM14_IRQHandler(void)
   /* USER CODE END TIM8_TRG_COM_TIM14_IRQn 0 */
   HAL_TIM_IRQHandler(&htim14);
   /* USER CODE BEGIN TIM8_TRG_COM_TIM14_IRQn 1 */
-  BSP_TIM_OS_IRQHandler();
+  BspTimOs_IRQHandler();
   /* USER CODE END TIM8_TRG_COM_TIM14_IRQn 1 */
 }
 
