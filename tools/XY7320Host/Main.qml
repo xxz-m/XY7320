@@ -489,10 +489,6 @@ ApplicationWindow {
                 return Qt.ArrowCursor
             }
 
-            hoverEnabled: true
-            onPositionChanged: function(mouse) { updateEdges(mouse.x, mouse.y); cursorShape = cursorForEdges(edges) }
-            onContainsMouseChanged: { if (!containsMouse) cursorShape = Qt.ArrowCursor }
-
             MouseArea {
                 anchors.fill: parent
                 acceptedButtons: Qt.LeftButton
