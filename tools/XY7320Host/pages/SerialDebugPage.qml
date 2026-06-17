@@ -263,13 +263,6 @@ Item {
                                 }
                             }
 
-                            Rectangle {
-                                Layout.fillWidth: true
-                                Layout.fillHeight: true
-                                color: theme.borderColor
-                                opacity: 0.3
-                            }
-
                             // 日志显示区
                             Flickable {
                                 id: logFlickable
