@@ -98,75 +98,83 @@ ApplicationWindow {
 
                 MouseArea {
                     anchors.fill: parent
-                    onPressed: window.startSystemMove()
-                    onDoubleClicked: window.maximized ? window.showNormal() : window.showMaximized()
+                    property point pressPos
+                    property bool dragging: false
+                    onPressed: function(mouse) {
+                        pressPos = Qt.point(mouse.x, mouse.y)
+                        dragging = false
+                    }
+                    onPositionChanged: function(mouse) {
+                        if (window.maximized) return
+                        var delta = Qt.point(mouse.x - pressPos.x, mouse.y - pressPos.y)
+                        if (!dragging && (Math.abs(delta.x) > 2 || Math.abs(delta.y) > 2)) {
+                            dragging = true
+                        }
+                        if (dragging) {
+                            window.x += delta.x
+                            window.y += delta.y
+                        }
+                    }
+                    onReleased: {
+                        if (!dragging && pressPos.y <= 52) {
+                            if (window.visibility === Window.Maximized) {
+                                window.showNormal()
+                            }
+                        }
+                        dragging = false
+                    }
+                    onDoubleClicked: {
+                        if (!window.maximized) {
+                            window.showMaximized()
+                        } else {
+                            window.showNormal()
+                        }
+                    }
                 }
 
                 RowLayout {
-                    anchors.fill: parent
-                    anchors.leftMargin: 20
-                    anchors.rightMargin: titleButtonsPanel.width + 40
-                    spacing: 14
-
-                    Image {
-                        source: "qrc:/xy7320host/assets/images/icon.ico"
-                        sourceSize.width: 24
-                        sourceSize.height: 24
-                        fillMode: Image.PreserveAspectFit
-                        Layout.preferredWidth: 24
-                        Layout.preferredHeight: 24
-                    }
-
-                    Text {
-                        text: qsTr("XY7320 上位机")
-                        color: theme.textColor
-                        font.pixelSize: 18
-                        font.bold: true
-                        Layout.preferredWidth: 160
-                        elide: Text.ElideRight
-                    }
+                    anchors.left: parent.left
+                    anchors.leftMargin: 18
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: 10
 
                     Rectangle {
-                        Layout.preferredWidth: 1
-                        Layout.preferredHeight: 24
-                        color: theme.borderColor
+                        width: 26
+                        height: 26
+                        radius: 13
+                        color: Qt.rgba(theme.focusColor.r, theme.focusColor.g, theme.focusColor.b, 0.16)
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: "\uf61f"
+                            font.family: iconFont.name
+                            font.pixelSize: 13
+                            color: theme.focusColor
+                        }
                     }
 
-                    Text {
-                        text: qsTr("APP 固件升级与上位机启动框架")
-                        color: Qt.rgba(theme.textColor.r, theme.textColor.g, theme.textColor.b, 0.72)
-                        font.pixelSize: 13
-                        Layout.fillWidth: true
-                        elide: Text.ElideRight
-                    }
+                    ColumnLayout {
+                        spacing: 2
 
-                    Text {
-                        text: firmwareUploader.status
-                        color: firmwareUploader.busy ? theme.focusColor : theme.textColor
-                        font.pixelSize: 13
-                        font.bold: firmwareUploader.busy
-                        horizontalAlignment: Text.AlignRight
-                        Layout.preferredWidth: 120
-                        elide: Text.ElideRight
-                    }
+                        Text {
+                            text: qsTr("XY7320 上位机")
+                            color: theme.textColor
+                            font.pixelSize: 15
+                            font.bold: true
+                        }
 
-                    EButton {
-                        text: ""
-                        iconCharacter: theme.isDark ? "\uf185" : "\uf186"
-                        size: "xs"
-                        radius: 8
-                        backgroundVisible: false
-                        shadowEnabled: false
-                        Layout.preferredWidth: 38
-                        Layout.preferredHeight: 38
-                        onClicked: theme.toggleTheme()
+                        Text {
+                            text: qsTr("串口固件升级工具")
+                            color: Qt.rgba(theme.textColor.r, theme.textColor.g, theme.textColor.b, 0.6)
+                            font.pixelSize: 12
+                        }
                     }
                 }
 
                 Rectangle {
-                    anchors.bottom: parent.bottom
-                    width: parent.width
-                    height: 1
+                    anchors.right: parent.right
+                    width: 1
+                    height: parent.height
                     color: theme.borderColor
                 }
             }
@@ -177,26 +185,15 @@ ApplicationWindow {
                 spacing: 0
 
                 Rectangle {
-                    Layout.preferredWidth: 220
                     Layout.fillHeight: true
-                    radius: window.windowRadius
-                    antialiasing: true
+                    Layout.preferredWidth: 220
                     color: theme.secondaryColor
 
                     Rectangle {
                         anchors.left: parent.left
                         anchors.right: parent.right
-                        anchors.top: parent.top
-                        height: window.windowRadius
-                        color: parent.color
-                        visible: !window.maximized
-                    }
-
-                    Rectangle {
-                        anchors.top: parent.top
-                        anchors.right: parent.right
                         anchors.bottom: parent.bottom
-                        width: window.windowRadius
+                        height: window.windowRadius
                         color: parent.color
                         visible: !window.maximized
                     }
@@ -219,11 +216,12 @@ ApplicationWindow {
                     Repeater {
                         model: [
                             { name: qsTr("固件升级"), icon: "\uf1c6", page: 0, enabled: true },
-                            { name: qsTr("升级日志"), icon: "\uf15c", page: 1, enabled: true },
-                            { name: qsTr("设置"), icon: "\uf013", page: 2, enabled: true },
-                            { name: qsTr("设备监控"), icon: "\uf1e6", page: 3, enabled: false },
-                            { name: qsTr("参数配置"), icon: "\uf085", page: 4, enabled: false },
-                            { name: qsTr("系统维护"), icon: "\uf0ad", page: 5, enabled: false }
+                            { name: qsTr("串口调试"), icon: "\uf120", page: 1, enabled: true },
+                            { name: qsTr("升级日志"), icon: "\uf15c", page: 2, enabled: true },
+                            { name: qsTr("设置"), icon: "\uf013", page: 3, enabled: true },
+                            { name: qsTr("设备监控"), icon: "\uf1e6", page: 4, enabled: false },
+                            { name: qsTr("参数配置"), icon: "\uf085", page: 5, enabled: false },
+                            { name: qsTr("系统维护"), icon: "\uf0ad", page: 6, enabled: false }
                         ]
 
                         delegate: Rectangle {
@@ -298,25 +296,27 @@ ApplicationWindow {
                             spacing: 4
 
                             Text {
-                                text: qsTr("当前协议")
-                                color: theme.focusColor
+                                text: qsTr("项目")
+                                color: Qt.rgba(theme.textColor.r, theme.textColor.g, theme.textColor.b, 0.55)
                                 font.pixelSize: 12
                                 font.bold: true
-                                Layout.fillWidth: true
-                            }
-
-                            Text {
-                                text: qsTr("12字节头 + APP bin")
-                                color: theme.textColor
-                                font.pixelSize: 12
                                 Layout.fillWidth: true
                                 elide: Text.ElideRight
                             }
 
                             Text {
-                                text: qsTr("APP: 0x08010000")
-                                color: Qt.rgba(theme.textColor.r, theme.textColor.g, theme.textColor.b, 0.66)
-                                font.pixelSize: 12
+                                text: qsTr("XY7320 固件升级")
+                                color: theme.textColor
+                                font.pixelSize: 13
+                                font.bold: true
+                                Layout.fillWidth: true
+                                elide: Text.ElideRight
+                            }
+
+                            Text {
+                                text: qsTr("版本 1.0.0 · 串口协议")
+                                color: Qt.rgba(theme.textColor.r, theme.textColor.g, theme.textColor.b, 0.55)
+                                font.pixelSize: 11
                                 Layout.fillWidth: true
                                 elide: Text.ElideRight
                             }
@@ -336,7 +336,7 @@ ApplicationWindow {
                 id: stack
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                currentIndex: Math.min(window.currentPage, 2)
+                currentIndex: window.currentPage
 
                 UpgradePage {
                     Layout.fillWidth: true
@@ -344,6 +344,11 @@ ApplicationWindow {
                     firmwareDialog: firmwareDialog
                     startDialog: startDialog
                     toast: toast
+                }
+
+                SerialDebugPage {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
                 }
 
                 LogsPage {
@@ -417,8 +422,8 @@ ApplicationWindow {
                     shadowEnabled: false
                     text: ""
                     iconCharacter: "\uf068"
-                    containerColor: theme.primaryColor
-                    hoverColor: Qt.rgba(theme.focusColor.r, theme.focusColor.g, theme.focusColor.b, 0.18)
+                    containerColor: Qt.rgba(theme.textColor.r, theme.textColor.g, theme.textColor.b, 0.06)
+                    hoverColor: Qt.rgba(theme.textColor.r, theme.textColor.g, theme.textColor.b, 0.12)
                     onClicked: window.showMinimized()
                 }
 
@@ -429,132 +434,130 @@ ApplicationWindow {
                     backgroundVisible: true
                     shadowEnabled: false
                     text: ""
-                    iconCharacter: "\uf00d"
-                    containerColor: theme.primaryColor
-                    hoverColor: Qt.rgba(0.9, 0.18, 0.2, 0.16)
+                    iconCharacter: window.maximized ? "\uf2d2" : "\uf2d0"
+                    containerColor: Qt.rgba(theme.textColor.r, theme.textColor.g, theme.textColor.b, 0.06)
+                    hoverColor: Qt.rgba(theme.textColor.r, theme.textColor.g, theme.textColor.b, 0.12)
+                    onClicked: {
+                        if (window.maximized) {
+                            window.showNormal()
+                        } else {
+                            window.showMaximized()
+                        }
+                    }
+                }
+
+                EButton {
+                    width: 30
+                    height: 26
+                    radius: 13
+                    backgroundVisible: true
+                    shadowEnabled: false
+                    text: ""
+                    iconCharacter: "\uf2d5"
+                    containerColor: theme.focusColor
+                    hoverColor: Qt.darker(theme.focusColor, 1.12)
+                    textColor: "white"
+                    iconColor: "white"
                     onClicked: exitDialog.open()
                 }
             }
         }
 
         Item {
-            anchors.left: parent.left
-            anchors.top: parent.top
-            anchors.bottom: parent.bottom
-            width: window.resizeMargin
-            z: 1000
+            id: resizeHandle
+            anchors.fill: parent
+            z: 1200
             visible: !window.maximized
+
+            property int edges: 0
+
+            function updateEdges(x, y) {
+                var e = 0
+                if (x < resizeMargin) e |= 1
+                if (x >= width - resizeMargin) e |= 2
+                if (y < resizeMargin) e |= 4
+                if (y >= height - resizeMargin) e |= 8
+                edges = e
+            }
+
+            function cursorForEdges(e) {
+                if (e === 0) return Qt.ArrowCursor
+                if (e === 1 || e === 2) return Qt.SizeHorCursor
+                if (e === 4 || e === 8) return Qt.SizeVerCursor
+                if (e === 5 || e === 10) return Qt.SizeFDiagCursor
+                if (e === 6 || e === 9) return Qt.SizeBDiagCursor
+                return Qt.ArrowCursor
+            }
+
+            hoverEnabled: true
+            onPositionChanged: function(mouse) { updateEdges(mouse.x, mouse.y); cursorShape = cursorForEdges(edges) }
+            onContainsMouseChanged: { if (!containsMouse) cursorShape = Qt.ArrowCursor }
 
             MouseArea {
                 anchors.fill: parent
-                cursorShape: Qt.SizeHorCursor
-                onPressed: window.startSystemResize(Qt.LeftEdge)
+                acceptedButtons: Qt.LeftButton
+                propagateComposedEvents: true
+
+                property bool resizing: false
+                property point startPos
+                property rect startRect
+
+                onPressed: function(mouse) {
+                    if (resizeHandle.edges === 0) {
+                        mouse.accepted = false
+                        return
+                    }
+                    resizing = true
+                    startPos = Qt.point(mouse.x, mouse.y)
+                    startRect = Qt.rect(window.x, window.y, window.width, window.height)
+                    mouse.accepted = true
+                }
+
+                onPositionChanged: function(mouse) {
+                    if (!resizing) {
+                        mouse.accepted = false
+                        return
+                    }
+                    var dx = mouse.x - startPos.x
+                    var dy = mouse.y - startPos.y
+                    var newRect = startRect
+                    var e = resizeHandle.edges
+
+                    if (e & 1) {
+                        newRect.x = startRect.x + dx
+                        newRect.width = Math.max(window.minimumWidth, startRect.width - dx)
+                    }
+                    if (e & 2) {
+                        newRect.width = Math.max(window.minimumWidth, startRect.width + dx)
+                    }
+                    if (e & 4) {
+                        newRect.y = startRect.y + dy
+                        newRect.height = Math.max(window.minimumHeight, startRect.height - dy)
+                    }
+                    if (e & 8) {
+                        newRect.height = Math.max(window.minimumHeight, startRect.height + dy)
+                    }
+
+                    window.setX(newRect.x)
+                    window.setY(newRect.y)
+                    window.setWidth(newRect.width)
+                    window.setHeight(newRect.height)
+                    mouse.accepted = true
+                }
+
+                onReleased: {
+                    resizing = false
+                    mouse.accepted = true
+                }
             }
         }
+    }
 
-        Item {
-            anchors.right: parent.right
-            anchors.top: parent.top
-            anchors.bottom: parent.bottom
-            width: window.resizeMargin
-            z: 1000
-            visible: !window.maximized
-
-            MouseArea {
-                anchors.fill: parent
-                cursorShape: Qt.SizeHorCursor
-                onPressed: window.startSystemResize(Qt.RightEdge)
-            }
-        }
-
-        Item {
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.top: parent.top
-            anchors.rightMargin: titleButtonsPanel.width + 20
-            height: window.resizeMargin
-            z: 1000
-            visible: !window.maximized
-
-            MouseArea {
-                anchors.fill: parent
-                cursorShape: Qt.SizeVerCursor
-                onPressed: window.startSystemResize(Qt.TopEdge)
-            }
-        }
-
-        Item {
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.bottom: parent.bottom
-            height: window.resizeMargin
-            z: 1000
-            visible: !window.maximized
-
-            MouseArea {
-                anchors.fill: parent
-                cursorShape: Qt.SizeVerCursor
-                onPressed: window.startSystemResize(Qt.BottomEdge)
-            }
-        }
-
-        Item {
-            anchors.left: parent.left
-            anchors.top: parent.top
-            width: window.resizeMargin
-            height: window.resizeMargin
-            z: 1001
-            visible: !window.maximized
-
-            MouseArea {
-                anchors.fill: parent
-                cursorShape: Qt.SizeFDiagCursor
-                onPressed: window.startSystemResize(Qt.LeftEdge | Qt.TopEdge)
-            }
-        }
-
-        Item {
-            anchors.right: parent.right
-            anchors.top: parent.top
-            width: window.resizeMargin
-            height: window.resizeMargin
-            z: 1001
-            visible: !window.maximized
-
-            MouseArea {
-                anchors.fill: parent
-                cursorShape: Qt.SizeBDiagCursor
-                onPressed: window.startSystemResize(Qt.RightEdge | Qt.TopEdge)
-            }
-        }
-
-        Item {
-            anchors.left: parent.left
-            anchors.bottom: parent.bottom
-            width: window.resizeMargin
-            height: window.resizeMargin
-            z: 1001
-            visible: !window.maximized
-
-            MouseArea {
-                anchors.fill: parent
-                cursorShape: Qt.SizeBDiagCursor
-                onPressed: window.startSystemResize(Qt.LeftEdge | Qt.BottomEdge)
-            }
-        }
-
-        Item {
-            anchors.right: parent.right
-            anchors.bottom: parent.bottom
-            width: window.resizeMargin
-            height: window.resizeMargin
-            z: 1001
-            visible: !window.maximized
-
-            MouseArea {
-                anchors.fill: parent
-                cursorShape: Qt.SizeFDiagCursor
-                onPressed: window.startSystemResize(Qt.RightEdge | Qt.BottomEdge)
+    Shortcut {
+        sequence: "Esc"
+        onActivated: {
+            if (window.maximized) {
+                window.showNormal()
             }
         }
     }

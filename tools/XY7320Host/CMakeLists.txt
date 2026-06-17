@@ -13,6 +13,8 @@ qt_add_executable(XY7320Host
     main.cpp
     backend/FirmwareUploader.cpp
     backend/FirmwareUploader.h
+    backend/SerialDebug.cpp
+    backend/SerialDebug.h
 )
 
 file(GLOB QML_COMPONENTS CONFIGURE_DEPENDS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "components/*.qml")

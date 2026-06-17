@@ -5,6 +5,7 @@
 #include <QQmlContext>
 
 #include "backend/FirmwareUploader.h"
+#include "backend/SerialDebug.h"
 
 int main(int argc, char *argv[])
 {
@@ -12,9 +13,11 @@ int main(int argc, char *argv[])
     app.setWindowIcon(QIcon(QStringLiteral(":/xy7320host/assets/images/icon.ico")));
 
     FirmwareUploader firmwareUploader;
+    SerialDebug serialDebug;
 
     QQmlApplicationEngine engine;
     engine.rootContext()->setContextProperty(QStringLiteral("firmwareUploader"), &firmwareUploader);
+    engine.rootContext()->setContextProperty(QStringLiteral("serialDebug"), &serialDebug);
 
     QObject::connect(
         &engine,

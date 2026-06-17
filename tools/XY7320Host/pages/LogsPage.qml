@@ -46,21 +46,55 @@ Item {
             padding: 0
             shadowEnabled: false
 
-            TextArea {
-                id: logArea
-                text: firmwareUploader.logText
-                readOnly: true
-                wrapMode: TextArea.NoWrap
-                selectByMouse: true
-                color: theme.textColor
-                placeholderText: qsTr("升级日志会显示在这里。")
-                font.family: "Consolas"
-                font.pixelSize: 13
-                background: Rectangle {
-                    color: "transparent"
+            Flickable {
+                id: flickable
+                anchors.fill: parent
+                anchors.margins: 8
+                contentWidth: width
+                contentHeight: logArea.implicitHeight
+                clip: true
+                boundsBehavior: Flickable.StopAtBounds
+
+                // 自动滚动到底部
+                function scrollToBottom() {
+                    contentY = Math.max(0, contentHeight - height)
                 }
-                Layout.fillWidth: true
-                Layout.fillHeight: true
+
+                // 监听内容变化，自动滚动
+                onContentHeightChanged: {
+                    // 只有当用户在底部时才自动滚动
+                    if (contentY >= contentHeight - height - 20) {
+                        scrollToBottom()
+                    }
+                }
+
+                ScrollBar.vertical: ScrollBar {
+                    policy: ScrollBar.AsNeeded
+                    width: 8
+                }
+
+                TextArea {
+                    id: logArea
+                    width: flickable.width
+                    height: implicitHeight
+                    text: firmwareUploader.logText
+                    readOnly: true
+                    wrapMode: TextArea.Wrap
+                    selectByMouse: true
+                    color: theme.textColor
+                    placeholderText: qsTr("升级日志会显示在这里。")
+                    font.family: "Consolas"
+                    font.pixelSize: 13
+                    textMargin: 0
+                    background: Rectangle {
+                        color: "transparent"
+                    }
+
+                    // 监听文本变化，触发自动滚动
+                    onTextChanged: {
+                        flickable.scrollToBottom()
+                    }
+                }
             }
         }
     }
