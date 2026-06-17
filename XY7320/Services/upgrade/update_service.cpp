@@ -17,10 +17,10 @@
 #include "update_service.h"
 #include "bsp_uart_rcv.h"      /* BSP: 串口 DMA 接收 */
 #include "bsp_tim_os.h"        /* BSP: 延时、系统复位 */
+#include "bsp_config.h"        /* Common: BSP 硬件配置 */
 #include "version_frame.h"     /* Domain: 版本帧协议解析 */
 #include "version_store.h"     /* Services: 版本配置存储 */
-#include "app_config.h"        /* Common: APP 全局配置（版本号） */
-#include "usart.h"             /* CubeMX 生成：huart2 声明 */
+#include "app_config.h"        /* Common: APP 功能配置（版本号） */
 
 UpdateService& UpdateService::Instance()
 {
@@ -32,7 +32,7 @@ UpdateService& UpdateService::Instance()
  * 初始化升级服务
  *
  * 在 App_Main_Init() 中调用，完成：
- * 1. 初始化串口 DMA 接收（绑定 huart2，分配接收缓冲）
+ * 1. 初始化串口 DMA 接收（绑定 UPGRADE_HUART，分配接收缓冲）
  * 2. 启动 DMA + IDLE 中断（开始接收数据）
  * 3. 写 A1 为当前运行版本（标记为 DOWNLOADED）
  *
@@ -43,7 +43,7 @@ UpdateService& UpdateService::Instance()
 void UpdateService::Init()
 {
     /* 1. 初始化 BSP 串口 DMA 接收 */
-    BspUartRcv_Init(&huart2, m_rxBuf, sizeof(m_rxBuf));
+    BspUartRcv_Init(&UPGRADE_HUART, m_rxBuf, sizeof(m_rxBuf));
 
     /* 2. 启动 DMA 接收 + IDLE 中断 */
     BspUartRcv_Start();

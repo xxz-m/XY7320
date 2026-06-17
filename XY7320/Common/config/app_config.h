@@ -1,14 +1,16 @@
-//
-// Created by XYKJ on 2026/6/15.
-//
+/**
+ * @file    app_config.h
+ * @brief   APP 功能配置
+ *          APP 版本号、功能开关等
+ */
 
 #ifndef XY7320_APP_CONFIG_H
 #define XY7320_APP_CONFIG_H
+
 #include <stdint.h>
+#include "log_service.h"
 
 #ifdef __cplusplus
-extern "C" {
-#endif
 
 /**
  * 当前 APP 版本号
@@ -16,8 +18,15 @@ extern "C" {
  */
 #define APP_CURRENT_VERSION  202606082257ULL
 
-#ifdef __cplusplus
-}
+/** 调试输出开关（发布时改为 0） */
+#define ENABLE_DEBUG_PRINT  1
+
+#if ENABLE_DEBUG_PRINT
+#define LOG_Printf(...)  LogService::Instance().Printf(__VA_ARGS__)
+#else
+#define LOG_Printf(...)
 #endif
 
-#endif //XY7320_APP_CONFIG_H
+#endif /* __cplusplus */
+
+#endif /* XY7320_APP_CONFIG_H */

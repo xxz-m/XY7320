@@ -6,6 +6,7 @@
 
 #include "led_service.h"
 #include "bsp_tim_os.h"
+#include "bsp_config.h"
 
 LedService::LedService()
     : m_mode(Mode::OFF)
@@ -13,10 +14,10 @@ LedService::LedService()
     , m_blinkPeriodMs(500)
     , m_state(false)
 {
-    /* 硬件配置封装在 Services 层内部 */
-    m_gpio.port = GPIOF;
-    m_gpio.pin = GPIO_PIN_10;
-    m_gpio.active_high = true;
+    /* 从 bsp_config.h 读取硬件配置 */
+    m_gpio.port = LED_GPIO_PORT;
+    m_gpio.pin = LED_GPIO_PIN;
+    m_gpio.active_high = LED_ACTIVE_HIGH;
 }
 
 LedService& LedService::Instance()

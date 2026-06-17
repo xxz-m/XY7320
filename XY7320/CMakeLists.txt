@@ -63,11 +63,13 @@ include_directories(Core/Inc Drivers/STM32F4xx_HAL_Driver/Inc Drivers/STM32F4xx_
 
 
     # Middleware 层 - 第三方组件（预留）
+    Middleware/nanoprintf
 
     # Services 层 - 服务封装
     Services/uart_service
     Services/adc_service
     Services/led_service
+    Services/log
     Services/upgrade
     Services/report
 
