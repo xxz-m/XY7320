@@ -124,6 +124,7 @@ Item {
             MouseArea {
                 anchors.fill: parent
                 hoverEnabled: true
+                preventStealing: true
                 cursorShape: Qt.PointingHandCursor
                 onPressed: {
                     headerScale.xScale = root.pressedScale
@@ -180,6 +181,7 @@ Item {
                 id: contentListView
                 anchors.fill: parent
                 clip: true
+                interactive: contentHeight > height
                 spacing: 6
                 topMargin: 4
                 bottomMargin: 4
@@ -228,6 +230,7 @@ Item {
                         MouseArea {
                             anchors.fill: parent
                             hoverEnabled: true
+                            preventStealing: true
                             cursorShape: Qt.PointingHandCursor
                             onPressed: {
                                 itemScale.xScale = root.pressedScale

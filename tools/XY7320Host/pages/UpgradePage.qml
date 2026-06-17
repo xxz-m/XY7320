@@ -194,7 +194,8 @@ Item {
                                     headerHeight: 40
                                     radius: 8
                                     fontSize: 13
-                                    popupMaxHeight: 180
+                                    popupMaxHeight: 320
+                                    scrollBarAlwaysVisible: true
                                     shadowEnabled: false
                                     Layout.fillWidth: true
                                     Layout.minimumWidth: 260

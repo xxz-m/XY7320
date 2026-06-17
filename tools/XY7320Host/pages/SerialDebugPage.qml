@@ -102,6 +102,8 @@ Item {
 
                     // 串口配置卡片
                     ECard {
+                        id: serialConfigCard
+                        z: (portDropdown.opened || baudDropdown.opened) ? 1000 : 0
                         Layout.fillWidth: true
                         radius: 10
                         padding: 18
@@ -119,7 +121,15 @@ Item {
                                 Layout.fillWidth: true
                             }
 
+                            ColumnLayout {
+                                id: serialFormBlock
+                                z: (portDropdown.opened || baudDropdown.opened) ? 1000 : 0
+                                Layout.fillWidth: true
+                                spacing: 10
+
                             GridLayout {
+                                id: serialPortRow
+                                z: portDropdown.opened ? 1000 : 0
                                 Layout.fillWidth: true
                                 columns: 3
                                 columnSpacing: 10
@@ -142,7 +152,8 @@ Item {
                                     headerHeight: 40
                                     radius: 8
                                     fontSize: 13
-                                    popupMaxHeight: 180
+                                    popupMaxHeight: 320
+                                    scrollBarAlwaysVisible: true
                                     shadowEnabled: false
                                     Layout.fillWidth: true
                                     Layout.minimumWidth: 200
@@ -175,6 +186,8 @@ Item {
                             }
 
                             GridLayout {
+                                id: baudRateRow
+                                z: baudDropdown.opened ? 900 : 0
                                 Layout.fillWidth: true
                                 columns: 2
                                 columnSpacing: 10
@@ -206,6 +219,7 @@ Item {
                                         serialDebug.baudRate = Number(item.text)
                                     }
                                 }
+                            }
                             }
                         }
                     }
