@@ -10,8 +10,11 @@ cmake-build-*/
 cmake-build-*.*/
 .build/
 .cache/
-.idea/workspace.xml
-XY7320/.idea/encodings.xml
+.idea/
+*.iml
+
+# Obsidian
+docs/.obsidian/workspace.json
 
 # Qt Creator local files
 tools/QtUpgradeDemo/build/
