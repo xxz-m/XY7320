@@ -54,21 +54,6 @@ Item {
         contentWidth: availableWidth
         clip: true
 
-        // 下拉菜单互斥：打开一个时关闭另一个
-        Binding {
-            target: baudDropdown
-            property: "opened"
-            value: false
-            when: portDropdown.opened
-        }
-
-        Binding {
-            target: portDropdown
-            property: "opened"
-            value: false
-            when: baudDropdown.opened
-        }
-
         ColumnLayout {
             width: parent.width
             spacing: 14
@@ -151,7 +136,7 @@ Item {
                                 EDropdown {
                                     id: portDropdown
                                     enabled: !serialDebug.isOpen
-                                    model: root.portModel()
+                                    model: serialDebug.ports
                                     selectedIndex: root.selectCurrentPort()
                                     title: qsTr("选择串口")
                                     headerHeight: 40
