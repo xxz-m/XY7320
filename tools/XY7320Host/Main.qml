@@ -493,6 +493,7 @@ ApplicationWindow {
                 anchors.fill: parent
                 acceptedButtons: Qt.LeftButton
                 propagateComposedEvents: true
+                hoverEnabled: true
 
                 property bool resizing: false
                 property point startPos
@@ -510,6 +511,9 @@ ApplicationWindow {
                 }
 
                 onPositionChanged: function(mouse) {
+                    resizeHandle.updateEdges(mouse.x, mouse.y)
+                    cursorShape = resizeHandle.cursorForEdges(resizeHandle.edges)
+                    
                     if (!resizing) {
                         mouse.accepted = false
                         return
@@ -544,6 +548,12 @@ ApplicationWindow {
                 onReleased: {
                     resizing = false
                     mouse.accepted = true
+                }
+
+                onContainsMouseChanged: {
+                    if (!containsMouse) {
+                        cursorShape = Qt.ArrowCursor
+                    }
                 }
             }
         }
