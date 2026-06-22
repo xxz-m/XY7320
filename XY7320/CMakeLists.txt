@@ -78,6 +78,7 @@ include_directories(Core/Inc Drivers/STM32F4xx_HAL_Driver/Inc Drivers/STM32F4xx_
     Domain/measurement
     Domain/model
     Domain/version_frame
+    Domain/protocol
 
     # App 层 - 业务编排
     App

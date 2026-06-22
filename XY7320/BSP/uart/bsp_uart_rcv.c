@@ -99,8 +99,9 @@ void BspUartRcv_ClearFlag(void)
 /**
  * 发送应答数据（阻塞）
  *
- * 使用 HAL_UART_Transmit 发送
- * NOTE: 在 DMA 接收模式下可能失败，请使用 BspUartRcv_SendAckDirect
+ * 使用 HAL_UART_Transmit 发送。
+ * NOTE: HAL UART 句柄中 gState 管 TX、RxState 管 RX，两者独立，
+ *       DMA 接收模式下阻塞发送不会干扰接收，可放心使用。
  */
 void BspUartRcv_SendAck(const uint8_t *data, uint16_t len)
 {
@@ -112,13 +113,10 @@ void BspUartRcv_SendAck(const uint8_t *data, uint16_t len)
 /**
  * 直接发送应答数据（绕过 HAL 状态机）
  *
- * 用于 DMA 接收模式下需要发送数据的场景。
- * 流程：
- * 1. 停止 DMA 接收
- * 2. 禁用 USART 中断（防止 IDLE 中断干扰发送）
- * 3. 用寄存器直接发送（不经过 HAL 状态机）
- * 4. 等待发送完成
+ * 绕过 HAL 直接用寄存器发送。当前 HAL 版本下 SendAck 已可正常工作，
+ * 此函数保留作为备用方案。
  *
+ * DEPRECATED: 优先使用 BspUartRcv_SendAck()，仅在 HAL 状态机异常时使用本函数。
  * FIXME: SendAckDirect 硬编码了 DMA1_Stream5，只支持 USART2
  */
 void BspUartRcv_SendAckDirect(const uint8_t *data, uint16_t len)
@@ -129,8 +127,7 @@ void BspUartRcv_SendAckDirect(const uint8_t *data, uint16_t len)
 
     USART_TypeDef *uart = s_huart->Instance;
 
-    /* 第一步：停止 DMA 接收 */
-    /* NOTE: 此处必须先停 DMA 再发送，否则 DMA 和 UART 发送会冲突 */
+    /* 第一步：停止 DMA 接收（避免寄存器操作与 DMA 传输竞争） */
     if (uart == USART2) {
         DMA1_Stream5->CR &= ~DMA_SxCR_EN;
         while (DMA1_Stream5->CR & DMA_SxCR_EN);

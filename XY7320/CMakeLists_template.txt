@@ -75,6 +75,7 @@ include_directories(${includes}
     Domain/measurement
     Domain/model
     Domain/version_frame
+    Domain/protocol
     # App 层 - 业务编排
     App
     App/mode_manager
