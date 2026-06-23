@@ -5,6 +5,7 @@
 #include "protocol_service.h"
 #include <string.h>
 #include "bsp_uart_rcv.h"
+#include "update_service.h"
 ProtocolService& ProtocolService::Instance()
 {
     static ProtocolService instance;
@@ -36,6 +37,11 @@ void ProtocolService::Update()
     BspUartRcv_CopyFrame(m_rxChunk);
     /** 清除帧就绪标志，必须在 CopyFrame() 取走数据后调用 */
     BspUartRcv_ClearFlag();
+
+    if (TryHandleLegacyUpgradeFrame(m_rxChunk, len)) {
+        return;
+    }
+
     //拼缓存
     AppendInput(m_rxChunk, len);
     //拆包
@@ -82,10 +88,23 @@ void ProtocolService::ProcessStream()
             m_streamLen = remaining;
         }
 
-        if (packet.state == Protocol::unENDErr) {
+        if (packet.state == Protocol::unNoError) {
+            if (ValidatePacket(packet)) {
+                DispatchPacket(packet);
+            }
+        } else if (packet.state == Protocol::unENDErr) {
             break;
         }
     }
+}
+
+bool ProtocolService::TryHandleLegacyUpgradeFrame(const uint8_t *data, uint16_t len)
+{
+    if (data == nullptr || len == 0) {
+        return false;
+    }
+
+    return UpdateService::Instance().HandleUpgradeFrame(data, len);
 }
 //这些属于统一协议入口的职责
 bool ProtocolService::ValidatePacket(const Protocol::ProtocolPacket &packet)
@@ -125,8 +144,7 @@ void ProtocolService::HandleCommandPacket(const Protocol::ProtocolPacket &packet
     switch (packet.cmd) {
     case 0x01:
         {
-            uint8_t resp[1] = {0x00};
-            SendPacket(packet.cmd, resp, sizeof(resp));
+            SendPacket(packet.cmd, nullptr, 0);
             break;
         }
 

@@ -9,10 +9,10 @@
 
 #include "task_update.h"
 #include "os.h"
-#include "update_service.h"
+#include "protocol_service.h"
 
 extern "C" void Task_UpdateConfig(void *arg)
 {
-    UpdateService::Instance().Update();
+    ProtocolService::Instance().Update();
     OS_DelayMs(10);
 }

@@ -10,6 +10,7 @@
 #include "os.h"
 #include "led_service.h"
 #include "log_service.h"
+#include "protocol_service.h"
 #include "update_service.h"
 #include "task_led.h"
 #include "task_update.h"
@@ -22,6 +23,7 @@ extern "C" void App_Main_Init(void)
     LedService::Instance().SetMode(LedService::Mode::BLINK);
     /* 初始化升级服务（串口 DMA + 写 A1 版本） */
     UpdateService::Instance().Init();
+    ProtocolService::Instance().Init();
 }
 
 extern "C" void App_Main_Start(void)

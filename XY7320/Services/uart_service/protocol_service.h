@@ -21,6 +21,7 @@ private:
 
     void AppendInput(const uint8_t *data, uint16_t len);
     void ProcessStream();
+    bool TryHandleLegacyUpgradeFrame(const uint8_t *data, uint16_t len);
     bool ValidatePacket(const Protocol::ProtocolPacket &packet);
     void DispatchPacket(const Protocol::ProtocolPacket &packet);
 

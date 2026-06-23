@@ -37,11 +37,8 @@ public:
      */
     void Init();
 
-    /**
-     * 周期调用（在 Task_UpdateConfig 中每 10ms 调用一次）
-     * 检查是否有新帧，有则解析并处理
-     */
-    void Update();
+    /** 处理旧升级协议原始帧 */
+    bool HandleUpgradeFrame(const uint8_t *data, uint16_t len);
 
 private:
     UpdateService() = default;

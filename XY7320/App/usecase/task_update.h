@@ -1,7 +1,7 @@
 /**
  * @file    task_update.h
- * @brief   升级任务入口
- *          周期调用 UpdateService::Update() 处理版本帧
+ * @brief   协议任务入口
+ *          周期调用 ProtocolService::Update() 处理统一串口协议输入
  */
 
 #ifndef XY7320_TASK_UPDATE_H

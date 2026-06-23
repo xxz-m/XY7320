@@ -9,9 +9,9 @@
  *
  * 典型调用流程：
  * 1. APP 启动 → Init()：初始化串口，写 A1 为当前版本
- * 2. 上位机发版本帧 → UART IDLE 中断 → BSP 层收数据、置标志
- * 3. 主循环轮询 → Update()：检查标志 → 取帧 → 解析 → 写 A2 → 发 ACK → 复位
- * 4. Bootloader 检测 A2 → 进入升级模式
+ * 2. 上位机发旧升级版本帧 → UART IDLE 中断 → BSP 层收数据、置标志
+ * 3. 统一协议服务识别旧升级协议 → 调用 HandleUpgradeFrame()
+ * 4. 解析 → 写 A2 → 发 ACK → 复位 → Bootloader 检测 A2 进入升级模式
  */
 
 #include "update_service.h"
@@ -55,33 +55,9 @@ void UpdateService::Init()
     );
 }
 
-/**
- * 周期轮询（每 10ms 调用一次）
- *
- * 在 Task_UpdateConfig 中调用：
- *   extern "C" void Task_UpdateConfig(void *arg) {
- *       UpdateService::Instance().Update();
- *       OS_DelayMs(10);
- *   }
- *
- * 流程：
- * 1. 检查是否有新帧（BSP 层在中断中置标志）
- * 2. 取帧数据（从 BSP 层拷贝到本地）
- * 3. 处理帧（解析 → 写 A2 → 发 ACK → 复位）
- */
-void UpdateService::Update()
+bool UpdateService::HandleUpgradeFrame(const uint8_t *data, uint16_t len)
 {
-    if (!BspUartRcv_IsFrameReady()) {
-        return;
-    }
-
-    /* 取帧：从 BSP 层拷贝到本地缓冲 */
-    uint8_t frame[64];
-    uint16_t len = BspUartRcv_GetFrameLength();
-    BspUartRcv_CopyFrame(frame);
-    BspUartRcv_ClearFlag();
-
-    ProcessFrame(frame, len);
+    return ProcessFrame(data, len);
 }
 
 /**
