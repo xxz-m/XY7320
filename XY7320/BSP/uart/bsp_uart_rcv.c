@@ -24,9 +24,9 @@ static uint8_t *s_rx_buf = NULL;
 static uint16_t s_rx_buf_size = 0;
 
 /* 内部状态 */
-static uint8_t s_proc_buf[64];               ///< 帧拷贝缓冲，主循环从这里读数据
-static volatile uint16_t s_frame_len = 0;    ///< 当前帧长度
-static volatile bool s_frame_ready = false;  ///< 帧就绪标志，中断置位，主循环清除
+static uint8_t s_proc_buf[256];               ///< 帧拷贝缓冲，主循环从这里读数据
+static volatile uint16_t s_frame_len = 0;    ///< 这次 UART 新收到的原始字节长度
+static volatile bool s_frame_ready = false;  ///< 帧就绪标志，有一段新的 UART 原始字节可取
 static volatile bool s_overflow = false;     ///< 溢出标志，上一帧还没取走又来了新帧
 static UART_HandleTypeDef *s_huart = NULL;
 
@@ -185,7 +185,7 @@ void BspUartRcv_HandleIdleIrq(UART_HandleTypeDef *huart)
         rx_len = s_rx_buf_size;
     }
 
-    /* TODO: 增加帧长度越界检查，当前 s_proc_buf 固定 64 字节 */
+    /* TODO: 增加帧长度越界检查，当前 s_proc_buf 固定 256 字节 */
     if (!s_frame_ready) {
         if (rx_len <= sizeof(s_proc_buf)) {
             s_frame_len = rx_len;
