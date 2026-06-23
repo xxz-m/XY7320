@@ -467,7 +467,7 @@ Item {
                                 rowSpacing: 8
 
                                 EButton {
-                                    text: qsTr("版本帧")
+                                    text: qsTr("升级握手")
                                     iconCharacter: "\uf1d8"
                                     size: "xs"
                                     radius: 8
@@ -475,11 +475,11 @@ Item {
                                     enabled: serialDebug.isOpen
                                     Layout.fillWidth: true
                                     Layout.preferredHeight: 36
-                                    onClicked: serialDebug.send("XYVH20260608225700XYVT")
+                                    onClicked: serialDebug.send("10 02 00 15 01 00 22 00 02 F0 32 30 32 36 30 36 30 38 32 32 35 37 00 9E 6D 10 03")
                                 }
 
                                 EButton {
-                                    text: qsTr("ACK")
+                                    text: qsTr("APP ACK")
                                     iconCharacter: "\uf1d8"
                                     size: "xs"
                                     radius: 8
@@ -487,7 +487,7 @@ Item {
                                     enabled: serialDebug.isOpen
                                     Layout.fillWidth: true
                                     Layout.preferredHeight: 36
-                                    onClicked: serialDebug.send("XYA1")
+                                    onClicked: serialDebug.send("10 02 00 08 22 00 01 00 02 F0 33 4B 10 03")
                                 }
 
                                 EButton {

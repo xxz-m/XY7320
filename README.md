@@ -40,7 +40,7 @@ XY7320/
 │     └─ app_config.h            APP 功能配置（版本号、调试开关）
 ├─ Core/                         CubeMX 生成代码
 ├─ Domain/                       领域层（纯算法、协议解析）
-│  └─ version_frame/             版本帧协议解析
+│  └─ protocol/                  主协议编解码与帧处理
 ├─ Drivers/                      HAL 驱动
 ├─ Middleware/                    中间件层（第三方库）
 │  └─ nanoprintf/                轻量级 printf
@@ -63,7 +63,7 @@ XY7320/
 | 日志服务 | `Services/log/` | nanoprintf + 串口输出 |
 | 升级服务 | `Services/upgrade/update_service/` | 升级流程编排 |
 | 版本存储 | `Services/upgrade/version_store/` | A1/A2 版本槽位管理 |
-| 版本帧解析 | `Domain/version_frame/` | 协议解析（纯 C） |
+| 主协议编解码 | `Domain/protocol/` | 主协议帧编解码与 CRC/转义处理 |
 | 串口接收 | `BSP/uart/bsp_uart_rcv.c` | DMA + IDLE 中断接收 |
 | Flash 操作 | `BSP/flash/bsp_flash.c` | 内部 Flash 擦/读/写 |
 
@@ -92,16 +92,17 @@ __enable_irq();
 
 ## 升级协议
 
-### 版本帧协议
+### APP 前置升级握手协议
 
-上位机发送版本帧，APP 收到后写 A2 槽位、回 ACK、复位进入 Bootloader：
+上位机发送主协议升级握手命令，APP 收到后写 A2 槽位、回主协议 ACK、复位进入 Bootloader：
 
 ```text
-帧格式（21 字节）：
-XYVH + yyyyMMddHHmm + flag + XYVT
-
-示例：XYVH20260608225700XYVT
-      帧头  版本号(12位)  flag 帧尾
+主协议字段：
+origin_port = 0x01 (PC)
+goal_port   = 0x22 (XY7320)
+model       = 0x02 (unWrite)
+cmd         = 0xF0
+payload     = yyyyMMddHHmm(12位 ASCII) + flag(1字节)
 
 flag:
   0x00 = NEED_DOWNLOAD（需要下载升级）
@@ -111,7 +112,7 @@ flag:
 ### 固定码握手流程
 
 ```text
-XYA1  APP 已接收版本帧，即将写配置并复位
+主协议 ACK  APP 已接收升级握手命令，即将写配置并复位
 XYB1  Bootloader 已进入升级模式，USART2 已准备接收
 XYB2  Bootloader 已接收头包并擦除 APP 区，正在等待 APP 数据
 XYB3  Bootloader 已接收完 APP，校验有效，即将跳转 APP
@@ -120,8 +121,8 @@ XYB3  Bootloader 已接收完 APP，校验有效，即将跳转 APP
 ### 升级流程
 
 ```text
-1. 上位机发版本帧 → APP 收到
-2. APP 写 A2（目标版本）→ 回 XYA1 → 复位
+1. 上位机发主协议 `0xF0` 升级握手 → APP 收到
+2. APP 写 A2（目标版本）→ 回主协议 ACK → 复位
 3. Bootloader 启动 → 检测 A2 有效 → 进入升级模式
 4. Bootloader 回 XYB1 → 等待头包
 5. 上位机发头包 → Bootloader 擦除 APP 区 → 回 XYB2
@@ -137,16 +138,15 @@ XYB3  Bootloader 已接收完 APP，校验有效，即将跳转 APP
 main.c
   └── App_Main_Init()
         └── UpdateService::Init()
-              ├── BspUartRcv_Init()       # 初始化串口 DMA 接收
-              ├── BspUartRcv_Start()      # 启动 DMA + IDLE 中断
               └── VersionStore::WriteA1() # 写当前版本
 
 Task_UpdateConfig (每 10ms)
-  └── UpdateService::Update()
-        ├── BspUartRcv_IsFrameReady()     # 检查是否有新帧
-        ├── VersionFrame_Parse()          # Domain 层解析协议
-        ├── VersionStore::WriteA2()       # 写目标版本
-        └── BspUartRcv_SendAckDirect()    # 回 ACK（寄存器直接发送）
+  └── ProtocolService::Update()
+        ├── Protocol::DecodeBuffer()                    # 主协议解包
+        ├── DispatchPacket(cmd=0xF0)                   # 分发升级握手命令
+        ├── UpdateService::HandleProtocolUpgradeRequest()
+        ├── VersionStore::WriteA2()                    # 写目标版本
+        └── ResetToBootloaderAfterAck()                # ACK 后复位
 
 USART2_IRQHandler
   └── BspUartRcv_HandleIdleIrq()          # IDLE 中断处理

@@ -343,7 +343,7 @@ Item {
                             spacing: 10
 
                             Text {
-                                text: qsTr("版本帧")
+                                text: qsTr("升级握手")
                                 color: theme.textColor
                                 font.pixelSize: 13
                                 Layout.preferredWidth: root.formLabelWidth
@@ -440,7 +440,7 @@ Item {
                                     rowSpacing: 10
 
                                     EButton {
-                                        text: qsTr("发送版本帧")
+                                        text: qsTr("发送升级握手")
                                         iconCharacter: "\uf1d8"
                                         size: "xs"
                                         radius: 8

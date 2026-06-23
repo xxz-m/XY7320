@@ -7,8 +7,11 @@
 #ifndef XY7320_VERSION_STORE_H
 #define XY7320_VERSION_STORE_H
 
-#include "version_frame.h"
 #include <cstdint>
+
+/** 升级标志位定义（供 APP 与 BootLoader 共用） */
+#define VERSION_FRAME_FLAG_NEED_DOWNLOAD  0x00U
+#define VERSION_FRAME_FLAG_DOWNLOADED     0x01U
 
 /**
  * 版本配置存储

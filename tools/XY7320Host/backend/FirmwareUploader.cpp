@@ -12,7 +12,6 @@
 #include <utility>
 
 namespace {
-constexpr char kAppVersionAck[] = "XYA1";
 constexpr char kBootReadyAck[] = "XYB1";
 constexpr char kBootHeaderAck[] = "XYB2";
 constexpr char kBootFinishAck[] = "XYB3";
@@ -310,11 +309,11 @@ void FirmwareUploader::start()
     m_serial.clear(QSerialPort::Input);
     m_autoStage = AutoStage::WaitAppVersionAck;
 
-    setStatus(QStringLiteral("Wait XYA1"));
-    appendLog(QStringLiteral("[AUTO] TX version frame, wait XYA1(APP accepted version frame)."));
+    setStatus(QStringLiteral("Wait upgrade ACK"));
+    appendLog(QStringLiteral("[AUTO] TX protocol upgrade handshake, wait APP ACK."));
 
-    if (!writeBytes(makeVersionFrame())) {
-        finish(false, QStringLiteral("[AUTO] TX version frame failed."));
+    if (!writeBytes(makeProtocolUpgradeHandshake())) {
+        finish(false, QStringLiteral("[AUTO] TX protocol upgrade handshake failed."));
         return;
     }
 
@@ -366,14 +365,14 @@ void FirmwareUploader::sendVersionFrameManual()
         return;
     }
 
-    if (!writeBytes(makeVersionFrame())) {
+    if (!writeBytes(makeProtocolUpgradeHandshake())) {
         setStatus(QStringLiteral("Version failed"));
-        appendLog(QStringLiteral("Version frame send failed."));
+        appendLog(QStringLiteral("Protocol upgrade handshake send failed."));
         return;
     }
 
     setStatus(QStringLiteral("Version sent"));
-    appendLog(QStringLiteral("Version frame sent: %1, flag=0x%2")
+    appendLog(QStringLiteral("Protocol upgrade handshake sent: %1, flag=0x%2")
                   .arg(m_versionText)
                   .arg(QString::number(m_versionFlag, 16).toUpper().rightJustified(2, QLatin1Char('0'))));
 }
@@ -532,12 +531,59 @@ QByteArray FirmwareUploader::makeHeader() const
 
 QByteArray FirmwareUploader::makeVersionFrame() const
 {
+    return makeProtocolUpgradeHandshake();
+}
+
+quint16 FirmwareUploader::protocolCrc16(const QByteArray &data) const
+{
+    quint16 crc = 0x0000;
+    for (const auto byte : data) {
+        crc ^= static_cast<quint16>(static_cast<quint8>(byte)) << 8;
+        for (int bit = 0; bit < 8; ++bit) {
+            if (crc & 0x8000) {
+                crc = static_cast<quint16>((crc << 1) ^ 0x1021);
+            } else {
+                crc = static_cast<quint16>(crc << 1);
+            }
+        }
+    }
+    return crc;
+}
+
+QByteArray FirmwareUploader::makeProtocolUpgradeHandshake() const
+{
     QByteArray frame;
-    frame.reserve(21);
-    frame.append("XYVH", 4);
-    frame.append(m_versionText.toLatin1());
-    frame.append(static_cast<char>(m_versionFlag & 0xFF));
-    frame.append("XYVT", 4);
+    frame.reserve(32);
+
+    QByteArray body;
+    body.reserve(32);
+
+    const quint16 infoLen = 8 + VersionTextLength + 1;
+    body.append(static_cast<char>((infoLen >> 8) & 0xFF));
+    body.append(static_cast<char>(infoLen & 0xFF));
+    body.append(static_cast<char>(ProtocolPortPc));
+    body.append(char(0x00));
+    body.append(static_cast<char>(ProtocolPortDevice));
+    body.append(char(0x00));
+    body.append(static_cast<char>(ProtocolModelWrite));
+    body.append(static_cast<char>(ProtocolCmdUpgradeHandshake));
+    body.append(m_versionText.toLatin1());
+    body.append(static_cast<char>(m_versionFlag & 0xFF));
+
+    const quint16 crc = protocolCrc16(body);
+    body.append(static_cast<char>((crc >> 8) & 0xFF));
+    body.append(static_cast<char>(crc & 0xFF));
+
+    frame.append(static_cast<char>(ProtocolHead1));
+    frame.append(static_cast<char>(ProtocolHead2));
+    for (const auto byte : body) {
+        frame.append(byte);
+        if (static_cast<quint8>(byte) == ProtocolEnd1) {
+            frame.append(byte);
+        }
+    }
+    frame.append(static_cast<char>(ProtocolEnd1));
+    frame.append(static_cast<char>(ProtocolEnd2));
     return frame;
 }
 
@@ -620,7 +666,7 @@ void FirmwareUploader::updateVersionInfo()
     QString nextFrameHex;
 
     if (m_versionText.size() == VersionTextLength) {
-        const QByteArray frame = makeVersionFrame();
+        const QByteArray frame = makeProtocolUpgradeHandshake();
         nextFrameHex = QString::fromLatin1(frame.toHex(' ').toUpper());
     }
 
@@ -838,8 +884,11 @@ void FirmwareUploader::stopHandshakeTimer()
 
 void FirmwareUploader::consumeRxBuffer()
 {
+    if (tryConsumeProtocolUpgradeAck()) {
+        return;
+    }
+
     static const QList<QByteArray> codes = {
-        QByteArray(kAppVersionAck, 4),
         QByteArray(kBootReadyAck, 4),
         QByteArray(kBootHeaderAck, 4),
         QByteArray(kBootFinishAck, 4)
@@ -864,15 +913,77 @@ void FirmwareUploader::consumeRxBuffer()
     }
 }
 
+bool FirmwareUploader::tryConsumeProtocolUpgradeAck()
+{
+    if (m_autoStage != AutoStage::WaitAppVersionAck) {
+        return false;
+    }
+
+    const QByteArray ack = makeProtocolUpgradeHandshake();
+    Q_UNUSED(ack);
+
+    const int minLen = 12;
+    for (qsizetype start = 0; start + minLen <= m_rxBuffer.size(); ++start) {
+        if (static_cast<quint8>(m_rxBuffer[start]) != ProtocolHead1 ||
+            static_cast<quint8>(m_rxBuffer[start + 1]) != ProtocolHead2) {
+            continue;
+        }
+
+        for (qsizetype end = start + minLen - 1; end < m_rxBuffer.size() - 1; ++end) {
+            if (static_cast<quint8>(m_rxBuffer[end]) == ProtocolEnd1 &&
+                static_cast<quint8>(m_rxBuffer[end + 1]) == ProtocolEnd2) {
+                QByteArray packet = m_rxBuffer.mid(start, end + 2 - start);
+                m_rxBuffer.remove(0, end + 2);
+
+                QByteArray decoded;
+                decoded.reserve(packet.size());
+                decoded.append(packet[0]);
+                decoded.append(packet[1]);
+                for (qsizetype i = 2; i < packet.size() - 2; ++i) {
+                    decoded.append(packet[i]);
+                    if (static_cast<quint8>(packet[i]) == ProtocolEnd1 &&
+                        i + 1 < packet.size() - 2 &&
+                        static_cast<quint8>(packet[i + 1]) == ProtocolEnd1) {
+                        ++i;
+                    }
+                }
+                decoded.append(packet[packet.size() - 2]);
+                decoded.append(packet[packet.size() - 1]);
+
+                if (decoded.size() < 14) {
+                    return true;
+                }
+
+                const quint8 originPort = static_cast<quint8>(decoded[4]);
+                const quint8 goalPort = static_cast<quint8>(decoded[6]);
+                const quint8 model = static_cast<quint8>(decoded[8]);
+                const quint8 cmd = static_cast<quint8>(decoded[9]);
+                const int dataLen = decoded.size() - 14;
+
+                if (originPort == ProtocolPortDevice &&
+                    goalPort == ProtocolPortPc &&
+                    model == ProtocolModelWrite &&
+                    cmd == ProtocolCmdUpgradeHandshake &&
+                    dataLen == 0) {
+                    handleHandshakeCode(QByteArrayLiteral("PROTO_ACK"));
+                }
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
 void FirmwareUploader::handleHandshakeCode(const QByteArray &code)
 {
     appendLog(QStringLiteral("[AUTO] RX code %1 at %2.")
                   .arg(QString::fromLatin1(code), stageName(m_autoStage)));
 
-    if (code == kAppVersionAck && m_autoStage == AutoStage::WaitAppVersionAck) {
+    if (code == QByteArrayLiteral("PROTO_ACK") && m_autoStage == AutoStage::WaitAppVersionAck) {
         m_autoStage = AutoStage::WaitBootReady;
         setStatus(QStringLiteral("Wait XYB1"));
-        appendLog(QStringLiteral("[AUTO] APP accepted version frame and reset. Wait XYB1 bootloader ready."));
+        appendLog(QStringLiteral("[AUTO] APP accepted protocol upgrade handshake and reset. Wait XYB1 bootloader ready."));
         startHandshakeTimer();
         return;
     }
@@ -916,7 +1027,7 @@ QString FirmwareUploader::stageName(AutoStage stage) const
     case AutoStage::Idle:
         return QStringLiteral("Idle");
     case AutoStage::WaitAppVersionAck:
-        return QStringLiteral("WaitAppVersionAck(XYA1)");
+        return QStringLiteral("WaitAppVersionAck(PROTO_ACK)");
     case AutoStage::WaitBootReady:
         return QStringLiteral("WaitBootReady(XYB1)");
     case AutoStage::WaitHeaderAck:

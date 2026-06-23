@@ -38,10 +38,6 @@ void ProtocolService::Update()
     /** 清除帧就绪标志，必须在 CopyFrame() 取走数据后调用 */
     BspUartRcv_ClearFlag();
 
-    if (TryHandleLegacyUpgradeFrame(m_rxChunk, len)) {
-        return;
-    }
-
     //拼缓存
     AppendInput(m_rxChunk, len);
     //拆包
@@ -98,14 +94,6 @@ void ProtocolService::ProcessStream()
     }
 }
 
-bool ProtocolService::TryHandleLegacyUpgradeFrame(const uint8_t *data, uint16_t len)
-{
-    if (data == nullptr || len == 0) {
-        return false;
-    }
-
-    return UpdateService::Instance().HandleUpgradeFrame(data, len);
-}
 //这些属于统一协议入口的职责
 bool ProtocolService::ValidatePacket(const Protocol::ProtocolPacket &packet)
 {
@@ -157,8 +145,21 @@ void ProtocolService::HandleUpgradePacket(const Protocol::ProtocolPacket &packet
 {
     switch (packet.cmd) {
     case 0xF0:
-        // 这里后面再接你现有的升级业务
-        // 比如：写版本信息、回 ACK、触发复位等
+        {
+            bool should_reset = false;
+            if (!UpdateService::Instance().HandleProtocolUpgradeRequest(packet.data,
+                                                                        packet.data_len,
+                                                                        should_reset)) {
+                break;
+            }
+
+            SendPacket(packet.cmd, nullptr, 0);
+
+            if (should_reset) {
+                UpdateService::Instance().ResetToBootloaderAfterAck();
+            }
+            break;
+        }
         break;
 
     default:

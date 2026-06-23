@@ -107,6 +107,14 @@ private:
     static constexpr int MaxPacketSize = 1024;
     static constexpr int VersionTextLength = 12;
     static constexpr int HandshakeTimeoutMs = 8000;
+    static constexpr quint8 ProtocolHead1 = 0x10;
+    static constexpr quint8 ProtocolHead2 = 0x02;
+    static constexpr quint8 ProtocolEnd1 = 0x10;
+    static constexpr quint8 ProtocolEnd2 = 0x03;
+    static constexpr quint8 ProtocolModelWrite = 0x02;
+    static constexpr quint8 ProtocolCmdUpgradeHandshake = 0xF0;
+    static constexpr quint8 ProtocolPortPc = 0x01;
+    static constexpr quint8 ProtocolPortDevice = 0x22;
 
     enum class AutoStage {
         Idle,
@@ -120,6 +128,9 @@ private:
     QByteArray makeHeader() const;
     QByteArray makeVersionFrame() const;
     bool validateVersionFrameInput();
+    quint16 protocolCrc16(const QByteArray &data) const;
+    QByteArray makeProtocolUpgradeHandshake() const;
+    bool tryConsumeProtocolUpgradeAck();
     bool prepareFirmware();
     void updateFileInfo();
     void updateVersionInfo();
