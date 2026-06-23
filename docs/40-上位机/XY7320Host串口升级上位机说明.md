@@ -116,13 +116,13 @@ Q_INVOKABLE void copyHeaderToClipboard();
 
 ## 自动升级流程
 
-自动升级流程用于正常使用。当前版本已经改为固定码握手，不再依赖固定延时盲发头包和固件：
+自动升级流程用于正常使用。当前版本已经改为“主协议 `0xF0` 握手 + BootLoader 固定码”流程，不再依赖旧版本帧：
 
 ```text
 1. 选择串口、波特率和 APP bin。
 2. 点击开始升级。
 3. 上位机打开串口。
-4. 发送版本帧，等待 APP 返回 XYA1。
+4. 发送主协议 `0xF0` 升级握手，等待 APP 返回主协议 ACK。
 5. 等待 Bootloader 返回 XYB1。
 6. 发送 12 字节头包，等待 Bootloader 返回 XYB2。
 7. 按包大小和间隔连续发送固件。
@@ -135,10 +135,20 @@ Q_INVOKABLE void copyHeaderToClipboard();
 固定码含义：
 
 ```text
-XYA1  APP 已接收版本帧，即将写配置并复位
+主协议 ACK  APP 已接收升级握手命令，即将写配置并复位
 XYB1  Bootloader 已进入升级模式，USART2 已准备接收
 XYB2  Bootloader 已接收头包并擦除 APP 区，正在等待 APP 数据
 XYB3  Bootloader 已接收完 APP，校验有效，即将跳转 APP
+```
+
+APP 升级握手命令字段：
+
+```text
+origin_port = 0x01 (PC)
+goal_port   = 0x22 (XY7320)
+model       = 0x02 (unWrite)
+cmd         = 0xF0
+payload     = yyyyMMddHHmm(12位 ASCII) + flag(1字节)
 ```
 
 上位机状态机位于：
