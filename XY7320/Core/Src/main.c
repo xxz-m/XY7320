@@ -104,10 +104,10 @@ int main(void)
   BspTimOs_SetTickCallback(OS_Tick);
   BspTimOs_Init(&htim14);
 
-  /* USER CODE END 2 */
   App_Main_Init();    // 初始化 App 层
   App_Main_Start();   // 创建所有任务
   OS_Start();        // 启动调度器（不会返回）
+  /* USER CODE END 2 */
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)

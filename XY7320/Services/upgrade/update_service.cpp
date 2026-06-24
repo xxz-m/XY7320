@@ -12,12 +12,18 @@
 #include "update_service.h"
 #include "bsp_tim_os.h"        /* BSP: 延时、系统复位 */
 #include "bsp_config.h"        /* Common: BSP 硬件配置 */
+#include "bsp_uart_rcv.h"      /* BSP: 串口 DMA 接收 */
+#include "usart.h"             /* CubeMX: huart2 句柄 */
 #include "version_store.h"     /* Services: 版本配置存储 */
 #include "app_config.h"        /* Common: APP 功能配置（版本号） */
 #include <cstring>
 
 namespace {
 constexpr uint8_t PROTOCOL_UPGRADE_REQUEST_LEN = 13U;
+
+/** DMA 接收缓冲区，由 BspUartRcv 模块直接写入 */
+constexpr uint16_t UART_DMA_BUF_SIZE = 256U;
+uint8_t s_dma_rx_buf[UART_DMA_BUF_SIZE];
 }
 
 UpdateService& UpdateService::Instance()
@@ -42,7 +48,13 @@ void UpdateService::Init()
     /* 1. 清空本地缓冲（保留成员，避免后续接口调整引起布局变化） */
     memset(m_rxBuf, 0, sizeof(m_rxBuf));
 
-    /* 2. 写 A1 为当前运行版本（标记为已下载） */
+    /* 2. 初始化串口 DMA 接收（绑定 USART2 句柄 + DMA 缓冲区） */
+    BspUartRcv_Init(&huart2, s_dma_rx_buf, UART_DMA_BUF_SIZE);
+
+    /* 3. 启动 DMA 接收 + 使能 IDLE 中断，之后串口数据自动流入 */
+    BspUartRcv_Start();
+
+    /* 4. 写 A1 为当前运行版本（标记为已下载） */
     VersionStore::Instance().WriteA1(
         APP_CURRENT_VERSION,
         VERSION_FRAME_FLAG_DOWNLOADED

@@ -1,8 +1,7 @@
 #此文件从模板自动生成! 请勿更改!
 set(CMAKE_SYSTEM_NAME Generic)
 set(CMAKE_SYSTEM_VERSION 1)
-cmake_minimum_required(VERSION 3.28)
-
+cmake_minimum_required(VERSION 3.22)
 # specify cross-compilers and tools
 set(CMAKE_C_COMPILER arm-none-eabi-gcc)
 set(CMAKE_CXX_COMPILER arm-none-eabi-g++)
@@ -61,24 +60,23 @@ include_directories(Core/Inc Drivers/STM32F4xx_HAL_Driver/Inc Drivers/STM32F4xx_
     BSP/gpio
     BSP/flash
 
-
     # Middleware 层 - 第三方组件（预留）
     Middleware/nanoprintf
 
     # Services 层 - 服务封装
     Services/uart_service
     Services/adc_service
-    Services/led_service
     Services/log
-    Services/upgrade
     Services/report
+    Services/led_service
+    Services/upgrade
 
     # Domain 层 - 领域算法与模型
     Domain/filter
     Domain/measurement
     Domain/model
     Domain/protocol
-
+    # App 层 - 业务编排
     # App 层 - 业务编排
     App
     App/mode_manager

@@ -14,7 +14,7 @@
 #include "update_service.h"
 #include "task_led.h"
 #include "task_update.h"
-
+#include "mode_manager.h"
 extern "C" void App_Main_Init(void)
 {
     /* App 层只调接口，不知道硬件细节 */
@@ -24,8 +24,9 @@ extern "C" void App_Main_Init(void)
     /* 初始化升级服务（串口 DMA + 写 A1 版本） */
     UpdateService::Instance().Init();
     ProtocolService::Instance().Init();
+    ModeManager::Instance().Init();
 }
-
+static void Task_ModeManager(void *arg);
 extern "C" void App_Main_Start(void)
 {
     /* 创建所有 OS 任务 */
@@ -33,4 +34,14 @@ extern "C" void App_Main_Start(void)
     LOG_Printf("Task_LED,Create,OK\r\n");
     OS_CreateTask(Task_UpdateConfig, nullptr, 5);
     LOG_Printf("Task_UpdateConfig,Create,OK\r\n");
+    OS_CreateTask(Task_ModeManager, nullptr, 3);  // 新增
+    LOG_Printf("Task_ModeManager,Create,OK\r\n");
+}
+
+/* 新增：ModeManager 调度任务 */
+static void Task_ModeManager(void *arg)
+{
+    (void)arg;
+    ModeManager::Instance().Tick();
+    OS_DelayMs(1);
 }
