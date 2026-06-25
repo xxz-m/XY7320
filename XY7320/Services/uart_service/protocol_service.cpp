@@ -6,6 +6,7 @@
 #include <string.h>
 #include "bsp_uart_rcv.h"
 #include "update_service.h"
+#include "mode_manager.h"
 ProtocolService& ProtocolService::Instance()
 {
     static ProtocolService instance;
@@ -130,12 +131,18 @@ void ProtocolService::DispatchPacket(const Protocol::ProtocolPacket &packet)
 void ProtocolService::HandleCommandPacket(const Protocol::ProtocolPacket &packet)
 {
     switch (packet.cmd) {
-    case 0x01:
-        {
-            SendPacket(packet.cmd, nullptr, 0);
-            break;
-        }
-
+    case 0x10:
+        ModeManager::Instance().RequestSwitch(mode::SwitchToIdleEvent());
+        SendPacket(packet.cmd, nullptr, 0);
+        break;
+    case 0x11:
+        ModeManager::Instance().RequestSwitch(mode::SwitchToAdcTaskAEvent());
+        SendPacket(packet.cmd, nullptr, 0);
+        break;
+    case 0x12:
+        ModeManager::Instance().RequestSwitch(mode::SwitchToAdcTaskBEvent());
+        SendPacket(packet.cmd, nullptr, 0);
+        break;
     default:
         break;
     }

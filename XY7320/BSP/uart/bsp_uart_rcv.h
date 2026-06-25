@@ -26,6 +26,14 @@ void BspUartRcv_Init(UART_HandleTypeDef *huart, uint8_t *buf, uint16_t size);
 /** 启动 DMA 接收 + 使能 IDLE 中断 */
 void BspUartRcv_Start(void);
 
+/**
+ * @brief  反初始化串口 DMA 接收
+ *
+ * 停止 DMA、禁用 IDLE 中断、DeInit UART。
+ * 用于系统复位前清理串口状态，确保 Bootloader 启动时串口干净。
+ */
+void BspUartRcv_DeInit(void);
+
 /** 是否有完整帧到达 */
 bool BspUartRcv_IsFrameReady(void);
 

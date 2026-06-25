@@ -1,11 +1,13 @@
-//
-// Created by Administrator on 2026/6/24.
-//
+/**
+ * @file    task_state_adc_a.cpp
+ * @brief   ADC Task A 状态实现
+ *          当前阶段打印心跳，后续替换为真实 ADC A 采集业务
+ */
 
 #include "task_state_adc_a.h"
-#include "log_service.h"
 #include "app_config.h"
-TaskStateAdcA &TaskStateAdcA::Instance()
+
+TaskStateAdcA& TaskStateAdcA::Instance()
 {
     static TaskStateAdcA instance;
     return instance;
@@ -13,23 +15,28 @@ TaskStateAdcA &TaskStateAdcA::Instance()
 
 TaskStateAdcA::TaskStateAdcA() : fsm::State("AdcTaskA") {}
 
+/** 进入 ADC Task A，后续在此启动 ADC 采集 */
 void TaskStateAdcA::entry()
 {
-    LOG_Printf("TaskStateAdcA,Entry\r\n");
+    LOG_Printf("TaskStateAdcA,Entry\n");
 }
 
+/** 退出 ADC Task A，后续在此停止 ADC 采集 */
 void TaskStateAdcA::exit()
 {
-    LOG_Printf("TaskStateAdcA,Exit\r\n");
+    LOG_Printf("TaskStateAdcA,Exit\n");
 }
 
-void TaskStateAdcA::react(const fsm::Event &e)
+/** ADC Task A 不响应事件，切换由 ModeManager 统一驱动 */
+void TaskStateAdcA::react(const fsm::Event &event)
 {
-    (void)e;
 }
 
+/** 每 1ms 调用，当前阶段打印心跳，后续替换为真实 ADC A 采集逻辑 */
 void TaskStateAdcA::tick()
 {
-    /* 第一阶段：打印心跳，后续替换为真实 ADC A 业务 */
-    LOG_Printf("TaskStateAdcA,Tick\r\n");
+    static uint32_t counter = 0;
+    if (++counter % 1000 == 0) {
+        LOG_Printf("TaskStateAdcA,Tick\n");
+    }
 }

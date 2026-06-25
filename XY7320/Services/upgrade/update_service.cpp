@@ -61,6 +61,17 @@ void UpdateService::Init()
     );
 }
 
+/**
+ * @brief  处理协议升级请求
+ *
+ * 解析 13 字节数据（12 字节 ASCII 版本号 + 1 字节标志位），
+ * 写入 A2 槽位，并根据标志位决定是否复位。
+ *
+ * @param  data          协议数据（12 字节 ASCII 版本 + 1 字节 flag）
+ * @param  len           数据长度（必须为 13）
+ * @param  should_reset  输出参数，true 表示需要复位进 Bootloader
+ * @return true 处理成功, false 数据无效或写入失败
+ */
 bool UpdateService::HandleProtocolUpgradeRequest(const uint8_t *data, uint8_t len, bool &should_reset)
 {
     should_reset = false;
@@ -90,10 +101,22 @@ bool UpdateService::HandleProtocolUpgradeRequest(const uint8_t *data, uint8_t le
 
 void UpdateService::ResetToBootloaderAfterAck()
 {
+    /* 复位前清理串口状态，确保 Bootloader 启动时串口干净 */
+    BspUartRcv_DeInit();
+
     BspTimOs_DelayMs(50);
     BspTimOs_SystemReset();
 }
 
+/**
+ * @brief  将 12 字节 ASCII 数字解析为 uint64_t 版本号
+ *
+ * 例如 "202606082257" → 202606082257
+ *
+ * @param  data     12 字节 ASCII 数字（每个字节必须是 '0'~'9'）
+ * @param  version  输出参数，解析后的版本号
+ * @return true 解析成功, false 数据无效
+ */
 bool UpdateService::ParseAsciiVersion(const uint8_t *data, uint64_t &version)
 {
     if (data == nullptr) {

@@ -66,6 +66,30 @@ void BspUartRcv_Start(void)
     __HAL_UART_ENABLE_IT(s_huart, UART_IT_IDLE);
 }
 
+/**
+ * 反初始化串口 DMA 接收
+ *
+ * 停止 DMA、禁用 IDLE 中断、DeInit UART。
+ * 用于系统复位前清理串口状态，确保 Bootloader 启动时串口干净。
+ */
+void BspUartRcv_DeInit(void)
+{
+    if (s_huart == NULL) {
+        return;
+    }
+
+    HAL_UART_DMAStop(s_huart);
+    __HAL_UART_DISABLE_IT(s_huart, UART_IT_IDLE);
+    HAL_UART_DeInit(s_huart);
+
+    s_huart = NULL;
+    s_rx_buf = NULL;
+    s_rx_buf_size = 0;
+    s_frame_ready = false;
+    s_overflow = false;
+    s_frame_len = 0;
+}
+
 /** 检查是否有完整帧到达 */
 bool BspUartRcv_IsFrameReady(void)
 {

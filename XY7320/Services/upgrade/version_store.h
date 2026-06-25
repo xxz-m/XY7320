@@ -40,9 +40,14 @@ public:
         Slot a2;
     };
 
+    /** 获取单例 */
     static VersionStore& Instance();
 
-    /** 读取完整配置 */
+    /**
+     * @brief  读取完整配置（A1 + A2）
+     * @param  config  输出参数，读取到的配置
+     * @return true 读取成功, false Flash 数据损坏
+     */
     bool Read(Config &config);
 
     /**
@@ -61,10 +66,17 @@ public:
      */
     bool WriteA2(uint64_t version, uint8_t flag);
 
-    /** 判断是否需要进入升级模式（A2 有效且版本与 A1 不同） */
+    /**
+     * @brief  判断是否需要进入升级模式
+     * @return true 需要升级（A2 有效且版本与 A1 不同）, false 不需要
+     */
     bool ShouldEnterUpgrade();
 
-    /** 判断槽位数据是否有效 */
+    /**
+     * @brief  判断槽位数据是否有效
+     * @param  slot  待检查的槽位
+     * @return true 有效（magic 和 tail 匹配）, false 无效
+     */
     bool IsSlotValid(const Slot &slot);
 
 private:

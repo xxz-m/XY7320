@@ -513,6 +513,43 @@ Item {
                                     Layout.preferredHeight: 36
                                     onClicked: serialDebug.send("XYB3")
                                 }
+
+                                // ---- 模式切换命令 ----
+                                EButton {
+                                    text: qsTr("切 Idle")
+                                    iconCharacter: "\uf04d"
+                                    size: "xs"
+                                    radius: 8
+                                    shadowEnabled: false
+                                    enabled: serialDebug.isOpen
+                                    Layout.fillWidth: true
+                                    Layout.preferredHeight: 36
+                                    onClicked: serialDebug.send("10 02 00 08 01 00 22 00 02 10 10 78 78 10 03")
+                                }
+
+                                EButton {
+                                    text: qsTr("切 AdcTaskA")
+                                    iconCharacter: "\uf04d"
+                                    size: "xs"
+                                    radius: 8
+                                    shadowEnabled: false
+                                    enabled: serialDebug.isOpen
+                                    Layout.fillWidth: true
+                                    Layout.preferredHeight: 36
+                                    onClicked: serialDebug.send("10 02 00 08 01 00 22 00 02 11 68 59 10 03")
+                                }
+
+                                EButton {
+                                    text: qsTr("切 AdcTaskB")
+                                    iconCharacter: "\uf04d"
+                                    size: "xs"
+                                    radius: 8
+                                    shadowEnabled: false
+                                    enabled: serialDebug.isOpen
+                                    Layout.fillWidth: true
+                                    Layout.preferredHeight: 36
+                                    onClicked: serialDebug.send("10 02 00 08 01 00 22 00 02 12 58 3A 10 03")
+                                }
                             }
                         }
                     }
