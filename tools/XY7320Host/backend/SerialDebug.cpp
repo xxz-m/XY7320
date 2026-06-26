@@ -3,6 +3,8 @@
 #include <QDateTime>
 #include <QRegularExpression>
 #include <QSerialPortInfo>
+#include <QSet>
+#include <QSettings>
 
 SerialDebug::SerialDebug(QObject *parent)
     : QObject(parent)
@@ -58,17 +60,60 @@ void SerialDebug::setShowHex(bool showHex)
 void SerialDebug::refreshPorts()
 {
     QVariantList newPorts;
+    QSet<QString> seenPorts;
+
+    auto addPort = [&newPorts, &seenPorts](const QString &portName, const QString &description, const QString &manufacturer) {
+        if (portName.isEmpty() || seenPorts.contains(portName)) {
+            return;
+        }
+
+        QString text = portName;
+        if (!description.isEmpty()) {
+            text += QStringLiteral(" - %1").arg(description);
+        }
+        if (!manufacturer.isEmpty()) {
+            text += QStringLiteral(" %1").arg(manufacturer);
+        }
+
+        QVariantMap item;
+        item.insert(QStringLiteral("text"), text);
+        item.insert(QStringLiteral("portName"), portName);
+        newPorts.append(item);
+        seenPorts.insert(portName);
+    };
+
     const auto infos = QSerialPortInfo::availablePorts();
     for (const auto &info : infos) {
-        QVariantMap item;
-        item[QStringLiteral("text")] = info.portName() + QStringLiteral(" - ") + info.description();
-        item[QStringLiteral("portName")] = info.portName();
-        newPorts.append(item);
+        addPort(info.portName(), info.description(), info.manufacturer());
     }
 
-    if (m_ports.size() != newPorts.size()) {
+#ifdef Q_OS_WIN
+    QSettings serialComm(QStringLiteral("HKEY_LOCAL_MACHINE\\HARDWARE\\DEVICEMAP\\SERIALCOMM"),
+                         QSettings::NativeFormat);
+    for (const QString &key : serialComm.allKeys()) {
+        const QString portName = serialComm.value(key).toString();
+        const QSerialPortInfo info(portName);
+        addPort(portName, info.description(), info.manufacturer());
+    }
+#endif
+
+    if (m_ports != newPorts) {
         m_ports = newPorts;
         emit portsChanged();
+    }
+
+    bool currentExists = false;
+    for (const QVariant &port : std::as_const(newPorts)) {
+        if (port.toMap().value(QStringLiteral("portName")).toString() == m_portName) {
+            currentExists = true;
+            break;
+        }
+    }
+
+    if ((m_portName.isEmpty() || !currentExists) && !newPorts.isEmpty()) {
+        setPortName(newPorts.first().toMap().value(QStringLiteral("portName")).toString());
+    } else if (!m_portName.isEmpty() && newPorts.isEmpty()) {
+        setPortName(QString());
     }
 }
 

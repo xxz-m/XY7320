@@ -8,7 +8,7 @@
 #define XY7320_TASK_STATE_ADC_B_H
 
 #include "fsm.h"
-
+#include "adc_service.h"
 /**
  * ADC Task B 状态
  *

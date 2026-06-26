@@ -13,6 +13,7 @@
 #include "protocol_service.h"
 #include "update_service.h"
 #include "task_led.h"
+#include "adc_service.h"
 #include "task_update.h"
 #include "mode_manager.h"
 extern "C" void App_Main_Init(void)
@@ -25,6 +26,7 @@ extern "C" void App_Main_Init(void)
     UpdateService::Instance().Init();
     ProtocolService::Instance().Init();
     ModeManager::Instance().Init();
+    AdcService::Instance().Init();
 }
 static void Task_ModeManager(void *arg);
 extern "C" void App_Main_Start(void)

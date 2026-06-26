@@ -35,9 +35,16 @@ extern "C" {
 /* ====== SPI 配置（预留） ====== */
 // #define FLASH_SPI           hspi1
 
-/* ====== ADC 配置（预留） ====== */
-// #define POWER_ADC           hadc1
-
+/* ====== ADC 配置 ====== */
+#define BSP_ADC_CHANNEL_COUNT          8u
+#define BSP_ADC_ACTIVE_CHANNEL_COUNT   6u
+#define BSP_ADC_IDLE_CHANNEL_COUNT     2u
+#define BSP_ADC_DMA_BUF_LEN            512u
+#define BSP_ADC_SCAN_COUNT_PER_DMA     64u
+#define BSP_ADC_TARGET_SAMPLE_COUNT    512u
+#define BSP_ADC_DMA_ROUND_COUNT        8u
+#define BSP_ADC_SAMPLE_A_COUNT           6u
+#define BSP_ADC_SAMPLE_B_COUNT           2u
 #ifdef __cplusplus
 }
 #endif

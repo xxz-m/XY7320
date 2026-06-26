@@ -18,12 +18,14 @@ TaskStateAdcB::TaskStateAdcB() : fsm::State("AdcTaskB") {}
 /** 进入 ADC Task B，后续在此启动 ADC 采集 */
 void TaskStateAdcB::entry()
 {
+    AdcService::Instance().StartTaskB();
     LOG_Printf("TaskStateAdcB,Entry\n");
 }
 
 /** 退出 ADC Task B，后续在此停止 ADC 采集 */
 void TaskStateAdcB::exit()
 {
+    AdcService::Instance().Stop();
     LOG_Printf("TaskStateAdcB,Exit\n");
 }
 
@@ -35,8 +37,5 @@ void TaskStateAdcB::react(const fsm::Event &event)
 /** 每 1ms 调用，当前阶段打印心跳，后续替换为真实 ADC B 采集逻辑 */
 void TaskStateAdcB::tick()
 {
-    static uint32_t counter = 0;
-    if (++counter % 1000 == 0) {
-        LOG_Printf("TaskStateAdcB,Tick\n");
-    }
+    AdcService::Instance().Update();
 }

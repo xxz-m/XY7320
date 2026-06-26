@@ -146,7 +146,7 @@ Item {
                                 EDropdown {
                                     id: portDropdown
                                     enabled: !serialDebug.isOpen
-                                    model: serialDebug.ports
+                                    model: root.portModel()
                                     selectedIndex: root.selectCurrentPort()
                                     title: qsTr("选择串口")
                                     headerHeight: 40
