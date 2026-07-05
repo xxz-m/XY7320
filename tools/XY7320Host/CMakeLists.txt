@@ -43,6 +43,13 @@ target_link_libraries(XY7320Host
         Qt6::SerialPort
 )
 
+target_compile_options(XY7320Host
+    PRIVATE
+        $<$<CXX_COMPILER_ID:MSVC>:/utf-8>
+        $<$<CXX_COMPILER_ID:GNU>:-finput-charset=UTF-8>
+        $<$<CXX_COMPILER_ID:GNU>:-fexec-charset=UTF-8>
+)
+
 set_target_properties(XY7320Host PROPERTIES
     WIN32_EXECUTABLE TRUE
 )

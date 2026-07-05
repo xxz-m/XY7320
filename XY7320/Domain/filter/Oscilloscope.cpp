@@ -27,7 +27,7 @@ void Oscilloscope::initOscilloscope()
 
     /* GSM 阈值：GSM 通道噪声边界更高 */
     m_config.cfgGSM.Threshold5 = 600;
-    m_config.cfgGSM.Threshold6 = 1500;
+    m_config.cfgGSM.Threshold6 = 600;
 
     /* 清空结果和状态，避免残留影响首帧 */
     m_result = {0};

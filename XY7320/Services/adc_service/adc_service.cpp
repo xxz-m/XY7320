@@ -9,17 +9,52 @@
 #include "adc.h"
 #include "tim.h"
 
+/**
+ * @brief AdcService 单例
+ */
 AdcService& AdcService::Instance()
 {
     static AdcService instance;
     return instance;
 }
 
+/**
+ * @brief 初始化 BSP ADC 与 Oscilloscope
+ *
+ * 绑定 hadc1 / htim3，初始化 Oscilloscope（默认 SCOPE_MODE_400_450）。
+ * 不启动 ADC，由上层 StartTaskA / StartTaskB 触发。
+ */
 void AdcService::Init()
 {
     BspAdc_Init(&hadc1, &htim3);
     mode_ = Mode::Idle;
+
+    /* 默认进入 400/450 模式；切到 TaskB 时由 SetScopeMode 切换 */
+    auto& scope = Oscilloscope::getInstance();
+    scope.initOscilloscope();
+    m_scopeMode = SCOPE_MODE_400_450;
 }
+
+/**
+ * @brief 切换 Oscilloscope 模式
+ *
+ * 同模式不重复调用；切模式时 Oscilloscope 内部会清空 WaveHoldState 抗闪烁状态机。
+ *
+ * @param mode SCOPE_MODE_400_450 / SCOPE_MODE_GSM
+ */
+void AdcService::SetScopeMode(ScopeMode_t mode)
+{
+    if (m_scopeMode == mode) return;
+    m_scopeMode = mode;
+    Oscilloscope::getInstance().setMode(mode);
+}
+
+/**
+ * @brief 进入 TaskA 模式（400/450 四通道采集）
+ *
+ * 重启 BSP ADC；模式切换由调用方在 ModeManager state enter 中负责
+ * （如果当前不是 SCOPE_MODE_400_450，需要先调 SetScopeMode）。
+ */
 void AdcService::StartTaskA()
 {
     mode_ = Mode::TaskA;
@@ -29,6 +64,10 @@ void AdcService::StartTaskA()
 
     LOG_Printf("AdcService,StartTaskA\n");
 }
+
+/**
+ * @brief 进入 TaskB 模式（GSM 双通道采集）
+ */
 void AdcService::StartTaskB()
 {
     mode_ = Mode::TaskB;
@@ -37,6 +76,9 @@ void AdcService::StartTaskB()
     LOG_Printf("AdcService,StartTaskB\n");
 }
 
+/**
+ * @brief 停止采集，回到 Idle
+ */
 void AdcService::Stop()
 {
     BspAdc_Stop();
@@ -45,6 +87,14 @@ void AdcService::Stop()
     LOG_Printf("AdcService,Stop\n");
 }
 
+/**
+ * @brief 周期轮询入口（由 ModeManager Task_ModeManager 每 1ms 驱动）
+ *
+ * - Idle 直接返回
+ * - 数据未就绪直接返回
+ * - 按 mode_ 分发到 ProcessTaskA / ProcessTaskB
+ * - 最后调用 BspAdc_Resume 启动下一轮 DMA 接收
+ */
 void AdcService::Update()
 {
     if (mode_ == Mode::Idle) {
@@ -64,69 +114,74 @@ void AdcService::Update()
     BspAdc_Resume();
 }
 
+/**
+ * @brief TaskA 内部处理：拷贝 CH0~CH3 → Oscilloscope 400/450 滤波
+ *
+ * 步骤：
+ *  1. memcpy BSP 缓冲到 m_snapshot（Oscilloscope 会原地修改入参）
+ *  2. 仅在 m_scopeMode == SCOPE_MODE_400_450 时调用 TickLoop400_450
+ *  3. 每 40 帧（约 40ms）通过 LOG_Printf 输出一次滤波结果
+ */
 void AdcService::ProcessTaskA()
 {
     static uint16_t log_div = 0;
 
-    const uint16_t *ch0 = BspAdc_GetActiveSamples(0);
-    const uint16_t *ch1 = BspAdc_GetActiveSamples(1);
-    const uint16_t *ch2 = BspAdc_GetActiveSamples(2);
-    const uint16_t *ch3 = BspAdc_GetActiveSamples(3);
-
-    if (ch0 == nullptr || ch1 == nullptr || ch2 == nullptr || ch3 == nullptr) {
-        return;
+    /* 1) 拷贝原始数据到本地快照，避免 Oscilloscope 修改 BSP 内部缓冲 */
+    for (uint8_t ch = 0; ch < 4; ++ch) {
+        const uint16_t* src = BspAdc_GetActiveSamples(ch);
+        if (src == nullptr) return;
+        std::memcpy(m_snapshot[ch], src,
+                    sizeof(uint16_t) * BSP_ADC_TARGET_SAMPLE_COUNT);
     }
 
-    uint32_t sum0 = 0;
-    uint32_t sum1 = 0;
-    uint32_t sum2 = 0;
-    uint32_t sum3 = 0;
-
-    for (uint16_t i = 0; i < BSP_ADC_TARGET_SAMPLE_COUNT; ++i) {
-        sum0 += ch0[i];
-        sum1 += ch1[i];
-        sum2 += ch2[i];
-        sum3 += ch3[i];
+    /* 2) 仅在 400/450 模式下跑 Oscilloscope */
+    auto& scope = Oscilloscope::getInstance();
+    if (m_scopeMode == SCOPE_MODE_400_450) {
+        scope.TickLoop400_450(m_snapshot[0], m_snapshot[1],
+                              m_snapshot[2], m_snapshot[3]);
+        m_filteredResult = scope.getResult();
     }
 
-    uint16_t avg0 = sum0 / BSP_ADC_TARGET_SAMPLE_COUNT;
-    uint16_t avg1 = sum1 / BSP_ADC_TARGET_SAMPLE_COUNT;
-    uint16_t avg2 = sum2 / BSP_ADC_TARGET_SAMPLE_COUNT;
-    uint16_t avg3 = sum3 / BSP_ADC_TARGET_SAMPLE_COUNT;
-
+    /* 3) 日志降频：每 40 帧打印一次 */
     if (++log_div >= 40u) {
         log_div = 0;
-        LOG_Printf("AdcTaskA,Avg,%u,%u,%u,%u\n", avg0, avg1, avg2, avg3);
+        LOG_Printf("AdcTaskA,Raw,Fil,%u,%u,%u,%u\n",
+                   m_filteredResult.wavePEP1_avg,
+                   m_filteredResult.wavePEP2_avg,
+                   m_filteredResult.wavePEP3_avg,
+                   m_filteredResult.wavePEP4_avg);
     }
 }
 
+/**
+ * @brief TaskB 内部处理：拷贝 CH4~CH5 → Oscilloscope GSM 滤波
+ *
+ * 步骤同 ProcessTaskA，仅通道范围不同。
+ */
 void AdcService::ProcessTaskB()
 {
     static uint16_t log_div = 0;
 
-    const uint16_t *ch4 = BspAdc_GetActiveSamples(4);
-    const uint16_t *ch5 = BspAdc_GetActiveSamples(5);
-
-    if (ch4 == nullptr || ch5 == nullptr) {
-        return;
+    /* 1) 拷贝 CH4~CH5 原始数据到本地快照 */
+    for (uint8_t ch = 4; ch < 6; ++ch) {
+        const uint16_t* src = BspAdc_GetActiveSamples(ch);
+        if (src == nullptr) return;
+        std::memcpy(m_snapshot[ch], src,
+                    sizeof(uint16_t) * BSP_ADC_TARGET_SAMPLE_COUNT);
     }
 
-    uint32_t sum4 = 0;
-    uint32_t sum5 = 0;
-
-    for (uint16_t i = 0; i < BSP_ADC_TARGET_SAMPLE_COUNT; ++i) {
-        sum4 += ch4[i];
-        sum5 += ch5[i];
+    /* 2) 仅在 GSM 模式下跑 Oscilloscope */
+    auto& scope = Oscilloscope::getInstance();
+    if (m_scopeMode == SCOPE_MODE_GSM) {
+        scope.TickLoopGSM(m_snapshot[4], m_snapshot[5]);
+        m_filteredResult = scope.getResult();
     }
 
-    uint16_t avg4 = sum4 / BSP_ADC_TARGET_SAMPLE_COUNT;
-    uint16_t avg5 = sum5 / BSP_ADC_TARGET_SAMPLE_COUNT;
-
-    uint16_t idle0 = BspAdc_GetIdleAverage(0);
-    uint16_t idle1 = BspAdc_GetIdleAverage(1);
-
+    /* 3) 日志降频：每 40 帧打印一次 */
     if (++log_div >= 40u) {
         log_div = 0;
-        LOG_Printf("AdcTaskB,Avg,%u,%u,Idle,%u,%u\n", avg4, avg5, idle0, idle1);
+        LOG_Printf("AdcTaskB,,Fil,%u,%u\n",
+                   m_filteredResult.wavePEP5_avg,
+                   m_filteredResult.wavePEP6_avg);
     }
 }

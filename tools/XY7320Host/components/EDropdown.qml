@@ -44,6 +44,22 @@ Item {
     width: 200
     height: headerHeight
 
+    function togglePopup() {
+        if (popupContainer.opened) {
+            popupContainer.close()
+        } else {
+            popupContainer.open()
+        }
+    }
+
+    onOpenedChanged: {
+        if (opened && !popupContainer.opened) {
+            popupContainer.open()
+        } else if (!opened && popupContainer.opened) {
+            popupContainer.close()
+        }
+    }
+
     Item {
         id: headerContainer
         anchors.left: parent.left
@@ -132,29 +148,29 @@ Item {
                 }
                 onReleased: restoreHeaderAnimation.start()
                 onCanceled: restoreHeaderAnimation.start()
-                onClicked: root.opened = !root.opened
+                onClicked: root.togglePopup()
             }
         }
     }
 
-    Item {
+    Basic.Popup {
         id: popupContainer
+        x: 0
+        y: root.popupDirection === 1
+           ? -popupContainer.height - root.popupSpacing
+           : root.headerHeight + root.popupSpacing
         width: root.width
         height: popupBackground.height
-        property real popupOffsetY: 0
-        y: popupDirection === 1
-           ? -popupContainer.height - root.popupSpacing + popupOffsetY
-           : headerContainer.height + root.popupSpacing + popupOffsetY
+        padding: 0
+        modal: false
+        dim: false
+        focus: true
+        closePolicy: Popup.CloseOnPressOutside | Popup.CloseOnEscape
+        opacity: 1
+        onOpened: root.opened = true
+        onClosed: root.opened = false
 
-        enabled: true
-        visible: opacity > 0 || root.opened
-        opacity: 0
-
-        transform: Scale {
-            id: popupScale
-            origin.x: width / 2
-            origin.y: 0
-        }
+        background: Item {}
 
         MultiEffect {
             source: popupBackground
@@ -228,6 +244,7 @@ Item {
                         }
 
                         MouseArea {
+                            id: itemMouseArea
                             anchors.fill: parent
                             hoverEnabled: true
                             preventStealing: true
@@ -240,7 +257,7 @@ Item {
                             onCanceled: restoreItemAnimation.start()
                             onClicked: {
                                 root.selectedIndex = index
-                                root.opened = false
+                                popupContainer.close()
                                 root.selectionChanged(index, modelData)
                             }
                             onEntered: itemBg.hovered = true
@@ -284,55 +301,13 @@ Item {
             }
         }
 
-        states: [
-            State {
-                name: "closed"
-                when: !root.opened
-                PropertyChanges { target: popupContainer; popupOffsetY: popupSlideOffset }
-                PropertyChanges { target: popupContainer; opacity: 0 }
-                PropertyChanges { target: popupScale; xScale: popupScaleFrom; yScale: popupScaleFrom }
-            },
-            State {
-                name: "open"
-                when: root.opened
-                PropertyChanges { target: popupContainer; popupOffsetY: 0 }
-                PropertyChanges { target: popupContainer; opacity: 1 }
-                PropertyChanges { target: popupScale; xScale: 1.0; yScale: 1.0 }
-            }
-        ]
+        enter: Transition {
+            NumberAnimation { property: "opacity"; from: 0; to: 1; duration: root.popupEnterDuration; easing.type: Easing.OutCubic }
+        }
 
-        transitions: [
-            Transition {
-                from: "closed"; to: "open"
-                SequentialAnimation {
-                    ParallelAnimation {
-                        NumberAnimation { target: popupContainer; property: "popupOffsetY"; to: 0; duration: popupEnterDuration; easing.type: Easing.OutCubic }
-                        NumberAnimation { target: popupContainer; property: "opacity"; to: 1; duration: popupEnterDuration * 0.9; easing.type: Easing.OutCubic }
-                        NumberAnimation { target: popupScale; property: "xScale"; to: 1.02; duration: popupEnterDuration * 0.6; easing.type: Easing.OutCubic }
-                        NumberAnimation { target: popupScale; property: "yScale"; to: 1.02; duration: popupEnterDuration * 0.6; easing.type: Easing.OutCubic }
-                    }
-                    ParallelAnimation {
-                        NumberAnimation { target: popupScale; property: "xScale"; to: 1.0; duration: popupEnterDuration * 0.4; easing.type: Easing.OutCubic }
-                        NumberAnimation { target: popupScale; property: "yScale"; to: 1.0; duration: popupEnterDuration * 0.4; easing.type: Easing.OutCubic }
-                    }
-                }
-            },
-            Transition {
-                from: "open"; to: "closed"
-                ParallelAnimation {
-                    NumberAnimation { target: popupContainer; property: "popupOffsetY"; to: popupSlideOffset; duration: popupExitDuration; easing.type: Easing.InCubic }
-                    NumberAnimation { target: popupContainer; property: "opacity"; to: 0; duration: popupExitDuration * 0.9; easing.type: Easing.InCubic }
-                    NumberAnimation { target: popupScale; property: "xScale"; to: popupScaleFrom; duration: popupExitDuration * 0.6; easing.type: Easing.InCubic }
-                    NumberAnimation { target: popupScale; property: "yScale"; to: popupScaleFrom; duration: popupExitDuration * 0.6; easing.type: Easing.InCubic }
-                }
-            }
-        ]
-    }
-
-    MouseArea {
-        anchors.fill: parent
-        enabled: root.opened
-        onClicked: root.opened = false
+        exit: Transition {
+            NumberAnimation { property: "opacity"; from: 1; to: 0; duration: root.popupExitDuration; easing.type: Easing.InCubic }
+        }
     }
 
     onModelChanged: {

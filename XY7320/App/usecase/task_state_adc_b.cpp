@@ -26,6 +26,7 @@ void TaskStateAdcB::entry()
 void TaskStateAdcB::exit()
 {
     AdcService::Instance().Stop();
+    AdcService::Instance().SetScopeMode(SCOPE_MODE_400_450);
     LOG_Printf("TaskStateAdcB,Exit\n");
 }
 

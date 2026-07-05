@@ -25,7 +25,6 @@ Item {
     property string hidePasswordSymbol: "🙈"
 
     // === 状态属性 ===
-    property bool enabled: true
     property bool backgroundVisible: true  // 背景显示控制
     property bool shadowEnabled: true
 

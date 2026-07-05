@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>waveLimitFilter 算法动画</title>
+<style>
+  body {
+    font-family: -apple-system, "Microsoft YaHei", sans-serif;
+    background: #0e1116;
+    color: #e6edf3;
+    margin: 0;
+    padding: 24px;
+  }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .sub { color: #8b949e; font-size: 13px; margin-bottom: 16px; }
+
+  .panel {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+
+  .row { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; }
+  .row label { font-size: 13px; color: #8b949e; }
+  .row input[type=range] { width: 240px; }
+  .row input[type=number] { width: 80px; background: #0e1116; color: #e6edf3; border: 1px solid #30363d; padding: 4px 6px; border-radius: 4px; }
+  .btn {
+    background: #238636;
+    color: #fff;
+    border: 0;
+    padding: 8px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+  }
+  .btn.secondary { background: #21262d; color: #c9d1d9; border: 1px solid #30363d; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .stat {
+    display: inline-block;
+    background: #0e1116;
+    border: 1px solid #30363d;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 13px;
+    margin-right: 8px;
+    min-width: 110px;
+  }
+  .stat b { color: #f0f6fc; }
+
+  .chart {
+    position: relative;
+    background: #0e1116;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    height: 280px;
+    overflow: hidden;
+  }
+  .chart svg { display: block; width: 100%; height: 100%; }
+  .axis text { fill: #8b949e; font-size: 10px; }
+  .axis line { stroke: #30363d; }
+
+  .bar { transition: y 0.2s, height 0.2s, fill 0.2s; }
+  .bar.alive { fill: #58a6ff; }
+  .bar.cut   { fill: #30363d; opacity: 0.5; }
+  .bar.kept  { fill: #56d364; }
+  .threshold {
+    stroke: #f0883e;
+    stroke-width: 1.5;
+    stroke-dasharray: 4 3;
+  }
+  .threshold-label {
+    fill: #f0883e;
+    font-size: 11px;
+  }
+
+  .step-title { font-size: 14px; color: #c9d1d9; margin: 8px 0 4px; }
+  .step-desc { font-size: 12px; color: #8b949e; min-height: 30px; }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 900px) { .grid2 { grid-template-columns: 1fr; } }
+
+  .legend { display: flex; gap: 12px; font-size: 12px; color: #8b949e; margin-top: 8px; }
+  .legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: middle; }
+  .legend .l-alive::before { background: #58a6ff; }
+  .legend .l-cut::before   { background: #30363d; border: 1px solid #555; }
+  .legend .l-kept::before  { background: #56d364; }
+
+  .final-box {
+    background: #0e1116;
+    border: 1px solid #f0883e;
+    border-radius: 6px;
+    padding: 10px 14px;
+    margin-top: 12px;
+    font-size: 14px;
+  }
+  .final-box b { color: #56d364; }
+</style>
+</head>
+<body>
+
+<h1>waveLimitFilter 斩波均值滤波算法动画</h1>
+<div class="sub">
+  模仿 STM32 <code>Oscilloscope::waveLimitFilter</code> 的真实执行流程：
+  每一轮把阈值抬升到当前均值，只保留 <code>in[i] &gt;= avg</code> 的点；剩余少于 10 个则判定为无信号返回 0；
+  否则继续迭代；最后做截尾均值（去掉最大最小各 2 个）。
+</div>
+
+<div class="panel">
+  <div class="row">
+    <label>样本数 N</label>
+    <input id="cnt" type="number" min="20" max="512" value="80">
+    <label>初始阈值 (limit)</label>
+    <input id="limit" type="range" min="0" max="3000" value="200">
+    <span id="limitVal" class="stat">limit = <b>200</b></span>
+
+    <label>迭代轮数 N</label>
+    <input id="iter" type="number" min="1" max="8" value="4">
+
+    <button id="regen" class="btn secondary">重新生成数据</button>
+    <button id="play" class="btn">▶ 自动播放</button>
+    <button id="step" class="btn secondary">单步 →</button>
+    <button id="reset" class="btn secondary">重置</button>
+  </div>
+  <div class="row" style="margin-top: 8px;">
+    <span class="stat">当前轮次 j = <b id="jVal">0</b></span>
+    <span class="stat">当前阈值 avg = <b id="avgVal">200</b></span>
+    <span class="stat">剩余点 = <b id="aliveVal">80</b></span>
+    <span class="stat">最终结果 = <b id="finalVal">—</b></span>
+  </div>
+</div>
+
+<div class="grid2">
+  <div class="panel">
+    <div class="step-title">当前帧波形</div>
+    <div class="step-desc" id="desc">点 ▶ 自动播放 或 → 单步 进入第一轮。</div>
+    <div class="chart" id="chartA"></div>
+    <div class="legend">
+      <span class="l-alive">本轮保留 (in[i] &gt;= avg)</span>
+      <span class="l-cut">本轮砍掉</span>
+      <span class="l-kept">最终入栈点</span>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="step-title">所有轮次后的剩余点（自大到小排序）</div>
+    <div class="step-desc" id="desc2">每轮迭代后剩余的点会被重新排序，并进入下一轮阈值抬升。</div>
+    <div class="chart" id="chartB"></div>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="step-title">完整流程（伪代码）</div>
+<pre style="background:#0e1116;border:1px solid #30363d;border-radius:6px;padding:12px;color:#c9d1d9;font-size:12px;line-height:1.6;overflow:auto;">
+templen = len
+avg = limit
+for j in 0..N-1:
+    templen2 = 0
+    for i in 0..templen-1:
+        if in[i] >= avg:
+            midIn[templen2++] = in[i]
+    templen = templen2
+    if templen < 10:
+        return 0                  // 无信号
+    for k in 0..templen-1:
+        in[k] = midIn[k]         // 收缩 in 数组
+        sum += midIn[k]
+    avg = sum / templen           // 抬升阈值到当前均值
+return select_sort(in, templen)    // 截尾均值（去 2 大 + 去 2 小）</pre>
+</div>
+
+<script>
+/* ===== 工具：确定伪随机种子（保证可复现） ===== */
+function mulberry32(seed) {
+  return function() {
+    let t = (seed += 0x6D2B79F5) | 0;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/* ===== 状态 ===== */
+const state = {
+  seed: 42,
+  data: [],
+  limit: 200,
+  iter: 4,
+  j: 0,
+  currentIn: [],   // 当前轮 in 数组
+  currentAvg: 0,
+  currentAlive: 0,
+  history: [],     // 每轮的 avg / alive
+  final: null,
+  playing: false,
+  playTimer: null,
+};
+
+/* ===== 初始化数据 ===== */
+function genData() {
+  const N = parseInt(document.getElementById('cnt').value);
+  const rng = mulberry32(state.seed);
+  // 生成混合分布：~70% 在底噪，~30% 在信号区
+  const data = [];
+  for (let i = 0; i < N; ++i) {
+    let v;
+    if (rng() < 0.30) {
+      v = 800 + rng() * 1500;     // 信号：800~2300
+    } else {
+      v = rng() * 250;            // 底噪：0~250
+    }
+    data.push(Math.round(v));
+  }
+  state.data = data;
+  reset();
+}
+
+/* ===== 重置算法状态 ===== */
+function reset() {
+  state.currentIn = state.data.slice();
+  state.j = 0;
+  state.currentAvg = state.limit;
+  state.currentAlive = state.currentIn.length;
+  state.history = [];
+  state.final = null;
+  state.playing = false;
+  clearInterval(state.playTimer);
+  document.getElementById('play').textContent = '▶ 自动播放';
+  document.getElementById('desc').textContent = '点 ▶ 自动播放 或 → 单步 进入第一轮。';
+  document.getElementById('desc2').textContent = '每轮迭代后剩余的点会被重新排序，并进入下一轮阈值抬升。';
+  render();
+  updateStats();
+}
+
+/* ===== 单步推进 ===== */
+function step() {
+  if (state.final !== null) return;
+
+  const inArr = state.currentIn;
+  const len = inArr.length;
+  const N = state.iter;
+  const avg = state.currentAvg;
+
+  let templen2 = 0;
+  const midIn = new Array(len).fill(0);
+  for (let i = 0; i < len; ++i) {
+    if (inArr[i] >= avg) {
+      midIn[templen2++] = inArr[i];
+    }
+  }
+
+  // 收缩 in 数组
+  for (let k = 0; k < templen2; ++k) inArr[k] = midIn[k];
+  inArr.length = templen2;
+  state.currentIn = inArr;
+
+  state.currentAlive = templen2;
+  state.history.push({ j: state.j, avg: avg, alive: templen2 });
+
+  if (templen2 < 10) {
+    state.final = 0;
+    document.getElementById('desc').textContent =
+      `第 ${state.j+1} 轮后剩余 ${templen2} 个点，少于 10，判定为「无信号」，返回 0`;
+    render();
+    updateStats();
+    return;
+  }
+
+  // 计算新 avg
+  let sum = 0;
+  for (let k = 0; k < templen2; ++k) sum += midIn[k];
+  state.currentAvg = Math.round(sum / templen2);
+
+  state.j += 1;
+  if (state.j >= N) {
+    // 截尾均值（去最大 2 + 去最小 2）
+    const sorted = inArr.slice().sort((a, b) => b - a);
+    let acc = 0, outlen = 0;
+    for (let i = 2; i < sorted.length - 2; ++i) {
+      acc += sorted[i];
+      outlen += 1;
+    }
+    state.final = outlen ? Math.round(acc / outlen) : 0;
+    document.getElementById('desc').textContent =
+      `完成 ${N} 轮迭代后，对剩余 ${sorted.length} 个点排序，去掉最大 2 个和最小 2 个，对中间 ${outlen} 个求平均，得到最终结果。`;
+  } else {
+    document.getElementById('desc').textContent =
+      `第 ${state.j} 轮完成：保留 ${templen2} 个点，阈值抬升为 avg = ${state.currentAvg}，进入下一轮。`;
+  }
+  render();
+  updateStats();
+}
+
+/* ===== 渲染 ===== */
+function render() {
+  drawChartA();
+  drawChartB();
+}
+
+function drawChartA() {
+  const el = document.getElementById('chartA');
+  el.innerHTML = '';
+  const W = el.clientWidth;
+  const H = el.clientHeight;
+  const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, width: W, height: H });
+
+  const maxV = Math.max(3000, ...state.data);
+  const padding = { l: 30, r: 10, t: 10, b: 18 };
+  const innerW = W - padding.l - padding.r;
+  const innerH = H - padding.t - padding.b;
+
+  // 坐标轴
+  const axis = svgEl('g', { class: 'axis' });
+  axis.appendChild(svgEl('line', { x1: padding.l, x2: W - padding.r, y1: H - padding.b, y2: H - padding.b }));
+  axis.appendChild(svgEl('line', { x1: padding.l, x2: padding.l, y1: padding.t, y2: H - padding.b }));
+  // y 刻度
+  for (let v = 0; v <= maxV; v += 500) {
+    const y = H - padding.b - (v / maxV) * innerH;
+    axis.appendChild(svgEl('text', { x: 4, y: y + 3 })).textContent = v;
+    axis.appendChild(svgEl('line', { x1: padding.l, x2: W - padding.r, y1: y, y2: y, stroke: '#21262d' }));
+  }
+  svg.appendChild(axis);
+
+  // bars: 显示当前轮的 in 数组
+  // 算法逻辑：inArr[i] >= avg 才被保留；否则被砍
+  // 当前轮的 avg = state.currentAvg
+  // 当前轮的 in = state.currentIn
+  const inArr = state.currentIn;
+  const N = inArr.length;
+  if (N === 0) {
+    svg.appendChild(svgEl('text', { x: W/2, y: H/2, fill: '#8b949e', 'text-anchor': 'middle', 'font-size': 14 }))
+      .textContent = '当前轮剩余点为 0';
+    el.appendChild(svg);
+    return;
+  }
+  const barW = innerW / N;
+
+  // 计算阈值线位置
+  const avg = state.currentAvg;
+  const yAvg = H - padding.b - (avg / maxV) * innerH;
+  if (state.final === null) {
+    const line = svgEl('line', {
+      x1: padding.l, x2: W - padding.r, y1: yAvg, y2: yAvg, class: 'threshold'
+    });
+    svg.appendChild(line);
+    const txt = svgEl('text', { x: W - padding.r - 4, y: yAvg - 4, class: 'threshold-label', 'text-anchor': 'end' });
+    txt.textContent = `avg = ${avg}`;
+    svg.appendChild(txt);
+  }
+
+  for (let i = 0; i < N; ++i) {
+    const v = inArr[i];
+    const h = (v / maxV) * innerH;
+    const x = padding.l + i * barW;
+    const y = H - padding.b - h;
+    const cls = state.final === null
+      ? (v >= avg ? 'bar alive' : 'bar cut')
+      : 'bar kept';
+    const rect = svgEl('rect', {
+      class: cls,
+      x: x + 0.5, y: y, width: Math.max(1, barW - 1), height: h
+    });
+    svg.appendChild(rect);
+  }
+
+  el.appendChild(svg);
+}
+
+function drawChartB() {
+  const el = document.getElementById('chartB');
+  el.innerHTML = '';
+  const W = el.clientWidth;
+  const H = el.clientHeight;
+  const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, width: W, height: H });
+
+  const maxV = Math.max(3000, ...state.data);
+  const padding = { l: 30, r: 10, t: 10, b: 18 };
+  const innerW = W - padding.l - padding.r;
+  const innerH = H - padding.t - padding.b;
+
+  const axis = svgEl('g', { class: 'axis' });
+  axis.appendChild(svgEl('line', { x1: padding.l, x2: W - padding.r, y1: H - padding.b, y2: H - padding.b }));
+  axis.appendChild(svgEl('line', { x1: padding.l, x2: padding.l, y1: padding.t, y2: H - padding.b }));
+  for (let v = 0; v <= maxV; v += 500) {
+    const y = H - padding.b - (v / maxV) * innerH;
+    axis.appendChild(svgEl('text', { x: 4, y: y + 3 })).textContent = v;
+    axis.appendChild(svgEl('line', { x1: padding.l, x2: W - padding.r, y1: y, y2: y, stroke: '#21262d' }));
+  }
+  svg.appendChild(axis);
+
+  // 显示当前轮 in 数组（排序后） + 每轮阈值的历史
+  const inArr = state.currentIn.slice();
+  inArr.sort((a, b) => b - a);  // 从大到小
+  const N = inArr.length;
+  if (N === 0) {
+    el.appendChild(svg);
+    return;
+  }
+  const barW = innerW / Math.max(N, parseInt(document.getElementById('cnt').value));
+
+  // 最终结果的水平线
+  if (state.final !== null && state.final > 0) {
+    const yFinal = H - padding.b - (state.final / maxV) * innerH;
+    svg.appendChild(svgEl('line', {
+      x1: padding.l, x2: W - padding.r, y1: yFinal, y2: yFinal,
+      stroke: '#56d364', 'stroke-width': 1.5, 'stroke-dasharray': '4 3'
+    }));
+    const txt = svgEl('text', { x: W - padding.r - 4, y: yFinal - 4, fill: '#56d364', 'font-size': 11, 'text-anchor': 'end' });
+    txt.textContent = `select_sort result = ${state.final}`;
+    svg.appendChild(txt);
+  }
+
+  for (let i = 0; i < N; ++i) {
+    const v = inArr[i];
+    const h = (v / maxV) * innerH;
+    const x = padding.l + i * barW;
+    const y = H - padding.b - h;
+    let cls = 'bar alive';
+    if (state.final !== null) {
+      // 截尾均值：去掉最大 2 个和最小 2 个
+      if (i < 2 || i >= N - 2) cls = 'bar cut';
+      else cls = 'bar kept';
+    }
+    svg.appendChild(svgEl('rect', {
+      class: cls,
+      x: x + 0.5, y: y, width: Math.max(1, barW - 1), height: h
+    }));
+  }
+
+  el.appendChild(svg);
+}
+
+function svgEl(tag, attrs) {
+  const e = document.createElementNS('http://www.w3.org/2000/svg', tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  return e;
+}
+
+function updateStats() {
+  document.getElementById('jVal').textContent = state.final !== null ? '—' : (state.j + 1);
+  document.getElementById('avgVal').textContent = state.currentAvg;
+  document.getElementById('aliveVal').textContent = state.currentIn.length;
+  document.getElementById('finalVal').textContent = state.final === null ? '—' : state.final;
+}
+
+/* ===== 控件事件 ===== */
+function bindUI() {
+  const cnt = document.getElementById('cnt');
+  const limit = document.getElementById('limit');
+  const limitVal = document.getElementById('limitVal');
+  const iter = document.getElementById('iter');
+
+  cnt.addEventListener('change', genData);
+  limit.addEventListener('input', () => {
+    state.limit = parseInt(limit.value);
+    limitVal.innerHTML = `limit = <b>${state.limit}</b>`;
+    reset();
+  });
+  iter.addEventListener('change', () => {
+    state.iter = parseInt(iter.value);
+    reset();
+  });
+
+  document.getElementById('regen').addEventListener('click', () => {
+    state.seed = Math.floor(Math.random() * 100000);
+    genData();
+  });
+  document.getElementById('play').addEventListener('click', () => {
+    if (state.final !== null) return;
+    if (state.playing) {
+      state.playing = false;
+      clearInterval(state.playTimer);
+      document.getElementById('play').textContent = '▶ 自动播放';
+    } else {
+      state.playing = true;
+      document.getElementById('play').textContent = '⏸ 暂停';
+      state.playTimer = setInterval(() => {
+        if (state.final !== null) {
+          state.playing = false;
+          clearInterval(state.playTimer);
+          document.getElementById('play').textContent = '✓ 完成';
+          return;
+        }
+        step();
+      }, 900);
+    }
+  });
+  document.getElementById('step').addEventListener('click', step);
+  document.getElementById('reset').addEventListener('click', reset);
+}
+
+/* ===== 启动 ===== */
+bindUI();
+genData();
+</script>
+</body>
+</html>

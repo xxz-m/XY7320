@@ -48,8 +48,9 @@ Item {
 
             Flickable {
                 id: flickable
-                anchors.fill: parent
-                anchors.margins: 8
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                Layout.margins: 8
                 contentWidth: width
                 contentHeight: logArea.implicitHeight
                 clip: true

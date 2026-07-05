@@ -26,6 +26,7 @@ void TaskStateAdcA::entry()
 void TaskStateAdcA::exit()
 {
     AdcService::Instance().Stop();
+    AdcService::Instance().SetScopeMode(SCOPE_MODE_GSM);
     LOG_Printf("TaskStateAdcA,Exit\n");
 }
 
