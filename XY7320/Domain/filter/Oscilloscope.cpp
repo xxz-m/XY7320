@@ -64,6 +64,8 @@ ScopeResult_t Oscilloscope::getResult() const
     return m_result;
 }
 
+/* 底噪清零：采用就地修改，把 < threshold 的点置零；
+ * 下游算法看到 0 视为无效信号，自然在斩波/截尾阶段被剔除。 */
 void Oscilloscope::preprocessChannel(uint16_t *adcData, uint16_t threshold)
 {
     if (adcData == nullptr)
@@ -104,7 +106,7 @@ uint16_t Oscilloscope::select_sort(uint16_t *a, uint16_t len)
         a[i] = x;
     }
 
-    /* 长度 <= 4 时直接求平均 */
+    /* 长度 <= 4 时直接求平均：短样本不足以截尾，强行截尾会丢有效信息。 */
     if (len <= 4)
     {
         uint32_t sum = 0;
@@ -185,7 +187,7 @@ uint16_t Oscilloscope::waveLimitFilter(uint16_t *in, uint16_t len, uint16_t limi
 
         templen = templen2;
 
-        /* 剩余数据太少，认为无有效信号 */
+        /* 剩余数据太少，认为无有效信号，避免噪声被错误放大 */
         if (templen < 10)
         {
             return 0;
@@ -241,6 +243,7 @@ uint16_t Oscilloscope::waveLimitFilter_x(uint16_t *in,
 
         templen = templen2;
 
+        /* 剩余数据太少，认为无有效信号，强制置零后走抗闪烁后处理 */
         if (templen < 10)
         {
             raw = 0;
@@ -260,6 +263,8 @@ uint16_t Oscilloscope::waveLimitFilter_x(uint16_t *in,
     raw = select_sort(in, templen);
 
 POST_PROCESS:
+    /* 抗闪烁处理：与基础滤波的差别就是这里的状态机；
+     * 短空档保持（连续 10 帧零值才归零）+ 跳变确认（>500 需连续 2 帧）。 */
     {
         /* 有信号时用更低的保持门限，避免信号短暂波动导致误判 */
         uint16_t th = st->sig ? TH_KEEP : TH_ON;
@@ -348,6 +353,8 @@ POST_PROCESS:
     }
 }
 
+/* 400/450 四通道采集：CH1 业务最关键用增强滤波（抗闪烁 + 跳变确认），
+ * CH2~4 普通斩波即可（节省 CPU）。 */
 void Oscilloscope::TickLoop400_450(uint16_t *adcCH1,
                                    uint16_t *adcCH2,
                                    uint16_t *adcCH3,
@@ -376,6 +383,7 @@ void Oscilloscope::TickLoop400_450(uint16_t *adcCH1,
     m_result.wavePEP4_avg = waveLimitFilter(adcCH4, m_config.SampleNum, m_config.TriggerLevel, 4);
 }
 
+/* GSM 双通道采集：CH5 业务关键用增强滤波，CH6 普通斩波。 */
 void Oscilloscope::TickLoopGSM(uint16_t *adcCH5,
                                uint16_t *adcCH6)
 {
