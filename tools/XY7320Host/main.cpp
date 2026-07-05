@@ -5,6 +5,7 @@
 #include <QQmlContext>
 
 #include "backend/FirmwareUploader.h"
+#include "backend/SerialPortManager.h"
 #include "backend/SerialDebug.h"
 
 int main(int argc, char *argv[])
@@ -12,8 +13,9 @@ int main(int argc, char *argv[])
     QGuiApplication app(argc, argv);
     app.setWindowIcon(QIcon(QStringLiteral(":/xy7320host/assets/images/icon.ico")));
 
-    FirmwareUploader firmwareUploader;
-    SerialDebug serialDebug;
+    SerialPortManager serialPortManager;
+    FirmwareUploader firmwareUploader(&serialPortManager);
+    SerialDebug serialDebug(&serialPortManager);
 
     QQmlApplicationEngine engine;
     engine.rootContext()->setContextProperty(QStringLiteral("firmwareUploader"), &firmwareUploader);

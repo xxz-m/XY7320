@@ -5,9 +5,7 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QGuiApplication>
-#include <QSerialPortInfo>
-#include <QSet>
-#include <QSettings>
+#include "SerialPortManager.h"
 
 #include <utility>
 
@@ -17,9 +15,12 @@ constexpr char kBootHeaderAck[] = "XYB2";
 constexpr char kBootFinishAck[] = "XYB3";
 }
 
-FirmwareUploader::FirmwareUploader(QObject *parent)
+FirmwareUploader::FirmwareUploader(SerialPortManager *serialPortManager, QObject *parent)
     : QObject(parent)
+    , m_serialPortManager(serialPortManager)
 {
+    Q_ASSERT(m_serialPortManager != nullptr);
+
     m_sendTimer.setSingleShot(true);
     connect(&m_sendTimer, &QTimer::timeout, this, &FirmwareUploader::sendNextPacket);
 
@@ -27,17 +28,34 @@ FirmwareUploader::FirmwareUploader(QObject *parent)
     m_handshakeTimer.setInterval(HandshakeTimeoutMs);
     connect(&m_handshakeTimer, &QTimer::timeout, this, &FirmwareUploader::handleHandshakeTimeout);
 
-    connect(&m_serial, &QSerialPort::readyRead, this, &FirmwareUploader::handleSerialReadyRead);
-
-    m_portRefreshTimer.setInterval(1500);
-    connect(&m_portRefreshTimer, &QTimer::timeout, this, &FirmwareUploader::refreshPorts);
-    m_portRefreshTimer.start();
+    connect(m_serialPortManager, &SerialPortManager::portsChanged, this, &FirmwareUploader::refreshPorts);
+    connect(m_serialPortManager, &SerialPortManager::portNameChanged, this, [this]() {
+        m_portName = m_serialPortManager->portName();
+        emit portNameChanged();
+    });
+    connect(m_serialPortManager, &SerialPortManager::baudRateChanged, this, [this]() {
+        m_baudRate = m_serialPortManager->baudRate();
+        emit baudRateChanged();
+    });
+    connect(m_serialPortManager, &SerialPortManager::isOpenChanged, this, &FirmwareUploader::updateSerialOpenState);
+    connect(m_serialPortManager, &SerialPortManager::dataReceived, this, &FirmwareUploader::handleSerialReadyRead);
+    connect(m_serialPortManager, &SerialPortManager::writeFinished, this, [this](qint64 totalBytes, SerialPortManager::WriteTag tag) {
+        handleWriteFinished(totalBytes, static_cast<int>(tag));
+    });
+    connect(m_serialPortManager, &SerialPortManager::serialErrorOccurred, this, [this](QSerialPort::SerialPortError error, const QString &message) {
+        handleSerialError(static_cast<int>(error), message);
+    });
+    connect(m_serialPortManager, &SerialPortManager::writeTimeout, this, [this](SerialPortManager::WriteTag tag) {
+        handleWriteTimeout(static_cast<int>(tag));
+    });
 
     m_fileRefreshTimer.setInterval(1000);
     connect(&m_fileRefreshTimer, &QTimer::timeout, this, &FirmwareUploader::checkSelectedFile);
     m_fileRefreshTimer.start();
 
     refreshPorts();
+    m_portName = m_serialPortManager->portName();
+    m_baudRate = m_serialPortManager->baudRate();
 }
 
 QVariantList FirmwareUploader::ports() const { return m_ports; }
@@ -71,8 +89,8 @@ void FirmwareUploader::setPortName(const QString &portName)
         closeSession();
         setStatus(QStringLiteral("Ready"));
         appendLog(QStringLiteral("Port changed, manual session reset."));
-    } else if (m_serial.isOpen()) {
-        m_serial.close();
+    } else if (m_serialPortManager->isOpen()) {
+        m_serialPortManager->close();
         updateSerialOpenState();
         setStatus(QStringLiteral("Closed"));
         appendLog(QStringLiteral("Port changed, serial closed."));
@@ -92,8 +110,8 @@ void FirmwareUploader::setBaudRate(int baudRate)
         closeSession();
         setStatus(QStringLiteral("Ready"));
         appendLog(QStringLiteral("Baud rate changed, manual session reset."));
-    } else if (m_serial.isOpen()) {
-        m_serial.close();
+    } else if (m_serialPortManager->isOpen()) {
+        m_serialPortManager->close();
         updateSerialOpenState();
         setStatus(QStringLiteral("Closed"));
         appendLog(QStringLiteral("Baud rate changed, serial closed."));
@@ -193,43 +211,11 @@ void FirmwareUploader::setPacketDelayMs(int packetDelayMs)
 
 void FirmwareUploader::refreshPorts()
 {
-    QVariantList ports;
-    QSet<QString> seenPorts;
-
-    auto addPort = [&ports, &seenPorts](const QString &portName, const QString &description, const QString &manufacturer) {
-        if (portName.isEmpty() || seenPorts.contains(portName)) {
-            return;
-        }
-
-        QString text = portName;
-        if (!description.isEmpty()) {
-            text += QStringLiteral("(%1)").arg(description);
-        }
-        if (!manufacturer.isEmpty()) {
-            text += QStringLiteral(" %1").arg(manufacturer);
-        }
-
-        QVariantMap item;
-        item.insert(QStringLiteral("text"), text);
-        item.insert(QStringLiteral("portName"), portName);
-        ports.append(item);
-        seenPorts.insert(portName);
-    };
-
-    const auto infos = QSerialPortInfo::availablePorts();
-    for (const QSerialPortInfo &info : infos) {
-        addPort(info.portName(), info.description(), info.manufacturer());
+    if (m_serialPortManager == nullptr) {
+        return;
     }
 
-#ifdef Q_OS_WIN
-    QSettings serialComm(QStringLiteral("HKEY_LOCAL_MACHINE\\HARDWARE\\DEVICEMAP\\SERIALCOMM"),
-                         QSettings::NativeFormat);
-    for (const QString &key : serialComm.allKeys()) {
-        const QString portName = serialComm.value(key).toString();
-        const QSerialPortInfo info(portName);
-        addPort(portName, info.description(), info.manufacturer());
-    }
-#endif
+    const QVariantList ports = m_serialPortManager->ports();
 
     if (m_ports != ports) {
         m_ports = ports;
@@ -240,18 +226,10 @@ void FirmwareUploader::refreshPorts()
         return;
     }
 
-    bool currentExists = false;
-    for (const QVariant &port : std::as_const(ports)) {
-        if (port.toMap().value(QStringLiteral("portName")).toString() == m_portName) {
-            currentExists = true;
-            break;
-        }
-    }
-
-    if ((m_portName.isEmpty() || !currentExists) && !ports.isEmpty()) {
-        setPortName(ports.first().toMap().value(QStringLiteral("portName")).toString());
-    } else if (!m_portName.isEmpty() && ports.isEmpty()) {
-        setPortName(QString());
+    const QString nextPortName = m_serialPortManager->portName();
+    if (m_portName != nextPortName) {
+        m_portName = nextPortName;
+        emit portNameChanged();
     }
 }
 
@@ -262,7 +240,7 @@ void FirmwareUploader::setFileUrl(const QUrl &url)
 
 void FirmwareUploader::openPort()
 {
-    if (m_busy || m_serial.isOpen()) {
+    if (m_busy || serialOpen()) {
         return;
     }
 
@@ -278,7 +256,7 @@ void FirmwareUploader::closePort()
         return;
     }
 
-    if (m_serial.isOpen() || m_manualHeaderSent) {
+    if (serialOpen() || m_manualHeaderSent) {
         closeSession();
         setStatus(QStringLiteral("Closed"));
         appendLog(QStringLiteral("Serial closed."));
@@ -306,18 +284,16 @@ void FirmwareUploader::start()
     setBusy(true);
     setManualHeaderSent(false);
     m_rxBuffer.clear();
-    m_serial.clear(QSerialPort::Input);
+    m_serialPortManager->clearRxBuffer();
     m_autoStage = AutoStage::WaitAppVersionAck;
 
     setStatus(QStringLiteral("Wait upgrade ACK"));
     appendLog(QStringLiteral("[AUTO] TX protocol upgrade handshake, wait APP ACK."));
 
-    if (!writeBytes(makeProtocolUpgradeHandshake())) {
+    if (!writeBytes(makeProtocolUpgradeHandshake(), 3000, static_cast<int>(SerialPortManager::WriteTag::UpgradeHandshake))) {
         finish(false, QStringLiteral("[AUTO] TX protocol upgrade handshake failed."));
         return;
     }
-
-    startHandshakeTimer();
 }
 
 void FirmwareUploader::sendHeaderManual()
@@ -334,7 +310,7 @@ void FirmwareUploader::sendHeaderManual()
         return;
     }
 
-    if (!writeBytes(makeHeader())) {
+    if (!writeBytes(makeHeader(), 3000, static_cast<int>(SerialPortManager::WriteTag::UpgradeHeader))) {
         closeSession();
         setStatus(QStringLiteral("Header failed"));
         appendLog(QStringLiteral("Header packet send failed."));
@@ -365,7 +341,7 @@ void FirmwareUploader::sendVersionFrameManual()
         return;
     }
 
-    if (!writeBytes(makeProtocolUpgradeHandshake())) {
+    if (!writeBytes(makeProtocolUpgradeHandshake(), 3000, static_cast<int>(SerialPortManager::WriteTag::UpgradeHandshake))) {
         setStatus(QStringLiteral("Version failed"));
         appendLog(QStringLiteral("Protocol upgrade handshake send failed."));
         return;
@@ -387,7 +363,7 @@ void FirmwareUploader::sendFirmwareManual()
         return;
     }
 
-    if (!m_serial.isOpen() && !openSerial()) {
+    if (!serialOpen() && !openSerial()) {
         return;
     }
 
@@ -424,7 +400,7 @@ void FirmwareUploader::cancel()
         return;
     }
 
-    if (m_serial.isOpen() || m_manualHeaderSent) {
+    if (serialOpen() || m_manualHeaderSent) {
         closeSession();
         setStatus(QStringLiteral("Stopped"));
         appendLog(QStringLiteral("Serial closed."));
@@ -483,7 +459,7 @@ void FirmwareUploader::sendNextPacket()
     const qsizetype count = qMin<qsizetype>(remaining, m_packetSize);
     const QByteArray packet = m_firmware.mid(m_offset, count);
 
-    if (!writeBytes(packet)) {
+    if (!writeBytes(packet, 3000, static_cast<int>(SerialPortManager::WriteTag::UpgradePacket))) {
         finish(false, QStringLiteral("Firmware send failed at offset 0x%1.")
                           .arg(QString::number(m_offset, 16).toUpper()));
         return;
@@ -495,21 +471,65 @@ void FirmwareUploader::sendNextPacket()
 
     appendLog(QStringLiteral("TX firmware %1 / %2").arg(m_offset).arg(m_firmware.size()));
 
-    if (m_offset >= m_firmware.size() && m_autoStage == AutoStage::SendingFirmware) {
-        m_autoStage = AutoStage::WaitFinishAck;
-        setStatus(QStringLiteral("Wait XYB3"));
-        appendLog(QStringLiteral("[AUTO] Firmware bytes sent, wait XYB3(bootloader verified and will jump)."));
-        startHandshakeTimer();
+}
+
+void FirmwareUploader::handleSerialReadyRead(const QByteArray &data)
+{
+    m_rxBuffer.append(data);
+    consumeRxBuffer();
+}
+
+void FirmwareUploader::handleWriteFinished(qint64, int tag)
+{
+    const auto writeTag = static_cast<SerialPortManager::WriteTag>(tag);
+
+    if (writeTag == SerialPortManager::WriteTag::UpgradeHandshake) {
+        if (m_busy && m_autoStage == AutoStage::WaitAppVersionAck) {
+            startHandshakeTimer();
+        }
         return;
     }
 
-    m_sendTimer.start(m_packetDelayMs);
+    if (writeTag == SerialPortManager::WriteTag::UpgradeHeader) {
+        if (m_busy && m_autoStage == AutoStage::WaitHeaderAck) {
+            startHandshakeTimer();
+        }
+        return;
+    }
+
+    if (writeTag == SerialPortManager::WriteTag::UpgradePacket && m_busy && m_autoStage == AutoStage::SendingFirmware) {
+        if (m_offset >= m_firmware.size()) {
+            m_autoStage = AutoStage::WaitFinishAck;
+            setStatus(QStringLiteral("Wait XYB3"));
+            appendLog(QStringLiteral("[AUTO] Firmware bytes sent, wait XYB3(bootloader verified and will jump)."));
+            startHandshakeTimer();
+        } else {
+            m_sendTimer.start(m_packetDelayMs);
+        }
+    }
 }
 
-void FirmwareUploader::handleSerialReadyRead()
+void FirmwareUploader::handleSerialError(int error, const QString &message)
 {
-    m_rxBuffer.append(m_serial.readAll());
-    consumeRxBuffer();
+    if (error == static_cast<int>(QSerialPort::NoError)) {
+        return;
+    }
+
+    appendLog(QStringLiteral("Serial error: %1").arg(message));
+    updateSerialOpenState();
+
+    if (m_busy) {
+        finish(false, QStringLiteral("Serial error: %1").arg(message));
+    }
+}
+
+void FirmwareUploader::handleWriteTimeout(int)
+{
+    if (m_busy) {
+        finish(false, QStringLiteral("Serial write timeout."));
+    } else {
+        appendLog(QStringLiteral("Serial write timeout."));
+    }
 }
 
 void FirmwareUploader::handleHandshakeTimeout()
@@ -774,7 +794,7 @@ void FirmwareUploader::setManualHeaderSent(bool manualHeaderSent)
 
 void FirmwareUploader::updateSerialOpenState()
 {
-    const bool open = m_serial.isOpen();
+    const bool open = m_serialPortManager->isOpen();
     if (m_serialOpen == open) {
         return;
     }
@@ -802,7 +822,7 @@ void FirmwareUploader::appendLog(const QString &line)
 
 bool FirmwareUploader::openSerial()
 {
-    if (m_serial.isOpen()) {
+    if (m_serialPortManager->isOpen()) {
         return true;
     }
 
@@ -812,15 +832,11 @@ bool FirmwareUploader::openSerial()
         return false;
     }
 
-    m_serial.setPortName(m_portName);
-    m_serial.setBaudRate(m_baudRate);
-    m_serial.setDataBits(QSerialPort::Data8);
-    m_serial.setParity(QSerialPort::NoParity);
-    m_serial.setStopBits(QSerialPort::OneStop);
-    m_serial.setFlowControl(QSerialPort::NoFlowControl);
+    m_serialPortManager->setPortName(m_portName);
+    m_serialPortManager->setBaudRate(m_baudRate);
 
-    if (!m_serial.open(QIODevice::ReadWrite)) {
-        appendLog(QStringLiteral("Open serial failed: %1").arg(m_serial.errorString()));
+    if (!m_serialPortManager->open()) {
+        appendLog(QStringLiteral("Open serial failed."));
         setStatus(QStringLiteral("Serial failed"));
         updateSerialOpenState();
         return false;
@@ -830,20 +846,9 @@ bool FirmwareUploader::openSerial()
     return true;
 }
 
-bool FirmwareUploader::writeBytes(const QByteArray &data)
+bool FirmwareUploader::writeBytes(const QByteArray &data, int timeoutMs, int tag)
 {
-    const qint64 written = m_serial.write(data);
-    if (written != data.size()) {
-        appendLog(QStringLiteral("Serial write length error: %1 / %2.").arg(written).arg(data.size()));
-        return false;
-    }
-
-    if (!m_serial.waitForBytesWritten(3000)) {
-        appendLog(QStringLiteral("Serial write timeout: %1").arg(m_serial.errorString()));
-        return false;
-    }
-
-    return true;
+    return m_serialPortManager->write(data, static_cast<SerialPortManager::WriteTag>(tag), timeoutMs);
 }
 
 void FirmwareUploader::finish(bool ok, const QString &message)
@@ -865,7 +870,7 @@ void FirmwareUploader::finish(bool ok, const QString &message)
 
 void FirmwareUploader::closeSession()
 {
-    m_serial.close();
+    m_serialPortManager->close();
     updateSerialOpenState();
     setManualHeaderSent(false);
 }
@@ -992,11 +997,10 @@ void FirmwareUploader::handleHandshakeCode(const QByteArray &code)
         m_autoStage = AutoStage::WaitHeaderAck;
         setStatus(QStringLiteral("Wait XYB2"));
         appendLog(QStringLiteral("[AUTO] Bootloader ready. TX header packet, wait XYB2."));
-        if (!writeBytes(makeHeader())) {
+        if (!writeBytes(makeHeader(), 3000, static_cast<int>(SerialPortManager::WriteTag::UpgradeHeader))) {
             finish(false, QStringLiteral("[AUTO] TX header packet failed."));
             return;
         }
-        startHandshakeTimer();
         return;
     }
 

@@ -475,7 +475,7 @@ Item {
                                     enabled: serialDebug.isOpen
                                     Layout.fillWidth: true
                                     Layout.preferredHeight: 36
-                                    onClicked: serialDebug.send("10 02 00 15 01 00 22 00 02 F0 32 30 32 36 30 36 30 38 32 32 35 37 00 9E 6D 10 03")
+                                    onClicked: serialDebug.sendHex("10 02 00 15 01 00 22 00 02 F0 32 30 32 36 30 36 30 38 32 32 35 37 00 9E 6D 10 03")
                                 }
 
                                 EButton {
@@ -487,7 +487,7 @@ Item {
                                     enabled: serialDebug.isOpen
                                     Layout.fillWidth: true
                                     Layout.preferredHeight: 36
-                                    onClicked: serialDebug.send("10 02 00 08 22 00 01 00 02 F0 33 4B 10 03")
+                                    onClicked: serialDebug.sendHex("10 02 00 08 22 00 01 00 02 F0 33 4B 10 03")
                                 }
 
                                 EButton {
@@ -524,7 +524,7 @@ Item {
                                     enabled: serialDebug.isOpen
                                     Layout.fillWidth: true
                                     Layout.preferredHeight: 36
-                                    onClicked: serialDebug.send("10 02 00 08 01 00 22 00 02 10 10 78 78 10 03")
+                                    onClicked: serialDebug.sendHex("10 02 00 08 01 00 22 00 02 10 10 78 78 10 03")
                                 }
 
                                 EButton {
@@ -536,7 +536,7 @@ Item {
                                     enabled: serialDebug.isOpen
                                     Layout.fillWidth: true
                                     Layout.preferredHeight: 36
-                                    onClicked: serialDebug.send("10 02 00 08 01 00 22 00 02 11 68 59 10 03")
+                                    onClicked: serialDebug.sendHex("10 02 00 08 01 00 22 00 02 11 68 59 10 03")
                                 }
 
                                 EButton {
@@ -548,7 +548,7 @@ Item {
                                     enabled: serialDebug.isOpen
                                     Layout.fillWidth: true
                                     Layout.preferredHeight: 36
-                                    onClicked: serialDebug.send("10 02 00 08 01 00 22 00 02 12 58 3A 10 03")
+                                    onClicked: serialDebug.sendHex("10 02 00 08 01 00 22 00 02 12 58 3A 10 03")
                                 }
                             }
                         }

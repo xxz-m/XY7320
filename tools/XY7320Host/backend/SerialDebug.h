@@ -2,9 +2,9 @@
 #define SERIALDEBUG_H
 
 #include <QObject>
-#include <QSerialPort>
-#include <QTimer>
 #include <QVariant>
+
+class SerialPortManager;
 
 class SerialDebug : public QObject
 {
@@ -20,7 +20,7 @@ class SerialDebug : public QObject
     Q_PROPERTY(qint64 txBytes READ txBytes NOTIFY txBytesChanged)
 
 public:
-    explicit SerialDebug(QObject *parent = nullptr);
+    explicit SerialDebug(SerialPortManager *serialPortManager, QObject *parent = nullptr);
 
     QVariantList ports() const;
     QString portName() const;
@@ -41,6 +41,7 @@ public:
     Q_INVOKABLE void open();
     Q_INVOKABLE void close();
     Q_INVOKABLE void send(const QString &data);
+    Q_INVOKABLE void sendHex(const QString &hex);
     Q_INVOKABLE void clear();
 
 signals:
@@ -55,18 +56,20 @@ signals:
     void txBytesChanged();
 
 private slots:
-    void handleReadyRead();
-    void handleError(QSerialPort::SerialPortError error);
+    void handleReadyRead(const QByteArray &data);
+    void handleWriteFinished(qint64 totalBytes, int tag);
+    void handleError(int error, const QString &message);
 
 private:
     void appendLog(const QString &text);
     void updateOpenState();
+    QByteArray parseHexString(const QString &data) const;
+
+    SerialPortManager *m_serialPortManager = nullptr;
 
     QVariantList m_ports;
     QString m_portName;
     int m_baudRate = 115200;
-    QSerialPort m_serial;
-    QTimer m_portRefreshTimer;
     QString m_logText;
     bool m_autoScroll = true;
     bool m_showHex = false;

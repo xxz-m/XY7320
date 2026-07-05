@@ -13,6 +13,8 @@ qt_add_executable(XY7320Host
     main.cpp
     backend/FirmwareUploader.cpp
     backend/FirmwareUploader.h
+    backend/SerialPortManager.cpp
+    backend/SerialPortManager.h
     backend/SerialDebug.cpp
     backend/SerialDebug.h
 )

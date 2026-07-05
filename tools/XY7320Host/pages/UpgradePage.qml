@@ -220,9 +220,6 @@ Item {
                                     onToggled: function(nextChecked) {
                                         if (nextChecked) {
                                             firmwareUploader.openPort()
-                                            if (firmwareUploader.serialOpen) {
-                                                toast.show(qsTr("串口已打开。"))
-                                            }
                                         } else {
                                             firmwareUploader.closePort()
                                             toast.show(qsTr("串口已关闭。"))
@@ -784,6 +781,16 @@ Item {
             horizontalAlignment: Text.AlignRight
             Layout.fillWidth: true
             elide: Text.ElideRight
+        }
+    }
+
+    Connections {
+        target: firmwareUploader
+
+        function onSerialOpenChanged() {
+            if (firmwareUploader.serialOpen) {
+                toast.show(qsTr("串口已打开。"))
+            }
         }
     }
 

@@ -1,28 +1,43 @@
 #include "SerialDebug.h"
 
+#include "SerialPortManager.h"
+
 #include <QDateTime>
 #include <QRegularExpression>
-#include <QSerialPortInfo>
-#include <QSet>
-#include <QSettings>
 
-SerialDebug::SerialDebug(QObject *parent)
+SerialDebug::SerialDebug(SerialPortManager *serialPortManager, QObject *parent)
     : QObject(parent)
+    , m_serialPortManager(serialPortManager)
 {
-    connect(&m_serial, &QSerialPort::readyRead, this, &SerialDebug::handleReadyRead);
-    connect(&m_serial, &QSerialPort::errorOccurred, this, &SerialDebug::handleError);
+    Q_ASSERT(m_serialPortManager != nullptr);
 
-    m_portRefreshTimer.setInterval(1500);
-    connect(&m_portRefreshTimer, &QTimer::timeout, this, &SerialDebug::refreshPorts);
-    m_portRefreshTimer.start();
+    connect(m_serialPortManager, &SerialPortManager::portsChanged, this, &SerialDebug::refreshPorts);
+    connect(m_serialPortManager, &SerialPortManager::portNameChanged, this, [this]() {
+        m_portName = m_serialPortManager->portName();
+        emit portNameChanged();
+    });
+    connect(m_serialPortManager, &SerialPortManager::baudRateChanged, this, [this]() {
+        m_baudRate = m_serialPortManager->baudRate();
+        emit baudRateChanged();
+    });
+    connect(m_serialPortManager, &SerialPortManager::isOpenChanged, this, &SerialDebug::updateOpenState);
+    connect(m_serialPortManager, &SerialPortManager::dataReceived, this, &SerialDebug::handleReadyRead);
+    connect(m_serialPortManager, &SerialPortManager::writeFinished, this, [this](qint64 totalBytes, SerialPortManager::WriteTag tag) {
+        handleWriteFinished(totalBytes, static_cast<int>(tag));
+    });
+    connect(m_serialPortManager, &SerialPortManager::serialErrorOccurred, this, [this](QSerialPort::SerialPortError error, const QString &message) {
+        handleError(static_cast<int>(error), message);
+    });
 
     refreshPorts();
+    m_portName = m_serialPortManager->portName();
+    m_baudRate = m_serialPortManager->baudRate();
 }
 
 QVariantList SerialDebug::ports() const { return m_ports; }
 QString SerialDebug::portName() const { return m_portName; }
 int SerialDebug::baudRate() const { return m_baudRate; }
-bool SerialDebug::isOpen() const { return m_serial.isOpen(); }
+bool SerialDebug::isOpen() const { return m_serialPortManager != nullptr && m_serialPortManager->isOpen(); }
 QString SerialDebug::logText() const { return m_logText; }
 bool SerialDebug::autoScroll() const { return m_autoScroll; }
 bool SerialDebug::showHex() const { return m_showHex; }
@@ -31,16 +46,14 @@ qint64 SerialDebug::txBytes() const { return m_txBytes; }
 
 void SerialDebug::setPortName(const QString &portName)
 {
-    if (m_portName == portName) return;
-    m_portName = portName;
-    emit portNameChanged();
+    if (m_serialPortManager == nullptr) return;
+    m_serialPortManager->setPortName(portName);
 }
 
 void SerialDebug::setBaudRate(int baudRate)
 {
-    if (m_baudRate == baudRate) return;
-    m_baudRate = baudRate;
-    emit baudRateChanged();
+    if (m_serialPortManager == nullptr) return;
+    m_serialPortManager->setBaudRate(baudRate);
 }
 
 void SerialDebug::setAutoScroll(bool autoScroll)
@@ -59,125 +72,86 @@ void SerialDebug::setShowHex(bool showHex)
 
 void SerialDebug::refreshPorts()
 {
-    QVariantList newPorts;
-    QSet<QString> seenPorts;
-
-    auto addPort = [&newPorts, &seenPorts](const QString &portName, const QString &description, const QString &manufacturer) {
-        if (portName.isEmpty() || seenPorts.contains(portName)) {
-            return;
-        }
-
-        QString text = portName;
-        if (!description.isEmpty()) {
-            text += QStringLiteral(" - %1").arg(description);
-        }
-        if (!manufacturer.isEmpty()) {
-            text += QStringLiteral(" %1").arg(manufacturer);
-        }
-
-        QVariantMap item;
-        item.insert(QStringLiteral("text"), text);
-        item.insert(QStringLiteral("portName"), portName);
-        newPorts.append(item);
-        seenPorts.insert(portName);
-    };
-
-    const auto infos = QSerialPortInfo::availablePorts();
-    for (const auto &info : infos) {
-        addPort(info.portName(), info.description(), info.manufacturer());
+    if (m_serialPortManager == nullptr) {
+        return;
     }
 
-#ifdef Q_OS_WIN
-    QSettings serialComm(QStringLiteral("HKEY_LOCAL_MACHINE\\HARDWARE\\DEVICEMAP\\SERIALCOMM"),
-                         QSettings::NativeFormat);
-    for (const QString &key : serialComm.allKeys()) {
-        const QString portName = serialComm.value(key).toString();
-        const QSerialPortInfo info(portName);
-        addPort(portName, info.description(), info.manufacturer());
-    }
-#endif
-
+    const QVariantList newPorts = m_serialPortManager->ports();
     if (m_ports != newPorts) {
         m_ports = newPorts;
         emit portsChanged();
     }
 
-    bool currentExists = false;
-    for (const QVariant &port : std::as_const(newPorts)) {
-        if (port.toMap().value(QStringLiteral("portName")).toString() == m_portName) {
-            currentExists = true;
-            break;
-        }
-    }
-
-    if ((m_portName.isEmpty() || !currentExists) && !newPorts.isEmpty()) {
-        setPortName(newPorts.first().toMap().value(QStringLiteral("portName")).toString());
-    } else if (!m_portName.isEmpty() && newPorts.isEmpty()) {
-        setPortName(QString());
+    const QString nextPortName = m_serialPortManager->portName();
+    if (m_portName != nextPortName) {
+        m_portName = nextPortName;
+        emit portNameChanged();
     }
 }
 
 void SerialDebug::open()
 {
-    if (m_serial.isOpen()) return;
-    if (m_portName.isEmpty()) return;
+    if (m_serialPortManager == nullptr || m_serialPortManager->isOpen()) return;
 
-    m_serial.setPortName(m_portName);
-    m_serial.setBaudRate(m_baudRate);
-    m_serial.setDataBits(QSerialPort::Data8);
-    m_serial.setParity(QSerialPort::NoParity);
-    m_serial.setStopBits(QSerialPort::OneStop);
-    m_serial.setFlowControl(QSerialPort::NoFlowControl);
-
-    if (m_serial.open(QIODevice::ReadWrite)) {
-        updateOpenState();
-        appendLog(QStringLiteral("[已连接] ") + m_portName + QStringLiteral(" @ ") + QString::number(m_baudRate));
-    } else {
-        appendLog(QStringLiteral("[连接失败] ") + m_serial.errorString());
+    if (m_serialPortManager->open()) {
+        appendLog(QStringLiteral("[已连接] ") + m_serialPortManager->portName() + QStringLiteral(" @ ") + QString::number(m_serialPortManager->baudRate()));
     }
 }
 
 void SerialDebug::close()
 {
-    if (!m_serial.isOpen()) return;
-    m_serial.close();
-    updateOpenState();
+    if (m_serialPortManager == nullptr || !m_serialPortManager->isOpen()) return;
+    m_serialPortManager->close();
     appendLog(QStringLiteral("[已断开]"));
 }
 
 void SerialDebug::send(const QString &data)
 {
-    if (!m_serial.isOpen()) {
+    if (!isOpen()) {
         appendLog(QStringLiteral("[发送失败] 串口未打开"));
         return;
     }
 
-    QByteArray bytes;
     if (m_showHex) {
-        // 解析 HEX 字符串
-        QStringList parts = data.split(QRegularExpression(QStringLiteral("\\s+")), Qt::SkipEmptyParts);
-        for (const auto &part : parts) {
-            bool ok;
-            quint8 byte = part.toUInt(&ok, 16);
-            if (ok) bytes.append(static_cast<char>(byte));
-        }
-    } else {
-        bytes = data.toUtf8();
+        sendHex(data);
+        return;
     }
+
+    const QByteArray bytes = data.toUtf8();
 
     if (bytes.isEmpty()) {
         appendLog(QStringLiteral("[发送失败] 数据为空"));
         return;
     }
 
-    qint64 written = m_serial.write(bytes);
-    if (written > 0) {
-        m_txBytes += written;
-        emit txBytesChanged();
-        appendLog(QStringLiteral("[TX] ") + (m_showHex ? bytes.toHex(' ').toUpper() : data));
-    } else {
-        appendLog(QStringLiteral("[发送失败] ") + m_serial.errorString());
+    if (!m_serialPortManager->write(bytes, SerialPortManager::WriteTag::DebugTx)) {
+        appendLog(QStringLiteral("[发送失败] 提交发送失败"));
+        return;
     }
+
+    appendLog(QStringLiteral("[TX-QUEUED] ") + data);
+}
+
+void SerialDebug::sendHex(const QString &data)
+{
+    if (!isOpen()) {
+        appendLog(QStringLiteral("[发送失败] 串口未打开"));
+        return;
+    }
+
+    const QByteArray bytes = parseHexString(data);
+
+    if (bytes.isEmpty()) {
+        appendLog(QStringLiteral("[发送失败] 数据为空"));
+        return;
+    }
+
+    if (!m_serialPortManager->write(bytes, SerialPortManager::WriteTag::DebugTx)) {
+        appendLog(QStringLiteral("[发送失败] 提交发送失败"));
+        return;
+    }
+
+    appendLog(QStringLiteral("[TX-QUEUED] ") + bytes.toHex(' ').toUpper());
 }
 
 void SerialDebug::clear()
@@ -190,9 +164,8 @@ void SerialDebug::clear()
     emit txBytesChanged();
 }
 
-void SerialDebug::handleReadyRead()
+void SerialDebug::handleReadyRead(const QByteArray &data)
 {
-    QByteArray data = m_serial.readAll();
     if (data.isEmpty()) return;
 
     m_rxBytes += data.size();
@@ -208,14 +181,25 @@ void SerialDebug::handleReadyRead()
     appendLog(QStringLiteral("[RX] ") + text);
 }
 
-void SerialDebug::handleError(QSerialPort::SerialPortError error)
+void SerialDebug::handleWriteFinished(qint64 totalBytes, int tag)
 {
-    if (error == QSerialPort::NoError) return;
-    if (error == QSerialPort::ResourceError) {
-        m_serial.close();
-        updateOpenState();
-        appendLog(QStringLiteral("[错误] 串口被断开"));
+    if (static_cast<SerialPortManager::WriteTag>(tag) != SerialPortManager::WriteTag::DebugTx) {
+        return;
     }
+
+    m_txBytes += totalBytes;
+    emit txBytesChanged();
+}
+
+void SerialDebug::handleError(int error, const QString &message)
+{
+    if (error == static_cast<int>(QSerialPort::NoError)) return;
+    if (error == static_cast<int>(QSerialPort::ResourceError)) {
+        appendLog(QStringLiteral("[错误] 串口被断开"));
+        return;
+    }
+
+    appendLog(QStringLiteral("[错误] ") + message);
 }
 
 void SerialDebug::appendLog(const QString &text)
@@ -236,4 +220,19 @@ void SerialDebug::appendLog(const QString &text)
 void SerialDebug::updateOpenState()
 {
     emit isOpenChanged();
+}
+
+QByteArray SerialDebug::parseHexString(const QString &data) const
+{
+    QByteArray bytes;
+    const QStringList parts = data.split(QRegularExpression(QStringLiteral("\\s+")), Qt::SkipEmptyParts);
+    for (const QString &part : parts) {
+        bool ok = false;
+        const quint8 byte = part.toUInt(&ok, 16);
+        if (!ok) {
+            return QByteArray();
+        }
+        bytes.append(static_cast<char>(byte));
+    }
+    return bytes;
 }

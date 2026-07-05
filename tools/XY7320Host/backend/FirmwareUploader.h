@@ -4,10 +4,11 @@
 #include <QByteArray>
 #include <QDateTime>
 #include <QObject>
-#include <QSerialPort>
 #include <QTimer>
 #include <QUrl>
 #include <QVariant>
+
+class SerialPortManager;
 
 class FirmwareUploader : public QObject
 {
@@ -34,7 +35,7 @@ class FirmwareUploader : public QObject
     Q_PROPERTY(QString logText READ logText NOTIFY logTextChanged)
 
 public:
-    explicit FirmwareUploader(QObject *parent = nullptr);
+    explicit FirmwareUploader(SerialPortManager *serialPortManager, QObject *parent = nullptr);
 
     QVariantList ports() const;
     QString portName() const;
@@ -99,8 +100,11 @@ signals:
 private slots:
     void sendNextPacket();
     void checkSelectedFile();
-    void handleSerialReadyRead();
+    void handleSerialReadyRead(const QByteArray &data);
     void handleHandshakeTimeout();
+    void handleWriteFinished(qint64 totalBytes, int tag);
+    void handleSerialError(int error, const QString &message);
+    void handleWriteTimeout(int tag);
 
 private:
     static constexpr quint32 SimpleAppMagic = 0x41505055U;
@@ -145,7 +149,7 @@ private:
     void setStatus(const QString &status);
     void appendLog(const QString &line);
     bool openSerial();
-    bool writeBytes(const QByteArray &data);
+    bool writeBytes(const QByteArray &data, int timeoutMs, int tag);
     void finish(bool ok, const QString &message);
     void closeSession();
     void startHandshakeTimer();
@@ -155,6 +159,7 @@ private:
     QString stageName(AutoStage stage) const;
 
     QVariantList m_ports;
+    SerialPortManager *m_serialPortManager = nullptr;
     QString m_portName;
     int m_baudRate = 115200;
     QString m_filePath;
@@ -175,10 +180,8 @@ private:
     QString m_status = QStringLiteral("Ready");
     QString m_logText;
 
-    QSerialPort m_serial;
     QTimer m_sendTimer;
     QTimer m_handshakeTimer;
-    QTimer m_portRefreshTimer;
     QTimer m_fileRefreshTimer;
     AutoStage m_autoStage = AutoStage::Idle;
     QByteArray m_rxBuffer;
