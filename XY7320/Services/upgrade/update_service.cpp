@@ -48,7 +48,8 @@ void UpdateService::Init()
     /* 1. 清空本地缓冲（保留成员，避免后续接口调整引起布局变化） */
     memset(m_rxBuf, 0, sizeof(m_rxBuf));
 
-    /* 2. 初始化串口 DMA 接收（绑定 USART2 句柄 + DMA 缓冲区） */
+    /* 2. 初始化串口 DMA 接收（绑定 USART2 句柄 + DMA 缓冲区）
+     *    硬编码 USART2：与上位机协议保持一致；如改硬件需同步 PC 工具固定码。 */
     BspUartRcv_Init(&huart2, s_dma_rx_buf, UART_DMA_BUF_SIZE);
 
     /* 3. 启动 DMA 接收 + 使能 IDLE 中断，之后串口数据自动流入 */
@@ -101,7 +102,7 @@ bool UpdateService::HandleProtocolUpgradeRequest(const uint8_t *data, uint8_t le
 
 void UpdateService::ResetToBootloaderAfterAck()
 {
-    /* 复位前清理串口状态，确保 Bootloader 启动时串口干净 */
+    /* 复位前清理串口状态，防止 DMA 残留导致 Bootloader 起来后首个字节错位 */
     BspUartRcv_DeInit();
 
     BspTimOs_DelayMs(50);

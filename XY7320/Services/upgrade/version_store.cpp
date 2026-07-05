@@ -53,6 +53,7 @@ void VersionStore::MakeSlot(Slot &slot, uint64_t version, uint8_t flag)
     slot.magic = SLOT_MAGIC;
     slot.version = version;
     slot.flag = flag;
+    /* 保留字段默认填 0xFF：与未写入的 Flash 区域擦除后值一致，避免误判为有效。 */
     memset(slot.reserved, 0xFF, sizeof(slot.reserved));
     slot.tail = SLOT_TAIL;
 }
