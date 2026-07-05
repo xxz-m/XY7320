@@ -161,6 +161,7 @@ void OS_DelayMs(uint32_t ms)
         return;
     }
 
+/* OS_TICK_MS=1 时 1ms=1tick，无需除法；其他配置下需换算并保证至少 1tick。 */
 #if (OS_TICK_MS == 1)
     OS_DelayTicks(ms);
 #else
@@ -254,7 +255,10 @@ static void OS_ScheduleOnce(void)
     /* 调用任务函数：任务内部不要写 while(1)，只做一步逻辑就 return */
     g_tasks[next].entry(g_tasks[next].arg);
 
-    /* 如果任务没自己改状态（比如延时/挂起/删除），默认跑完一次回到 READY */
+    /* 如果任务没自己改状态（比如延时/挂起/删除），默认跑完一次回到 READY
+     *
+     * NOTE：协作式调度约定 — 任务只能改自己 TCB 的 state，
+     * 不要直接改 g_currentTask 或其它任务的 state，否则调度器行为不可预测。 */
     if (g_currentTask == next &&
         g_tasks[next].state == OS_TASK_RUNNING) {
         g_tasks[next].state = OS_TASK_READY;
