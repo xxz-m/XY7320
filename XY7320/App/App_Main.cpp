@@ -1,7 +1,8 @@
 /**
  * @file    App_Main.cpp
  * @brief   App 层入口实现
- *          初始化 Services，创建 OS 任务
+ *
+ *          初始化 Services，创建 OS 任务。
  */
 
 #include "App_Main.h"
@@ -16,6 +17,18 @@
 #include "adc_service.h"
 #include "task_update.h"
 #include "mode_manager.h"
+
+/**
+ * @brief 初始化所有 Services
+ *
+ * 按依赖顺序：
+ *  1. LogService 先于其他 Init，让后续初始化日志可写
+ *  2. LedService 立即切到 BLINK，便于裸机阶段可见
+ *  3. UpdateService 初始化协议串口 DMA 并写 A1 当前版本
+ *  4. ProtocolService 初始化协议解析缓冲
+ *  5. ModeManager 初始化状态机（进入 Idle）
+ *  6. AdcService 放最后，确保 BSP ADC 时钟已就绪
+ */
 extern "C" void App_Main_Init(void)
 {
     /* App 层只调接口，不知道硬件细节 */
@@ -28,7 +41,17 @@ extern "C" void App_Main_Init(void)
     ModeManager::Instance().Init();
     AdcService::Instance().Init();
 }
+
 static void Task_ModeManager(void *arg);
+
+/**
+ * @brief 创建所有 OS 任务
+ *
+ * Priority 含义（数值越小优先级越高）：
+ *  - Task_UpdateConfig        = 5（最高优先：保证协议帧及时处理）
+ *  - Task_ModeManager         = 3（次高：每 1ms Tick 调度状态机）
+ *  - Task_LED                 = 1（最低：闪烁节拍不需要严格实时）
+ */
 extern "C" void App_Main_Start(void)
 {
     /* 创建所有 OS 任务 */
@@ -40,7 +63,12 @@ extern "C" void App_Main_Start(void)
     LOG_Printf("Task_ModeManager,Create,OK\r\n");
 }
 
-/* 新增：ModeManager 调度任务 */
+/**
+ * @brief ModeManager 调度任务：每 1ms Tick 一次
+ *
+ * 调用 ModeManager::Tick() 驱动当前状态机的 tick() 回调，
+ * 通常会触发 AdcService::Update 或其他业务逻辑。
+ */
 static void Task_ModeManager(void *arg)
 {
     (void)arg;
