@@ -307,7 +307,10 @@ uint16_t Protocol::EncodePacket(const ProtocolPacket *Packet, uint8_t *dest)
     buff[len++] = Packet->End1;
     buff[len++] = Packet->End2;
 
-    /* 第二步：拷贝到 dest，帧体内 0x10 字节插入转义 */
+    /* 第二步：拷贝到 dest，帧体内 0x10 字节插入转义
+ *
+ * 帧头/帧尾是定界符，转义后无法定位边界，因此**不转义**。
+ * 仅帧体（偏移 2 到 len-3）中的 0x10 重复一次表示字面值。 */
     uint16_t DLE_len = 2;
     dest[0] = buff[0];  // 帧头原样拷贝，不转义
     dest[1] = buff[1];
