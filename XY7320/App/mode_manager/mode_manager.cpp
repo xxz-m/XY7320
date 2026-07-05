@@ -57,6 +57,7 @@ void ModeManager::RequestSwitch(const fsm::Event &event)
         nextMode = mode::MODE_ADC_TASK_B;
         break;
     default:
+        /* 未知事件只打印不切换，避免无意义的 exit/entry 抖动 */
         LOG_Printf("ModeManager,UnknownEvent,%d\n", event.type());
         return;
     }
