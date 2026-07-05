@@ -15,6 +15,8 @@
 /**
  * 当前 APP 版本号
  * 格式：yyyyMMddHHmm，如 202606082257 表示 2026-06-08 22:57
+ *
+ * 修改版本号后，UpdateService::Init() 会写 A1 = APP_CURRENT_VERSION。
  */
 #define APP_CURRENT_VERSION  202606082257ULL
 

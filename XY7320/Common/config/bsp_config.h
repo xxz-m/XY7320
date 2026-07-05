@@ -35,7 +35,13 @@ extern "C" {
 /* ====== SPI 配置（预留） ====== */
 // #define FLASH_SPI           hspi1
 
-/* ====== ADC 配置 ====== */
+/* ====== ADC 配置 ======
+ *
+ * ADC 多通道 DMA 采集配置，与 bsp_adc.c 配合使用。
+ * 8 通道 DMA 缓冲（BSP_ADC_CHANNEL_COUNT），其中前 6 通道按 active 通道
+ * 缓存（BSP_ADC_ACTIVE_CHANNEL_COUNT），后 2 通道累加后取平均（idle）。
+ * 8 轮 DMA TC 后凑满 512 点（BSP_ADC_TARGET_SAMPLE_COUNT）。
+ */
 #define BSP_ADC_CHANNEL_COUNT          8u
 #define BSP_ADC_ACTIVE_CHANNEL_COUNT   6u
 #define BSP_ADC_IDLE_CHANNEL_COUNT     2u

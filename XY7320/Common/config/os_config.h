@@ -21,7 +21,7 @@ extern "C" {
 /**
  * OS Tick 周期（毫秒）
  * 系统调度的基本时间单位
- * BSP 层会根据此值自动计算定时器的 PSC/ARR
+ * 由 bsp_tim_os.c 读取 OS_TICK_MS 自动配置 TIM14 的 PSC/ARR。
  */
 #define OS_TICK_MS          1u
 
