@@ -11,6 +11,7 @@
 LedService::LedService()
     : m_mode(Mode::OFF)
     , m_lastToggleTick(0)
+    /* 默认 500ms 周期，即 2Hz 闪烁频率 */
     , m_blinkPeriodMs(500)
     , m_state(false)
 {
