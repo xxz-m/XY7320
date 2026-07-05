@@ -30,7 +30,8 @@ void ProtocolService::Update()
     /** 获取当前帧长度 */
     uint16_t len = BspUartRcv_GetFrameLength();
     if (len == 0 || len > sizeof(m_rxChunk)) {
-        /** 清除帧就绪标志，必须在 CopyFrame() 取走数据后调用 */
+        /* 单次突发帧不应超过单 chunk；超长帧属异常（协议帧最长 256B），
+         * 直接清标志丢弃，避免后续解析时越界覆盖 m_streamBuf。 */
         BspUartRcv_ClearFlag();
         return;
     }
