@@ -35,11 +35,13 @@ void LogService::Init()
 static void PutcCallback(int c, void *ctx)
 {
     (void)ctx;
+    /* nanoprintf 回调契约：单字符同步写出；BspUart_LogPutChar 内部阻塞发送。 */
     BspUart_LogPutChar(static_cast<char>(c));
 }
 
 void LogService::VPrintf(const char *fmt, va_list args)
 {
+    /* 容错：空 fmt 不应崩；常见于 LOG_Printf("") 这类空字符串调用。 */
     if (fmt == nullptr) return;
     npf_vpprintf(PutcCallback, nullptr, fmt, args);
 }
