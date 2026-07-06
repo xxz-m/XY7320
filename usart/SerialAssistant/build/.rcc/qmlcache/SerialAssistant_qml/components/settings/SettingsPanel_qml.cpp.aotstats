@@ -1,0 +1,1604 @@
+[
+    {
+        "moduleFiles": [
+            {
+                "entries": [
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 37,
+                        "durationMicroseconds": 316,
+                        "errorMessage": "Cannot generate efficient code for call to untyped JavaScript function",
+                        "functionName": "title",
+                        "line": 11
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 12,
+                        "durationMicroseconds": 83,
+                        "errorMessage": "Cannot load property secondaryColor from (component in C:/Users/XYKJ/Desktop/esp32/XY7320_ST/usart/SerialAssistant/qml/components/settings/SettingsPanel.qml)::theme with type QVariant.",
+                        "functionName": "color",
+                        "line": 38
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 5,
+                        "durationMicroseconds": 0,
+                        "errorMessage": "Functions without type annotations won't be compiled",
+                        "functionName": "sectionTitle",
+                        "line": 284
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 5,
+                        "durationMicroseconds": 0,
+                        "errorMessage": "Functions without type annotations won't be compiled",
+                        "functionName": "sectionDescription",
+                        "line": 288
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 5,
+                        "durationMicroseconds": 0,
+                        "errorMessage": "Functions without type annotations won't be compiled",
+                        "functionName": "sectionIcon",
+                        "line": 292
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 19,
+                        "durationMicroseconds": 35,
+                        "errorMessage": "Cannot load property borderColor from (component in C:/Users/XYKJ/Desktop/esp32/XY7320_ST/usart/SerialAssistant/qml/components/settings/SettingsPanel.qml)::theme with type QVariant.",
+                        "functionName": "color",
+                        "line": 40
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 16,
+                        "durationMicroseconds": 98,
+                        "errorMessage": "Cannot load property shadowColor from (component in C:/Users/XYKJ/Desktop/esp32/XY7320_ST/usart/SerialAssistant/qml/components/settings/SettingsPanel.qml)::theme with type QVariant.",
+                        "functionName": "color",
+                        "line": 47
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 23,
+                        "durationMicroseconds": 94,
+                        "errorMessage": "",
+                        "functionName": "fill",
+                        "line": 43
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 23,
+                        "durationMicroseconds": 58,
+                        "errorMessage": "",
+                        "functionName": "fill",
+                        "line": 52
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 23,
+                        "durationMicroseconds": 332,
+                        "errorMessage": "Cannot generate efficient code for call to untyped JavaScript function",
+                        "functionName": "icon",
+                        "line": 62
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 24,
+                        "durationMicroseconds": 29,
+                        "errorMessage": "Cannot load property focusColor from (component in C:/Users/XYKJ/Desktop/esp32/XY7320_ST/usart/SerialAssistant/qml/components/settings/SettingsPanel.qml)::theme with type QVariant.",
+                        "functionName": "color",
+                        "line": 63
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 30,
+                        "durationMicroseconds": 102,
+                        "errorMessage": "",
+                        "functionName": "text",
+                        "line": 70
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 49,
+                        "durationMicroseconds": 21,
+                        "errorMessage": "Cannot load property textColor from (component in C:/Users/XYKJ/Desktop/esp32/XY7320_ST/usart/SerialAssistant/qml/components/settings/SettingsPanel.qml)::theme with type QVariant.",
+                        "functionName": "color",
+                        "line": 70
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 30,
+                        "durationMicroseconds": 270,
+                        "errorMessage": "Cannot generate efficient code for call to untyped JavaScript function",
+                        "functionName": "text",
+                        "line": 71
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 83,
+                        "durationMicroseconds": 35,
+                        "errorMessage": "Cannot load property mutedTextColor from (component in C:/Users/XYKJ/Desktop/esp32/XY7320_ST/usart/SerialAssistant/qml/components/settings/SettingsPanel.qml)::theme with type QVariant.",
+                        "functionName": "color",
+                        "line": 71
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 137,
+                        "durationMicroseconds": 122,
+                        "errorMessage": "",
+                        "functionName": "elide",
+                        "line": 71
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 24,
+                        "durationMicroseconds": 70,
+                        "errorMessage": "Cannot load property elevatedColor from (component in C:/Users/XYKJ/Desktop/esp32/XY7320_ST/usart/SerialAssistant/qml/components/settings/SettingsPanel.qml)::theme with type QVariant.",
+                        "functionName": "color",
+                        "line": 76
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 80,
+                        "durationMicroseconds": 27,
+                        "errorMessage": "Cannot load property mutedTextColor from (component in C:/Users/XYKJ/Desktop/esp32/XY7320_ST/usart/SerialAssistant/qml/components/settings/SettingsPanel.qml)::theme with type QVariant.",
+                        "functionName": "color",
+                        "line": 77
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 50,
+                        "durationMicroseconds": 93,
+                        "errorMessage": "",
+                        "functionName": "centerIn",
+                        "line": 77
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 100,
+                        "durationMicroseconds": 187,
+                        "errorMessage": "",
+                        "functionName": "cursorShape",
+                        "line": 78
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 134,
+                        "durationMicroseconds": 166,
+                        "errorMessage": "",
+                        "functionName": "onClicked",
+                        "line": 78
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 59,
+                        "durationMicroseconds": 73,
+                        "errorMessage": "",
+                        "functionName": "fill",
+                        "line": 78
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 79,
+                        "durationMicroseconds": 34,
+                        "errorMessage": "Cannot load property borderColor from (component in C:/Users/XYKJ/Desktop/esp32/XY7320_ST/usart/SerialAssistant/qml/components/settings/SettingsPanel.qml)::theme with type QVariant.",
+                        "functionName": "color",
+                        "line": 82
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 27,
+                        "durationMicroseconds": 49,
+                        "errorMessage": "",
+                        "functionName": "contentWidth",
+                        "line": 89
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 24,
+                        "durationMicroseconds": 67,
+                        "errorMessage": "",
+                        "functionName": "width",
+                        "line": 92
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 28,
+                        "durationMicroseconds": 79,
+                        "errorMessage": "",
+                        "functionName": "theme",
+                        "line": 98
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 30,
+                        "durationMicroseconds": 118,
+                        "errorMessage": "",
+                        "functionName": "visible",
+                        "line": 99
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 62,
+                        "durationMicroseconds": 188,
+                        "errorMessage": "Cannot access value for name serialController",
+                        "functionName": "value",
+                        "line": 102
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 96,
+                        "durationMicroseconds": 228,
+                        "errorMessage": "Cannot access value for name serialController",
+                        "functionName": "model",
+                        "line": 102
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 140,
+                        "durationMicroseconds": 198,
+                        "errorMessage": "Cannot access value for name serialController",
+                        "functionName": "onChosen",
+                        "line": 102
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 140,
+                        "durationMicroseconds": 65,
+                        "errorMessage": "",
+                        "functionName": "onChosen",
+                        "line": 102
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 62,
+                        "durationMicroseconds": 158,
+                        "errorMessage": "Cannot access value for name serialController",
+                        "functionName": "value",
+                        "line": 103
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 94,
+                        "durationMicroseconds": 151,
+                        "errorMessage": "Cannot access value for name serialController",
+                        "functionName": "model",
+                        "line": 103
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 136,
+                        "durationMicroseconds": 139,
+                        "errorMessage": "Cannot access value for name serialController",
+                        "functionName": "onChosen",
+                        "line": 103
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 136,
+                        "durationMicroseconds": 50,
+                        "errorMessage": "",
+                        "functionName": "onChosen",
+                        "line": 103
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 62,
+                        "durationMicroseconds": 130,
+                        "errorMessage": "Cannot access value for name serialController",
+                        "functionName": "value",
+                        "line": 104
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 96,
+                        "durationMicroseconds": 128,
+                        "errorMessage": "Cannot access value for name serialController",
+                        "functionName": "model",
+                        "line": 104
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 140,
+                        "durationMicroseconds": 133,
+                        "errorMessage": "Cannot access value for name serialController",
+                        "functionName": "onChosen",
+                        "line": 104
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 140,
+                        "durationMicroseconds": 48,
+                        "errorMessage": "",
+                        "functionName": "onChosen",
+                        "line": 104
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 61,
+                        "durationMicroseconds": 158,
+                        "errorMessage": "Cannot access value for name serialController",
+                        "functionName": "value",
+                        "line": 105
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 98,
+                        "durationMicroseconds": 132,
+                        "errorMessage": "Cannot access value for name serialController",
+                        "functionName": "model",
+                        "line": 105
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 145,
+                        "durationMicroseconds": 159,
+                        "errorMessage": "Cannot access value for name serialController",
+                        "functionName": "onChosen",
+                        "line": 105
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 145,
+                        "durationMicroseconds": 51,
+                        "errorMessage": "",
+                        "functionName": "onChosen",
+                        "line": 105
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 28,
+                        "durationMicroseconds": 120,
+                        "errorMessage": "",
+                        "functionName": "theme",
+                        "line": 108
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 30,
+                        "durationMicroseconds": 118,
+                        "errorMessage": "",
+                        "functionName": "visible",
+                        "line": 109
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 44,
+                        "durationMicroseconds": 83,
+                        "errorMessage": "",
+                        "functionName": "theme",
+                        "line": 111
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 110,
+                        "durationMicroseconds": 65,
+                        "errorMessage": "",
+                        "functionName": "checked",
+                        "line": 111
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 142,
+                        "durationMicroseconds": 110,
+                        "errorMessage": "",
+                        "functionName": "onCheckedChanged",
+                        "line": 111
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 44,
+                        "durationMicroseconds": 76,
+                        "errorMessage": "",
+                        "functionName": "theme",
+                        "line": 112
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 108,
+                        "durationMicroseconds": 112,
+                        "errorMessage": "",
+                        "functionName": "checked",
+                        "line": 112
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 140,
+                        "durationMicroseconds": 115,
+                        "errorMessage": "",
+                        "functionName": "onCheckedChanged",
+                        "line": 112
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 28,
+                        "durationMicroseconds": 87,
+                        "errorMessage": "",
+                        "functionName": "theme",
+                        "line": 115
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 30,
+                        "durationMicroseconds": 114,
+                        "errorMessage": "",
+                        "functionName": "visible",
+                        "line": 116
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 44,
+                        "durationMicroseconds": 144,
+                        "errorMessage": "",
+                        "functionName": "theme",
+                        "line": 118
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 91,
+                        "durationMicroseconds": 61,
+                        "errorMessage": "",
+                        "functionName": "checked",
+                        "line": 118
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 128,
+                        "durationMicroseconds": 110,
+                        "errorMessage": "",
+                        "functionName": "onCheckedChanged",
+                        "line": 118
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 44,
+                        "durationMicroseconds": 96,
+                        "errorMessage": "",
+                        "functionName": "theme",
+                        "line": 119
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 88,
+                        "durationMicroseconds": 54,
+                        "errorMessage": "",
+                        "functionName": "checked",
+                        "line": 119
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 129,
+                        "durationMicroseconds": 111,
+                        "errorMessage": "",
+                        "functionName": "onCheckedChanged",
+                        "line": 119
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 28,
+                        "durationMicroseconds": 154,
+                        "errorMessage": "",
+                        "functionName": "theme",
+                        "line": 125
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 30,
+                        "durationMicroseconds": 171,
+                        "errorMessage": "",
+                        "functionName": "visible",
+                        "line": 126
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 63,
+                        "durationMicroseconds": 153,
+                        "errorMessage": "",
+                        "functionName": "value",
+                        "line": 129
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 96,
+                        "durationMicroseconds": 375,
+                        "errorMessage": "Cannot generate efficient code for storing an array in a non-sequence type",
+                        "functionName": "model",
+                        "line": 129
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 144,
+                        "durationMicroseconds": 216,
+                        "errorMessage": "",
+                        "functionName": "onChosen",
+                        "line": 129
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 63,
+                        "durationMicroseconds": 113,
+                        "errorMessage": "",
+                        "functionName": "value",
+                        "line": 130
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 93,
+                        "durationMicroseconds": 237,
+                        "errorMessage": "Cannot generate efficient code for storing an array in a non-sequence type",
+                        "functionName": "model",
+                        "line": 130
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 141,
+                        "durationMicroseconds": 138,
+                        "errorMessage": "",
+                        "functionName": "onChosen",
+                        "line": 130
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 65,
+                        "durationMicroseconds": 86,
+                        "errorMessage": "",
+                        "functionName": "value",
+                        "line": 131
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 95,
+                        "durationMicroseconds": 355,
+                        "errorMessage": "Cannot generate efficient code for storing an array in a non-sequence type",
+                        "functionName": "model",
+                        "line": 131
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 147,
+                        "durationMicroseconds": 123,
+                        "errorMessage": "",
+                        "functionName": "onChosen",
+                        "line": 131
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 28,
+                        "durationMicroseconds": 82,
+                        "errorMessage": "",
+                        "functionName": "theme",
+                        "line": 134
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 30,
+                        "durationMicroseconds": 114,
+                        "errorMessage": "",
+                        "functionName": "visible",
+                        "line": 135
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 28,
+                        "durationMicroseconds": 101,
+                        "errorMessage": "",
+                        "functionName": "theme",
+                        "line": 142
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 30,
+                        "durationMicroseconds": 107,
+                        "errorMessage": "",
+                        "functionName": "visible",
+                        "line": 143
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 48,
+                        "durationMicroseconds": 82,
+                        "errorMessage": "",
+                        "functionName": "theme",
+                        "line": 146
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 93,
+                        "durationMicroseconds": 263,
+                        "errorMessage": "Cannot generate efficient code for storing an array in a non-sequence type",
+                        "functionName": "options",
+                        "line": 146
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 140,
+                        "durationMicroseconds": 229,
+                        "errorMessage": "Cannot access value for name transmitController",
+                        "functionName": "currentIndex",
+                        "line": 146
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 184,
+                        "durationMicroseconds": 169,
+                        "errorMessage": "Cannot access value for name transmitController",
+                        "functionName": "onSelected",
+                        "line": 146
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 184,
+                        "durationMicroseconds": 61,
+                        "errorMessage": "",
+                        "functionName": "onSelected",
+                        "line": 146
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 28,
+                        "durationMicroseconds": 95,
+                        "errorMessage": "",
+                        "functionName": "theme",
+                        "line": 149
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 30,
+                        "durationMicroseconds": 107,
+                        "errorMessage": "",
+                        "functionName": "visible",
+                        "line": 150
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 44,
+                        "durationMicroseconds": 75,
+                        "errorMessage": "",
+                        "functionName": "theme",
+                        "line": 152
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 88,
+                        "durationMicroseconds": 54,
+                        "errorMessage": "",
+                        "functionName": "checked",
+                        "line": 152
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 128,
+                        "durationMicroseconds": 106,
+                        "errorMessage": "",
+                        "functionName": "onCheckedChanged",
+                        "line": 152
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 44,
+                        "durationMicroseconds": 75,
+                        "errorMessage": "",
+                        "functionName": "theme",
+                        "line": 153
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 89,
+                        "durationMicroseconds": 67,
+                        "errorMessage": "",
+                        "functionName": "checked",
+                        "line": 153
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 131,
+                        "durationMicroseconds": 97,
+                        "errorMessage": "",
+                        "functionName": "onCheckedChanged",
+                        "line": 153
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 44,
+                        "durationMicroseconds": 140,
+                        "errorMessage": "",
+                        "functionName": "theme",
+                        "line": 154
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 88,
+                        "durationMicroseconds": 65,
+                        "errorMessage": "",
+                        "functionName": "checked",
+                        "line": 154
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 126,
+                        "durationMicroseconds": 100,
+                        "errorMessage": "",
+                        "functionName": "onCheckedChanged",
+                        "line": 154
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 28,
+                        "durationMicroseconds": 73,
+                        "errorMessage": "",
+                        "functionName": "theme",
+                        "line": 159
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 30,
+                        "durationMicroseconds": 146,
+                        "errorMessage": "",
+                        "functionName": "visible",
+                        "line": 160
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 48,
+                        "durationMicroseconds": 78,
+                        "errorMessage": "",
+                        "functionName": "theme",
+                        "line": 162
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 93,
+                        "durationMicroseconds": 307,
+                        "errorMessage": "Cannot generate efficient code for storing an array in a non-sequence type",
+                        "functionName": "options",
+                        "line": 162
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 147,
+                        "durationMicroseconds": 186,
+                        "errorMessage": "Cannot access value for name settingsManager",
+                        "functionName": "currentIndex",
+                        "line": 162
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 187,
+                        "durationMicroseconds": 144,
+                        "errorMessage": "Cannot access value for name settingsManager",
+                        "functionName": "onSelected",
+                        "line": 162
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 187,
+                        "durationMicroseconds": 55,
+                        "errorMessage": "",
+                        "functionName": "onSelected",
+                        "line": 162
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 28,
+                        "durationMicroseconds": 86,
+                        "errorMessage": "",
+                        "functionName": "theme",
+                        "line": 165
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 30,
+                        "durationMicroseconds": 103,
+                        "errorMessage": "",
+                        "functionName": "visible",
+                        "line": 166
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 36,
+                        "durationMicroseconds": 247,
+                        "errorMessage": "Cannot generate efficient code for storing an array in a non-sequence type",
+                        "functionName": "model",
+                        "line": 171
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 40,
+                        "durationMicroseconds": 168,
+                        "errorMessage": "Cannot generate efficient code for internal conversion with incompatible or ambiguous types: (component in C:/Users/XYKJ/Desktop/esp32/XY7320_ST/usart/SerialAssistant/qml/components/settings/SettingsPanel.qml)::modelData with type QVariant -> QColor stored as QVariant",
+                        "functionName": "color",
+                        "line": 175
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 47,
+                        "durationMicroseconds": 170,
+                        "errorMessage": "Cannot access value for name settingsManager",
+                        "functionName": "color",
+                        "line": 177
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 51,
+                        "durationMicroseconds": 48,
+                        "errorMessage": "",
+                        "functionName": "fill",
+                        "line": 179
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 51,
+                        "durationMicroseconds": 141,
+                        "errorMessage": "Cannot access value for name settingsManager",
+                        "functionName": "color",
+                        "line": 183
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 50,
+                        "durationMicroseconds": 110,
+                        "errorMessage": "",
+                        "functionName": "cursorShape",
+                        "line": 187
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 48,
+                        "durationMicroseconds": 184,
+                        "errorMessage": "Cannot access value for name settingsManager",
+                        "functionName": "onClicked",
+                        "line": 188
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 51,
+                        "durationMicroseconds": 127,
+                        "errorMessage": "",
+                        "functionName": "fill",
+                        "line": 186
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 64,
+                        "durationMicroseconds": 46,
+                        "errorMessage": "Cannot load property mutedTextColor from (component in C:/Users/XYKJ/Desktop/esp32/XY7320_ST/usart/SerialAssistant/qml/components/settings/SettingsPanel.qml)::theme with type QVariant.",
+                        "functionName": "color",
+                        "line": 193
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 28,
+                        "durationMicroseconds": 154,
+                        "errorMessage": "",
+                        "functionName": "theme",
+                        "line": 197
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 30,
+                        "durationMicroseconds": 189,
+                        "errorMessage": "",
+                        "functionName": "visible",
+                        "line": 198
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 48,
+                        "durationMicroseconds": 148,
+                        "errorMessage": "",
+                        "functionName": "theme",
+                        "line": 200
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 93,
+                        "durationMicroseconds": 413,
+                        "errorMessage": "Cannot generate efficient code for storing an array in a non-sequence type",
+                        "functionName": "options",
+                        "line": 200
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 145,
+                        "durationMicroseconds": 191,
+                        "errorMessage": "Cannot access value for name settingsManager",
+                        "functionName": "currentIndex",
+                        "line": 200
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 185,
+                        "durationMicroseconds": 150,
+                        "errorMessage": "Cannot access value for name settingsManager",
+                        "functionName": "onSelected",
+                        "line": 200
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 185,
+                        "durationMicroseconds": 67,
+                        "errorMessage": "",
+                        "functionName": "onSelected",
+                        "line": 200
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 63,
+                        "durationMicroseconds": 159,
+                        "errorMessage": "Cannot access value for name settingsManager",
+                        "functionName": "value",
+                        "line": 201
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 100,
+                        "durationMicroseconds": 288,
+                        "errorMessage": "Cannot generate efficient code for storing an array in a non-sequence type",
+                        "functionName": "model",
+                        "line": 201
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 173,
+                        "durationMicroseconds": 154,
+                        "errorMessage": "Cannot access value for name settingsManager",
+                        "functionName": "onChosen",
+                        "line": 201
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 173,
+                        "durationMicroseconds": 47,
+                        "errorMessage": "",
+                        "functionName": "onChosen",
+                        "line": 201
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 28,
+                        "durationMicroseconds": 101,
+                        "errorMessage": "",
+                        "functionName": "theme",
+                        "line": 207
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 30,
+                        "durationMicroseconds": 111,
+                        "errorMessage": "",
+                        "functionName": "visible",
+                        "line": 208
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 44,
+                        "durationMicroseconds": 78,
+                        "errorMessage": "",
+                        "functionName": "theme",
+                        "line": 210
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 89,
+                        "durationMicroseconds": 59,
+                        "errorMessage": "",
+                        "functionName": "checked",
+                        "line": 210
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 127,
+                        "durationMicroseconds": 108,
+                        "errorMessage": "",
+                        "functionName": "onCheckedChanged",
+                        "line": 210
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 44,
+                        "durationMicroseconds": 80,
+                        "errorMessage": "",
+                        "functionName": "theme",
+                        "line": 211
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 87,
+                        "durationMicroseconds": 57,
+                        "errorMessage": "",
+                        "functionName": "checked",
+                        "line": 211
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 129,
+                        "durationMicroseconds": 100,
+                        "errorMessage": "",
+                        "functionName": "onCheckedChanged",
+                        "line": 211
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 44,
+                        "durationMicroseconds": 84,
+                        "errorMessage": "",
+                        "functionName": "theme",
+                        "line": 212
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 89,
+                        "durationMicroseconds": 54,
+                        "errorMessage": "",
+                        "functionName": "checked",
+                        "line": 212
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 123,
+                        "durationMicroseconds": 109,
+                        "errorMessage": "",
+                        "functionName": "onCheckedChanged",
+                        "line": 212
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 28,
+                        "durationMicroseconds": 77,
+                        "errorMessage": "",
+                        "functionName": "theme",
+                        "line": 215
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 30,
+                        "durationMicroseconds": 109,
+                        "errorMessage": "",
+                        "functionName": "visible",
+                        "line": 216
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 38,
+                        "durationMicroseconds": 73,
+                        "errorMessage": "",
+                        "functionName": "theme",
+                        "line": 221
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 28,
+                        "durationMicroseconds": 111,
+                        "errorMessage": "",
+                        "functionName": "theme",
+                        "line": 226
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 30,
+                        "durationMicroseconds": 134,
+                        "errorMessage": "",
+                        "functionName": "visible",
+                        "line": 227
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 44,
+                        "durationMicroseconds": 76,
+                        "errorMessage": "",
+                        "functionName": "theme",
+                        "line": 229
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 87,
+                        "durationMicroseconds": 233,
+                        "errorMessage": "Cannot access value for name settingsManager",
+                        "functionName": "checked",
+                        "line": 229
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 139,
+                        "durationMicroseconds": 154,
+                        "errorMessage": "Cannot access value for name settingsManager",
+                        "functionName": "onCheckedChanged",
+                        "line": 229
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 48,
+                        "durationMicroseconds": 91,
+                        "errorMessage": "",
+                        "functionName": "theme",
+                        "line": 230
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 93,
+                        "durationMicroseconds": 238,
+                        "errorMessage": "Cannot generate efficient code for storing an array in a non-sequence type",
+                        "functionName": "options",
+                        "line": 230
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 136,
+                        "durationMicroseconds": 63,
+                        "errorMessage": "",
+                        "functionName": "currentIndex",
+                        "line": 230
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 174,
+                        "durationMicroseconds": 117,
+                        "errorMessage": "",
+                        "functionName": "onSelected",
+                        "line": 230
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 174,
+                        "durationMicroseconds": 54,
+                        "errorMessage": "",
+                        "functionName": "onSelected",
+                        "line": 230
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 63,
+                        "durationMicroseconds": 183,
+                        "errorMessage": "Cannot access value for name settingsManager",
+                        "functionName": "value",
+                        "line": 231
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 103,
+                        "durationMicroseconds": 178,
+                        "errorMessage": "Cannot generate efficient code for storing an array in a non-sequence type",
+                        "functionName": "model",
+                        "line": 231
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 166,
+                        "durationMicroseconds": 147,
+                        "errorMessage": "Cannot access value for name settingsManager",
+                        "functionName": "onChosen",
+                        "line": 231
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 166,
+                        "durationMicroseconds": 42,
+                        "errorMessage": "",
+                        "functionName": "onChosen",
+                        "line": 231
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 44,
+                        "durationMicroseconds": 147,
+                        "errorMessage": "",
+                        "functionName": "theme",
+                        "line": 232
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 86,
+                        "durationMicroseconds": 184,
+                        "errorMessage": "Cannot access value for name settingsManager",
+                        "functionName": "checked",
+                        "line": 232
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 157,
+                        "durationMicroseconds": 150,
+                        "errorMessage": "Cannot access value for name settingsManager",
+                        "functionName": "onCheckedChanged",
+                        "line": 232
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 28,
+                        "durationMicroseconds": 85,
+                        "errorMessage": "",
+                        "functionName": "theme",
+                        "line": 235
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 30,
+                        "durationMicroseconds": 114,
+                        "errorMessage": "",
+                        "functionName": "visible",
+                        "line": 236
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 28,
+                        "durationMicroseconds": 71,
+                        "errorMessage": "",
+                        "functionName": "theme",
+                        "line": 244
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 30,
+                        "durationMicroseconds": 103,
+                        "errorMessage": "",
+                        "functionName": "visible",
+                        "line": 245
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 64,
+                        "durationMicroseconds": 22,
+                        "errorMessage": "Cannot load property dangerColor from (component in C:/Users/XYKJ/Desktop/esp32/XY7320_ST/usart/SerialAssistant/qml/components/settings/SettingsPanel.qml)::theme with type QVariant.",
+                        "functionName": "color",
+                        "line": 250
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 96,
+                        "durationMicroseconds": 16,
+                        "errorMessage": "Cannot load property mutedTextColor from (component in C:/Users/XYKJ/Desktop/esp32/XY7320_ST/usart/SerialAssistant/qml/components/settings/SettingsPanel.qml)::theme with type QVariant.",
+                        "functionName": "color",
+                        "line": 251
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 153,
+                        "durationMicroseconds": 137,
+                        "errorMessage": "",
+                        "functionName": "wrapMode",
+                        "line": 251
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 38,
+                        "durationMicroseconds": 138,
+                        "errorMessage": "",
+                        "functionName": "theme",
+                        "line": 253
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 115,
+                        "durationMicroseconds": 22,
+                        "errorMessage": "Cannot load property dangerColor from (component in C:/Users/XYKJ/Desktop/esp32/XY7320_ST/usart/SerialAssistant/qml/components/settings/SettingsPanel.qml)::theme with type QVariant.",
+                        "functionName": "containerColor",
+                        "line": 253
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 150,
+                        "durationMicroseconds": 17,
+                        "errorMessage": "Cannot load property dangerColor from (component in C:/Users/XYKJ/Desktop/esp32/XY7320_ST/usart/SerialAssistant/qml/components/settings/SettingsPanel.qml)::theme with type QVariant.",
+                        "functionName": "textColor",
+                        "line": 253
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 237,
+                        "durationMicroseconds": 131,
+                        "errorMessage": "",
+                        "functionName": "onClicked",
+                        "line": 253
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 17,
+                        "durationMicroseconds": 98,
+                        "errorMessage": "",
+                        "functionName": "parent",
+                        "line": 263
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 22,
+                        "durationMicroseconds": 188,
+                        "errorMessage": "",
+                        "functionName": "closePolicy",
+                        "line": 269
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 27,
+                        "durationMicroseconds": 80,
+                        "errorMessage": "",
+                        "functionName": "centerIn",
+                        "line": 264
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 52,
+                        "durationMicroseconds": 33,
+                        "errorMessage": "Cannot load property secondaryColor from (component in C:/Users/XYKJ/Desktop/esp32/XY7320_ST/usart/SerialAssistant/qml/components/settings/SettingsPanel.qml)::theme with type QVariant.",
+                        "functionName": "color",
+                        "line": 270
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 110,
+                        "durationMicroseconds": 18,
+                        "errorMessage": "Cannot load property borderColor from (component in C:/Users/XYKJ/Desktop/esp32/XY7320_ST/usart/SerialAssistant/qml/components/settings/SettingsPanel.qml)::theme with type QVariant.",
+                        "functionName": "color",
+                        "line": 270
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 56,
+                        "durationMicroseconds": 17,
+                        "errorMessage": "Cannot load property dangerColor from (component in C:/Users/XYKJ/Desktop/esp32/XY7320_ST/usart/SerialAssistant/qml/components/settings/SettingsPanel.qml)::theme with type QVariant.",
+                        "functionName": "color",
+                        "line": 273
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 118,
+                        "durationMicroseconds": 96,
+                        "errorMessage": "",
+                        "functionName": "alignment",
+                        "line": 273
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 52,
+                        "durationMicroseconds": 17,
+                        "errorMessage": "Cannot load property textColor from (component in C:/Users/XYKJ/Desktop/esp32/XY7320_ST/usart/SerialAssistant/qml/components/settings/SettingsPanel.qml)::theme with type QVariant.",
+                        "functionName": "color",
+                        "line": 274
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 129,
+                        "durationMicroseconds": 73,
+                        "errorMessage": "",
+                        "functionName": "alignment",
+                        "line": 274
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 66,
+                        "durationMicroseconds": 17,
+                        "errorMessage": "Cannot load property mutedTextColor from (component in C:/Users/XYKJ/Desktop/esp32/XY7320_ST/usart/SerialAssistant/qml/components/settings/SettingsPanel.qml)::theme with type QVariant.",
+                        "functionName": "color",
+                        "line": 275
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 131,
+                        "durationMicroseconds": 74,
+                        "errorMessage": "",
+                        "functionName": "alignment",
+                        "line": 275
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 34,
+                        "durationMicroseconds": 145,
+                        "errorMessage": "",
+                        "functionName": "theme",
+                        "line": 278
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 99,
+                        "durationMicroseconds": 169,
+                        "errorMessage": "",
+                        "functionName": "onClicked",
+                        "line": 278
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 34,
+                        "durationMicroseconds": 97,
+                        "errorMessage": "",
+                        "functionName": "theme",
+                        "line": 279
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 97,
+                        "durationMicroseconds": 19,
+                        "errorMessage": "Cannot load property dangerColor from (component in C:/Users/XYKJ/Desktop/esp32/XY7320_ST/usart/SerialAssistant/qml/components/settings/SettingsPanel.qml)::theme with type QVariant.",
+                        "functionName": "containerColor",
+                        "line": 279
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 156,
+                        "durationMicroseconds": 239,
+                        "errorMessage": "Cannot access value for name serialController",
+                        "functionName": "onClicked",
+                        "line": 279
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 29,
+                        "durationMicroseconds": 60,
+                        "errorMessage": "Cannot generate efficient code for storing an array in a non-sequence type",
+                        "functionName": "model",
+                        "line": 301
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 46,
+                        "durationMicroseconds": 71,
+                        "errorMessage": "",
+                        "functionName": "text",
+                        "line": 305
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 72,
+                        "durationMicroseconds": 15,
+                        "errorMessage": "Cannot load property textColor from (component in C:/Users/XYKJ/Desktop/esp32/XY7320_ST/usart/SerialAssistant/qml/components/settings/SettingsPanel.qml)::theme with type QVariant.",
+                        "functionName": "color",
+                        "line": 305
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 28,
+                        "durationMicroseconds": 75,
+                        "errorMessage": "",
+                        "functionName": "theme",
+                        "line": 306
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 103,
+                        "durationMicroseconds": 72,
+                        "errorMessage": "",
+                        "functionName": "model",
+                        "line": 306
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 137,
+                        "durationMicroseconds": 72,
+                        "errorMessage": "",
+                        "functionName": "selectedValue",
+                        "line": 306
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 173,
+                        "durationMicroseconds": 281,
+                        "errorMessage": "Cannot generate efficient code for call to untyped JavaScript function",
+                        "functionName": "onValueSelected",
+                        "line": 306
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 173,
+                        "durationMicroseconds": 47,
+                        "errorMessage": "",
+                        "functionName": "onValueSelected",
+                        "line": 306
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 46,
+                        "durationMicroseconds": 70,
+                        "errorMessage": "",
+                        "functionName": "text",
+                        "line": 315
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 74,
+                        "durationMicroseconds": 17,
+                        "errorMessage": "Cannot load property textColor from (component in C:/Users/XYKJ/Desktop/esp32/XY7320_ST/usart/SerialAssistant/qml/components/settings/SettingsPanel.qml)::theme with type QVariant.",
+                        "functionName": "color",
+                        "line": 315
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 25,
+                        "durationMicroseconds": 76,
+                        "errorMessage": "",
+                        "functionName": "theme",
+                        "line": 316
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 43,
+                        "durationMicroseconds": 64,
+                        "errorMessage": "",
+                        "functionName": "text",
+                        "line": 316
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 22,
+                        "durationMicroseconds": 97,
+                        "errorMessage": "",
+                        "functionName": "text",
+                        "line": 317
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 51,
+                        "durationMicroseconds": 13,
+                        "errorMessage": "Cannot load property mutedTextColor from (component in C:/Users/XYKJ/Desktop/esp32/XY7320_ST/usart/SerialAssistant/qml/components/settings/SettingsPanel.qml)::theme with type QVariant.",
+                        "functionName": "color",
+                        "line": 317
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 94,
+                        "durationMicroseconds": 98,
+                        "errorMessage": "",
+                        "functionName": "color",
+                        "line": 325
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 25,
+                        "durationMicroseconds": 71,
+                        "errorMessage": "",
+                        "functionName": "theme",
+                        "line": 326
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 43,
+                        "durationMicroseconds": 63,
+                        "errorMessage": "",
+                        "functionName": "text",
+                        "line": 326
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 86,
+                        "durationMicroseconds": 35,
+                        "errorMessage": "Cannot load property elevatedColor from (component in C:/Users/XYKJ/Desktop/esp32/XY7320_ST/usart/SerialAssistant/qml/components/settings/SettingsPanel.qml)::theme with type QVariant.",
+                        "functionName": "color",
+                        "line": 328
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 77,
+                        "durationMicroseconds": 14,
+                        "errorMessage": "Cannot load property mutedTextColor from (component in C:/Users/XYKJ/Desktop/esp32/XY7320_ST/usart/SerialAssistant/qml/components/settings/SettingsPanel.qml)::theme with type QVariant.",
+                        "functionName": "color",
+                        "line": 329
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 46,
+                        "durationMicroseconds": 51,
+                        "errorMessage": "",
+                        "functionName": "centerIn",
+                        "line": 329
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 97,
+                        "durationMicroseconds": 76,
+                        "errorMessage": "",
+                        "functionName": "cursorShape",
+                        "line": 330
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 56,
+                        "durationMicroseconds": 65,
+                        "errorMessage": "",
+                        "functionName": "fill",
+                        "line": 330
+                    }
+                ],
+                "filepath": "C:/Users/XYKJ/Desktop/esp32/XY7320_ST/usart/SerialAssistant/qml/components/settings/SettingsPanel.qml"
+            }
+        ],
+        "moduleId": "SerialAssistant(SerialAssistant)"
+    }
+]

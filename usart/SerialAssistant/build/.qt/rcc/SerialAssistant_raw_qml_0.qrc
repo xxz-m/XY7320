@@ -1,0 +1,23 @@
+<RCC>
+  <qresource prefix="/qt/qml/SerialAssistant/">
+    <file alias="qml/Main.qml">C:/Users/XYKJ/Desktop/esp32/XY7320_ST/usart/SerialAssistant/qml/Main.qml</file>
+    <file alias="qml/components/EOptRow.qml">C:/Users/XYKJ/Desktop/esp32/XY7320_ST/usart/SerialAssistant/qml/components/EOptRow.qml</file>
+    <file alias="qml/components/EPaneCard.qml">C:/Users/XYKJ/Desktop/esp32/XY7320_ST/usart/SerialAssistant/qml/components/EPaneCard.qml</file>
+    <file alias="qml/components/EButton.qml">C:/Users/XYKJ/Desktop/esp32/XY7320_ST/usart/SerialAssistant/qml/components/EButton.qml</file>
+    <file alias="qml/components/ECard.qml">C:/Users/XYKJ/Desktop/esp32/XY7320_ST/usart/SerialAssistant/qml/components/ECard.qml</file>
+    <file alias="qml/components/EDropdown.qml">C:/Users/XYKJ/Desktop/esp32/XY7320_ST/usart/SerialAssistant/qml/components/EDropdown.qml</file>
+    <file alias="qml/components/EInput.qml">C:/Users/XYKJ/Desktop/esp32/XY7320_ST/usart/SerialAssistant/qml/components/EInput.qml</file>
+    <file alias="qml/components/ETheme.qml">C:/Users/XYKJ/Desktop/esp32/XY7320_ST/usart/SerialAssistant/qml/components/ETheme.qml</file>
+    <file alias="qml/components/MaterialIcon.qml">C:/Users/XYKJ/Desktop/esp32/XY7320_ST/usart/SerialAssistant/qml/components/MaterialIcon.qml</file>
+    <file alias="qml/components/settings/SettingGroup.qml">C:/Users/XYKJ/Desktop/esp32/XY7320_ST/usart/SerialAssistant/qml/components/settings/SettingGroup.qml</file>
+    <file alias="qml/components/settings/SettingSwitch.qml">C:/Users/XYKJ/Desktop/esp32/XY7320_ST/usart/SerialAssistant/qml/components/settings/SettingSwitch.qml</file>
+    <file alias="qml/components/settings/SegmentedSelector.qml">C:/Users/XYKJ/Desktop/esp32/XY7320_ST/usart/SerialAssistant/qml/components/settings/SegmentedSelector.qml</file>
+    <file alias="qml/components/settings/SettingsPanel.qml">C:/Users/XYKJ/Desktop/esp32/XY7320_ST/usart/SerialAssistant/qml/components/settings/SettingsPanel.qml</file>
+    <file alias="qml/components/cards/ReceivePaneCard.qml">C:/Users/XYKJ/Desktop/esp32/XY7320_ST/usart/SerialAssistant/qml/components/cards/ReceivePaneCard.qml</file>
+    <file alias="qml/components/cards/FilterHighlightCard.qml">C:/Users/XYKJ/Desktop/esp32/XY7320_ST/usart/SerialAssistant/qml/components/cards/FilterHighlightCard.qml</file>
+    <file alias="qml/components/cards/SendPaneCard.qml">C:/Users/XYKJ/Desktop/esp32/XY7320_ST/usart/SerialAssistant/qml/components/cards/SendPaneCard.qml</file>
+    <file alias="qml/components/cards/SendSettingsCard.qml">C:/Users/XYKJ/Desktop/esp32/XY7320_ST/usart/SerialAssistant/qml/components/cards/SendSettingsCard.qml</file>
+    <file alias="qml/assets/fonts/MaterialSymbolsRounded.ttf">C:/Users/XYKJ/Desktop/esp32/XY7320_ST/usart/SerialAssistant/qml/assets/fonts/MaterialSymbolsRounded.ttf</file>
+  </qresource>
+</RCC>
+

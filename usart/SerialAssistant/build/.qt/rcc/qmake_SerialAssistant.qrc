@@ -1,0 +1,6 @@
+<RCC>
+  <qresource prefix="/qt/qml/SerialAssistant">
+    <file alias="qmldir">C:/Users/XYKJ/Desktop/esp32/XY7320_ST/usart/SerialAssistant/build/SerialAssistant/qmldir</file>
+  </qresource>
+</RCC>
+

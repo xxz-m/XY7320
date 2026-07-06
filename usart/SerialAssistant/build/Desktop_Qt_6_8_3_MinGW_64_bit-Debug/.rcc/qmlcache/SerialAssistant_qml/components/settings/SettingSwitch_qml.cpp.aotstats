@@ -1,0 +1,132 @@
+[
+    {
+        "moduleFiles": [
+            {
+                "entries": [
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 21,
+                        "durationMicroseconds": 1852,
+                        "errorMessage": "",
+                        "functionName": "implicitHeight",
+                        "line": 13
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 14,
+                        "durationMicroseconds": 9177,
+                        "errorMessage": "",
+                        "functionName": "opacity",
+                        "line": 15
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 23,
+                        "durationMicroseconds": 1015,
+                        "errorMessage": "",
+                        "functionName": "fill",
+                        "line": 18
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 26,
+                        "durationMicroseconds": 225,
+                        "errorMessage": "",
+                        "functionName": "text",
+                        "line": 23
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 45,
+                        "durationMicroseconds": 73,
+                        "errorMessage": "Cannot load property textColor from (component in C:/Users/XYKJ/Desktop/esp32/XY7320_ST/usart/SerialAssistant/qml/components/settings/SettingSwitch.qml)::theme with type QVariant.",
+                        "functionName": "color",
+                        "line": 23
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 23,
+                        "durationMicroseconds": 172,
+                        "errorMessage": "",
+                        "functionName": "text",
+                        "line": 26
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 24,
+                        "durationMicroseconds": 57,
+                        "errorMessage": "Cannot load property mutedTextColor from (component in C:/Users/XYKJ/Desktop/esp32/XY7320_ST/usart/SerialAssistant/qml/components/settings/SettingSwitch.qml)::theme with type QVariant.",
+                        "functionName": "color",
+                        "line": 27
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 26,
+                        "durationMicroseconds": 279,
+                        "errorMessage": "",
+                        "functionName": "visible",
+                        "line": 29
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 24,
+                        "durationMicroseconds": 175,
+                        "errorMessage": "",
+                        "functionName": "elide",
+                        "line": 30
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 22,
+                        "durationMicroseconds": 157,
+                        "errorMessage": "",
+                        "functionName": "checked",
+                        "line": 35
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 22,
+                        "durationMicroseconds": 132,
+                        "errorMessage": "",
+                        "functionName": "enabled",
+                        "line": 36
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 24,
+                        "durationMicroseconds": 335,
+                        "errorMessage": "",
+                        "functionName": "onToggled",
+                        "line": 37
+                    },
+                    {
+                        "codegenSuccessfull": false,
+                        "column": 24,
+                        "durationMicroseconds": 154,
+                        "errorMessage": "Cannot load property focusColor from (component in C:/Users/XYKJ/Desktop/esp32/XY7320_ST/usart/SerialAssistant/qml/components/settings/SettingSwitch.qml)::theme with type QVariant.",
+                        "functionName": "color",
+                        "line": 42
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 24,
+                        "durationMicroseconds": 771,
+                        "errorMessage": "",
+                        "functionName": "x",
+                        "line": 45
+                    },
+                    {
+                        "codegenSuccessfull": true,
+                        "column": 45,
+                        "durationMicroseconds": 242,
+                        "errorMessage": "",
+                        "functionName": "verticalCenter",
+                        "line": 46
+                    }
+                ],
+                "filepath": "C:/Users/XYKJ/Desktop/esp32/XY7320_ST/usart/SerialAssistant/qml/components/settings/SettingSwitch.qml"
+            }
+        ],
+        "moduleId": "SerialAssistant(SerialAssistant)"
+    }
+]

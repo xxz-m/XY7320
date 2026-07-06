@@ -1,0 +1,12 @@
+-I
+C:/Users/XYKJ/Desktop/esp32/XY7320_ST/usart/SerialAssistant/build
+-I
+D:/qt/6.8.3/mingw_64/qml
+--resource
+C:/Users/XYKJ/Desktop/esp32/XY7320_ST/usart/SerialAssistant/build/.qt/rcc/qmake_SerialAssistant.qrc
+--resource
+C:/Users/XYKJ/Desktop/esp32/XY7320_ST/usart/SerialAssistant/build/.qt/rcc/SerialAssistant_raw_qml_0.qrc
+--resource
+C:/Users/XYKJ/Desktop/esp32/XY7320_ST/usart/SerialAssistant/build/.qt/rcc/SerialAssistant_raw_qml_0_extra_qmldirs.qrc
+--module
+SerialAssistant

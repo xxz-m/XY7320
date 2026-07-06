@@ -1,0 +1,5 @@
+C:/Users/XYKJ/Desktop/esp32/XY7320_ST/usart/SerialAssistant/build/SerialAssistant_autogen/include/../IVK4DJNV27/moc_console_record_model.cpp.json
+C:/Users/XYKJ/Desktop/esp32/XY7320_ST/usart/SerialAssistant/build/SerialAssistant_autogen/include/../KACSXPMN7C/moc_console_controller.cpp.json
+C:/Users/XYKJ/Desktop/esp32/XY7320_ST/usart/SerialAssistant/build/SerialAssistant_autogen/include/../KACSXPMN7C/moc_transmit_controller.cpp.json
+C:/Users/XYKJ/Desktop/esp32/XY7320_ST/usart/SerialAssistant/build/SerialAssistant_autogen/include/../L3JLKPBTCO/moc_serial_port_controller.cpp.json
+C:/Users/XYKJ/Desktop/esp32/XY7320_ST/usart/SerialAssistant/build/SerialAssistant_autogen/include/../T5UIOO5NUW/moc_settings_manager.cpp.json

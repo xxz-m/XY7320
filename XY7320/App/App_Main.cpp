@@ -47,7 +47,7 @@ static void Task_ModeManager(void *arg);
 /**
  * @brief 创建所有 OS 任务
  *
- * Priority 含义（数值越小优先级越高）：
+ * Priority 含义（数值越大优先级越高）：
  *  - Task_UpdateConfig        = 5（最高优先：保证协议帧及时处理）
  *  - Task_ModeManager         = 3（次高：每 1ms Tick 调度状态机）
  *  - Task_LED                 = 1（最低：闪烁节拍不需要严格实时）

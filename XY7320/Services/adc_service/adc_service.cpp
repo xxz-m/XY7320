@@ -1,6 +1,10 @@
-//
-// Created by Administrator on 2026/6/26.
-//
+/**
+ * @file    adc_service.cpp
+ * @brief   ADC 采集服务实现
+ *
+ *          负责管理 BSP ADC 的启停与数据消费，并将通道快照
+ *          交给 Oscilloscope 滤波引擎处理。
+ */
 
 #include "adc_service.h"
 #include "bsp_adc.h"

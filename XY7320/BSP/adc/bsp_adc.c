@@ -1,6 +1,10 @@
-//
-// Created by Administrator on 2026/6/26.
-//
+/**
+ * @file    bsp_adc.c
+ * @brief   ADC 采集 BSP 实现
+ *
+ *          管理 TIM3 触发的 ADC DMA 循环采集，完成多通道
+ *          交织数据的解交织、缓存和就绪状态维护。
+ */
 
 #include "bsp_adc.h"
 #include "bsp_config.h"

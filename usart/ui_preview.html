@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>SerialAssistant UI Preview</title>
+<style>
+  :root {
+    --brand: #7c5cff;
+    --brand-2: #5b8cff;
+    --success: #16a34a;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --surface: #ffffff;
+    --surface-muted: #f7f8fb;
+    --surface-2: #f1f3f9;
+    --border: #e5e7ef;
+    --border-strong: #d4d8e3;
+    --text: #1a1d29;
+    --text-muted: #6b7280;
+    --text-soft: #9aa0ac;
+    --radius: 8px;
+    --radius-card: 12px;
+    --text-caption: 12px;
+    --text-body: 14px;
+    --text-code: 13px;
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    --font-mono: "JetBrains Mono", "Cascadia Code", Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; background: #eef0f5;
+    font-family: var(--font-sans); color: var(--text);
+    height: 100%;
+  }
+  body { display: flex; }
+  /* ===== 整体布局：左 320px 侧栏 + 右侧主区 ===== */
+  .sidebar {
+    width: 320px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    height: 100vh;
+  }
+  .brand {
+    display: flex; align-items: center; gap: 10px;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .logo {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: linear-gradient(135deg, var(--brand), var(--brand-2));
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-weight: 700; font-size: 16px;
+  }
+  .brand-text { font-size: 15px; font-weight: 600; }
+  .brand-version { font-size: 11px; color: var(--text-muted); }
+
+  .nav { padding: 8px; }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px; border-radius: 6px;
+    font-size: 13px; color: var(--text-muted);
+    cursor: pointer;
+  }
+  .nav-item:hover { background: var(--surface-2); color: var(--text); }
+  .nav-item.active { background: rgba(124,92,255,0.10); color: var(--brand); font-weight: 500; }
+
+  /* ===== 侧栏中的"顶部配置区" ===== */
+  .conn-section {
+    padding: 12px 16px;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .conn-section-title {
+    font-size: 11px; color: var(--text-muted);
+    font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field-label {
+    font-size: 11px; color: var(--text-muted);
+    font-weight: 500;
+  }
+  .select {
+    height: 32px; padding: 0 26px 0 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text); font-size: 13px;
+    font-family: var(--font-sans);
+    width: 100%;
+    appearance: none; -webkit-appearance: none;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'><path d='M2 3.5l3 3 3-3' fill='none' stroke='%236b7280' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+  }
+  .btn-row { display: flex; gap: 8px; }
+  .icon-btn {
+    flex: 1; height: 32px; padding: 0 10px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    border-radius: 6px;
+    color: var(--text); font-size: 13px;
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .btn-primary {
+    flex: 2; height: 32px; padding: 0 10px;
+    background: var(--success); color: #fff;
+    border: none; border-radius: 6px;
+    font-size: 13px; font-weight: 500;
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .conn-status {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px; color: var(--text-muted);
+    padding: 6px 8px; background: var(--surface-2); border-radius: 6px;
+  }
+  .conn-status .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--success);
+    box-shadow: 0 0 0 3px rgba(22,163,74,0.15);
+  }
+
+  /* ===== 侧栏底部"发送选项"（包含在数据发送区内） ===== */
+  .send-options {
+    padding: 12px 16px;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .opt-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 6px 8px; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 6px;
+    font-size: 12px; color: var(--text);
+  }
+  .opt-row label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+  .opt-row .num {
+    width: 50px; height: 22px; padding: 0 6px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 4px; color: var(--text);
+    font-size: 12px; text-align: center;
+  }
+
+  /* ===== 主区：1 : 6 : 2 垂直分布 ===== */
+  .main {
+    flex: 1; display: flex; flex-direction: column;
+    height: 100vh; min-width: 0;
+    background: var(--surface-muted);
+  }
+  /* 顶部配置区（侧栏外，仅做小指示） */
+  .topbar {
+    height: 40px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; padding: 0 16px;
+    gap: 8px; font-size: 13px; color: var(--text-muted);
+  }
+  .topbar .crumb b { color: var(--text); font-weight: 500; }
+
+  /* 接收 + 发送容器，使用 flex 1:6:2 占比 */
+  .io-stack {
+    flex: 1; display: flex; flex-direction: column;
+    padding: 12px; gap: 12px;
+    min-height: 0;
+  }
+  /* 接收区 6 份 */
+  .rx-pane {
+    flex: 6; min-height: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  /* 发送区 2 份 */
+  .tx-pane {
+    flex: 2; min-height: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
+    display: flex;
+    overflow: hidden;
+  }
+  .pane-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    flex-shrink: 0;
+  }
+  .pane-title {
+    font-size: 13px; font-weight: 600;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .pane-title .badge {
+    font-size: 11px; color: var(--text-muted);
+    background: var(--surface-2); padding: 2px 8px; border-radius: 999px;
+    font-weight: 400;
+  }
+  .pane-actions { display: flex; align-items: center; gap: 4px; }
+  .mini-btn {
+    height: 24px; padding: 0 8px;
+    background: transparent; border: 1px solid transparent;
+    border-radius: 4px; color: var(--text-muted);
+    font-size: 12px;
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .mini-btn:hover { background: var(--surface-2); color: var(--text); }
+  .mini-btn.danger:hover { color: var(--danger); }
+
+  /* 接收区主体 3:1（接收 : 过滤） */
+  .rx-body {
+    flex: 1; min-height: 0;
+    display: flex;
+  }
+  .rx-list {
+    flex: 3; min-width: 0;
+    padding: 10px 14px;
+    overflow: auto;
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: var(--text);
+  }
+  .rx-filter {
+    flex: 1; min-width: 0;
+    border-left: 1px solid var(--border);
+    background: var(--surface-muted);
+    padding: 10px 12px;
+    overflow: auto;
+  }
+  .filter-title {
+    font-size: 11px; color: var(--text-muted);
+    font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.5px; margin-bottom: 8px;
+  }
+  .rx-line { display: flex; gap: 10px; align-items: flex-start; }
+  .rx-time { color: var(--text-soft); white-space: nowrap; }
+  .rx-dir { font-weight: 600; min-width: 28px; font-size: 12px; }
+  .rx-dir.tx { color: var(--brand); }
+  .rx-dir.rx { color: var(--success); }
+  .rx-text { color: var(--text); word-break: break-all; flex: 1; }
+  .rx-text.warn { color: var(--warning); }
+  .rx-text.err { color: var(--danger); }
+
+  /* 发送区：3:1（设置列 : 输入列） */
+  .tx-body {
+    flex: 1; min-height: 0; display: flex; min-width: 0;
+  }
+  .tx-settings {
+    flex: 1; min-width: 0;
+    padding: 10px 12px;
+    border-right: 1px solid var(--border);
+    background: var(--surface-muted);
+    overflow: auto;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .tx-input-col {
+    flex: 3; min-width: 0;
+    display: flex; flex-direction: column;
+  }
+  .tx-input-wrap {
+    flex: 1; min-height: 0;
+    padding: 10px 14px;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .tx-input {
+    flex: 1; min-height: 60px;
+    padding: 8px 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: var(--font-mono); font-size: 12.5px;
+    resize: none;
+  }
+  .tx-input:focus { outline: none; border-color: var(--brand); }
+  .tx-actions { display: flex; align-items: center; gap: 8px; }
+  .send-btn {
+    height: 32px; padding: 0 16px;
+    background: var(--brand); color: #fff;
+    border: none; border-radius: 6px;
+    font-size: 13px; font-weight: 500;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .send-btn:hover { background: #6a4ce8; }
+  .tx-tip { font-size: 11px; color: var(--text-soft); }
+
+  /* 状态栏 */
+  .statusbar {
+    height: 28px;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    display: flex; align-items: center;
+    padding: 0 16px; gap: 16px;
+    font-size: 11px; color: var(--text-muted);
+    flex-shrink: 0;
+  }
+  .statusbar b { color: var(--text); font-weight: 500; }
+  .statusbar .right { margin-left: auto; display: flex; gap: 16px; }
+
+  /* 折叠分组 */
+  .group { margin-top: auto; }
+  .group-title {
+    font-size: 11px; color: var(--text-muted);
+    font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.5px; margin: 8px 0 6px;
+  }
+</style>
+</head>
+<body>
+
+<!-- ============== 左侧栏：导航 + 顶部配置区 ============== -->
+<aside class="sidebar">
+  <div class="brand">
+    <div class="logo">S</div>
+    <div>
+      <div class="brand-text">SerialAssistant</div>
+      <div class="brand-version">v0.2.0 · MIT</div>
+    </div>
+  </div>
+
+  <div class="nav">
+    <div class="nav-item active">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h18M3 6h18M3 18h12"/></svg>
+      控制台
+    </div>
+    <div class="nav-item">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 6-6"/></svg>
+      数据波形
+    </div>
+    <div class="nav-item">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
+      协议解析
+    </div>
+    <div class="nav-item">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      设置
+    </div>
+  </div>
+
+  <!-- 顶部配置区（精简：仅端口 + 波特率 + 刷新 + 打开/关闭） -->
+  <div class="conn-section">
+    <div class="conn-section-title">串口连接</div>
+    <div class="field">
+      <span class="field-label">端口</span>
+      <select class="select">
+        <option>COM1 — Virtual Serial Port (ELTIMA)</option>
+        <option>COM3 — USB-SERIAL CH340</option>
+        <option>COM5 — USB Serial Device</option>
+      </select>
+    </div>
+    <div class="field">
+      <span class="field-label">波特率</span>
+      <select class="select">
+        <option>9600</option>
+        <option>19200</option>
+        <option>38400</option>
+        <option selected>115200</option>
+        <option>230400</option>
+        <option>460800</option>
+        <option>921600</option>
+      </select>
+    </div>
+    <div class="btn-row">
+      <button class="icon-btn">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"/></svg>
+        刷新
+      </button>
+      <button class="btn-primary">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg>
+        关闭串口
+      </button>
+    </div>
+    <div class="conn-status">
+      <span class="dot"></span>
+      COM1 @ 115200 · 已连接
+    </div>
+  </div>
+</aside>
+
+<!-- ============== 主区：1 : 6 : 2 垂直分布 ============== -->
+<main class="main">
+  <div class="topbar">
+    <span class="crumb">控制台 / <b>主窗口</b></span>
+    <span style="margin-left:auto">RX 1,248 B · 142 帧 &nbsp;|&nbsp; TX 348 B · 12 帧</span>
+  </div>
+
+  <div class="io-stack">
+    <!-- 接收区：6 份 -->
+    <section class="rx-pane">
+      <div class="pane-header">
+        <div class="pane-title">
+          数据接收区
+          <span class="badge">HEX + 时间戳</span>
+        </div>
+        <div class="pane-actions">
+          <button class="mini-btn">暂停</button>
+          <button class="mini-btn">导出</button>
+          <button class="mini-btn">清空</button>
+        </div>
+      </div>
+      <!-- 接收内部 3:1（数据 : 过滤） -->
+      <div class="rx-body">
+        <div class="rx-list">
+          <div class="rx-line"><span class="rx-time">14:08:21.342</span><span class="rx-dir tx">←</span><span class="rx-text">AT+RST</span></div>
+          <div class="rx-line"><span class="rx-time">14:08:21.501</span><span class="rx-dir rx">→</span><span class="rx-text">ets Jan  8 2013,rst cause:2, boot mode:(3,6)</span></div>
+          <div class="rx-line"><span class="rx-time">14:08:21.734</span><span class="rx-dir rx">→</span><span class="rx-text">load 0x40100000, len 2592, room 16</span></div>
+          <div class="rx-line"><span class="rx-time">14:08:21.890</span><span class="rx-dir tx">←</span><span class="rx-text">AT+GMR</span></div>
+          <div class="rx-line"><span class="rx-time">14:08:22.118</span><span class="rx-dir rx">→</span><span class="rx-text">SDK:3.3.5-1-g85b77881,MOD:XY7320,VERSION:1.0.2</span></div>
+          <div class="rx-line"><span class="rx-time">14:08:22.402</span><span class="rx-dir rx">→</span><span class="rx-text">WiFi connected, IP: 192.168.1.42</span></div>
+          <div class="rx-line"><span class="rx-time">14:08:25.117</span><span class="rx-dir tx">←</span><span class="rx-text">AT+CWMODE=1</span></div>
+          <div class="rx-line"><span class="rx-time">14:08:25.286</span><span class="rx-dir rx">→</span><span class="rx-text warn">WARN: previous mode overwritten</span></div>
+          <div class="rx-line"><span class="rx-time">14:08:27.553</span><span class="rx-dir rx">→</span><span class="rx-text err">ERR: timeout waiting ACK</span></div>
+        </div>
+        <div class="rx-filter">
+          <div class="filter-title">过滤 / 高亮</div>
+          <div class="opt-row"><label><input type="checkbox" checked> 仅显示关键字</label></div>
+          <div class="opt-row"><label><input type="checkbox"> 关键字高亮</label></div>
+          <div class="opt-row" style="flex-direction:column;align-items:stretch;gap:4px">
+            <label style="color:var(--text-muted)">关键字</label>
+            <input class="num" style="width:100%" value="AT+,ERR" />
+          </div>
+          <div class="filter-title" style="margin-top:12px">显示选项</div>
+          <div class="opt-row"><label><input type="checkbox" checked> HEX 显示</label></div>
+          <div class="opt-row"><label><input type="checkbox" checked> 时间戳</label></div>
+          <div class="opt-row"><label><input type="checkbox" checked> 自动滚动</label></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 发送区：2 份 -->
+    <section class="tx-pane">
+      <!-- 发送内部 1:3（设置 : 输入） -->
+      <div class="tx-body">
+        <div class="tx-settings">
+          <div class="filter-title">发送设置</div>
+          <div class="opt-row"><label><input type="checkbox" checked> HEX 发送</label></div>
+          <div class="opt-row">
+            <label><input type="checkbox"> 循环发送</label>
+          </div>
+          <div class="opt-row" style="flex-direction:column;align-items:stretch;gap:4px">
+            <label style="color:var(--text-muted)">循环间隔</label>
+            <div style="display:flex;align-items:center;gap:6px">
+              <input class="num" style="width:60px" value="1000" />
+              <span style="font-size:11px;color:var(--text-muted)">ms</span>
+            </div>
+          </div>
+          <div class="opt-row"><label><input type="checkbox"> 回车发送</label></div>
+          <div class="opt-row"><label><input type="checkbox"> 追加换行</label></div>
+          <div class="opt-row"><label><input type="checkbox"> 发送前清空</label></div>
+        </div>
+        <div class="tx-input-col">
+          <div class="pane-header" style="border-bottom:none;border-top:none;padding:6px 14px">
+            <div class="pane-title">数据发送区 <span class="badge">多行</span></div>
+            <div class="pane-actions">
+              <span class="tx-tip">Ctrl+Enter 发送</span>
+            </div>
+          </div>
+          <div class="tx-input-wrap">
+            <textarea class="tx-input">AT+CWJAP="SSID","PASSWORD"
+AT+CIFSR
+AT+CIPSTART="TCP","192.168.1.1",8080</textarea>
+            <div class="tx-actions">
+              <button class="mini-btn">清空</button>
+              <button class="mini-btn">模板</button>
+              <div style="flex:1"></div>
+              <span class="tx-tip">58 字节</span>
+              <button class="send-btn">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                发送
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="statusbar">
+    <span><span class="dot" style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--success);margin-right:6px;vertical-align:middle"></span><b>COM1</b> @ 115200 8N1</span>
+    <span>运行 <b>00:02:14</b></span>
+    <span>缓冲 <b>0 / 8192</b></span>
+    <div class="right">
+      <span>RX <b>1,248 B</b></span>
+      <span>TX <b>348 B</b></span>
+      <span>就绪</span>
+    </div>
+  </div>
+</main>
+
+</body>
+</html>

@@ -1,0 +1,9 @@
+<RCC>
+  <qresource prefix="/qt/qml/SerialAssistant/">
+    <file alias="qml/qmldir">C:/Users/XYKJ/Desktop/esp32/XY7320_ST/usart/SerialAssistant/build/SerialAssistant/qml/qmldir</file>
+    <file alias="qml/components/qmldir">C:/Users/XYKJ/Desktop/esp32/XY7320_ST/usart/SerialAssistant/build/SerialAssistant/qml/components/qmldir</file>
+    <file alias="qml/components/settings/qmldir">C:/Users/XYKJ/Desktop/esp32/XY7320_ST/usart/SerialAssistant/build/SerialAssistant/qml/components/settings/qmldir</file>
+    <file alias="qml/components/cards/qmldir">C:/Users/XYKJ/Desktop/esp32/XY7320_ST/usart/SerialAssistant/build/SerialAssistant/qml/components/cards/qmldir</file>
+  </qresource>
+</RCC>
+

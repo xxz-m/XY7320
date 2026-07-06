@@ -1,6 +1,9 @@
-//
-// Created by XYKJ on 2026/6/15.
-//
+/**
+ * @file    bsp_flash.c
+ * @brief   STM32 内部 Flash 读写驱动实现
+ *
+ *          提供内存映射读取、按字编程和扇区擦除能力。
+ */
 
 #include "bsp_flash.h"
 #include <string.h>

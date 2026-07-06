@@ -1,12 +1,17 @@
-//
-// Created by XYKJ on 2026/6/23.
-//
+/**
+ * @file    protocol_service.cpp
+ * @brief   上位机通信协议服务实现
+ *
+ *          负责接收流的缓存与拆包、协议包校验、
+ *          升级与普通命令分发，以及应答帧编码发送。
+ */
 
 #include "protocol_service.h"
 #include <string.h>
 #include "bsp_uart_rcv.h"
 #include "update_service.h"
 #include "mode_manager.h"
+
 ProtocolService& ProtocolService::Instance()
 {
     static ProtocolService instance;
@@ -20,14 +25,12 @@ void ProtocolService::Init()
     memset(m_streamBuf, 0, sizeof(m_streamBuf));
     memset(m_txBuf, 0, sizeof(m_txBuf));
 }
-//取数据
 void ProtocolService::Update()
 {
-    ///** 检查是否有完整帧到达 */
     if (!BspUartRcv_IsFrameReady()) {
         return;
     }
-    /** 获取当前帧长度 */
+
     uint16_t len = BspUartRcv_GetFrameLength();
     if (len == 0 || len > sizeof(m_rxChunk)) {
         /* 单次突发帧不应超过单 chunk；超长帧属异常（协议帧最长 256B），
@@ -35,21 +38,15 @@ void ProtocolService::Update()
         BspUartRcv_ClearFlag();
         return;
     }
-    //目标缓冲区（调用方确保容量 >= s_frame_len）
     BspUartRcv_CopyFrame(m_rxChunk);
-    /** 清除帧就绪标志，必须在 CopyFrame() 取走数据后调用 */
+
+    /* 必须先复制再清标志，否则接收层可能复用当前帧缓冲。 */
     BspUartRcv_ClearFlag();
 
-    //拼缓存
     AppendInput(m_rxChunk, len);
-    //拆包
     ProcessStream();
 }
-// 这里就是“半包/粘包”问题的核心入口
-// 每次新来的原始字节不是立刻当一包处理，而是先追加
-// 如果缓存放不下，第一版建议简单处理：
-// 直接清流式缓存重新同步
-// 这样做的原因是：协议流已经错乱时，保守恢复比继续乱解更稳
+
 void ProtocolService::AppendInput(const uint8_t *data, uint16_t len)
 {
     if (data == nullptr || len == 0) {
@@ -57,6 +54,7 @@ void ProtocolService::AppendInput(const uint8_t *data, uint16_t len)
     }
 
     if (m_streamLen + len > sizeof(m_streamBuf)) {
+        /* 流已无法完整保留时放弃旧数据，依靠固定帧头重新同步。 */
         m_streamLen = 0;
         memset(m_streamBuf, 0, sizeof(m_streamBuf));
         return;
@@ -96,7 +94,6 @@ void ProtocolService::ProcessStream()
     }
 }
 
-//这些属于统一协议入口的职责
 bool ProtocolService::ValidatePacket(const Protocol::ProtocolPacket &packet)
 {
     if (packet.goal_port != Protocol::XY_7320) {
@@ -113,7 +110,6 @@ bool ProtocolService::ValidatePacket(const Protocol::ProtocolPacket &packet)
 
     return true;
 }
-//统一分发：升级和普通命令先放一个服务里
 void ProtocolService::DispatchPacket(const Protocol::ProtocolPacket &packet)
 {
     switch (packet.cmd) {

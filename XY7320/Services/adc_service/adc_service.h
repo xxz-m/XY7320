@@ -67,14 +67,16 @@ public:
     /**
      * @brief 切换到 TaskA（400/450 四通道采集）
      *
-     * 重启 BSP ADC，自动选择 SCOPE_MODE_400_450（如果当前不是）。
+     * 重启 BSP ADC。调用方应在进入该模式前调用
+     * SetScopeMode(SCOPE_MODE_400_450)。
      */
     void StartTaskA();
 
     /**
      * @brief 切换到 TaskB（GSM 双通道采集）
      *
-     * 重启 BSP ADC，自动选择 SCOPE_MODE_GSM（如果当前不是）。
+     * 重启 BSP ADC。调用方应在进入该模式前调用
+     * SetScopeMode(SCOPE_MODE_GSM)。
      */
     void StartTaskB();
 
