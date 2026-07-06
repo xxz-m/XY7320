@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import SerialAssistant
 
@@ -8,11 +9,18 @@ EPaneCard {
 
     property var recordModel
     property bool timestampEnabled: true
+    property int timestampScope: 0
     property bool autoScroll: true
     property bool receivePaused: false
     property bool keywordFilter: false
+    property bool keywordHighlight: false
+    property bool highlightCaseSensitive: false
+    property bool highlightRegex: false
     property string keywordText: ""
     property bool hexDisplay: false
+    property string terminalFont: "Consolas"
+    property int terminalFontSize: 12
+    property int uiDensity: 1
 
     signal pauseToggled()
     signal exportRequested()
@@ -90,10 +98,13 @@ EPaneCard {
             ListView {
                 id: recordView
                 anchors.fill: parent
-                anchors.margins: 10
+                anchors.leftMargin: 10
+                anchors.topMargin: 10
+                anchors.bottomMargin: 10
+                anchors.rightMargin: 18
                 clip: true
                 model: root.recordModel
-                spacing: 3
+                spacing: root.uiDensity === 0 ? 1 : (root.uiDensity === 2 ? 5 : 3)
 
                 delegate: Item {
                     id: recordDelegate
@@ -103,7 +114,7 @@ EPaneCard {
                     required property string hexText
                     required property string directionColor
                     width: recordView.width
-                    height: visible ? Math.max(24, row.implicitHeight) : 0
+                    height: visible ? Math.max(root.uiDensity === 0 ? 20 : (root.uiDensity === 2 ? 28 : 24), row.implicitHeight) : 0
                     visible: !root.keywordFilter || root.keywordText.length === 0 || root.matchesKeyword(content)
 
                     RowLayout {
@@ -112,11 +123,11 @@ EPaneCard {
                         anchors.right: parent.right
                         spacing: 8
                         Text {
-                            visible: root.timestampEnabled
+                            visible: root.timestampEnabled && (root.timestampScope === 1 || recordDelegate.direction !== "tx")
                             text: recordDelegate.recordTime
                             color: "#8B8DA8"
-                            font.family: "Consolas"
-                            font.pixelSize: 12
+                            font.family: root.terminalFont
+                            font.pixelSize: root.terminalFontSize
                             Layout.preferredWidth: 92
                         }
                         MaterialIcon {
@@ -127,16 +138,36 @@ EPaneCard {
                         }
                         Text {
                             Layout.fillWidth: true
-                            text: root.hexDisplay ? recordDelegate.hexText : recordDelegate.content
+                            textFormat: Text.RichText
+                            text: root.formatRecordText(root.hexDisplay ? recordDelegate.hexText : recordDelegate.content)
                             color: root.theme.textColor
-                            font.family: "Consolas"
-                            font.pixelSize: 12
+                            font.family: root.terminalFont
+                            font.pixelSize: root.terminalFontSize
                             wrapMode: Text.WrapAnywhere
                         }
                     }
                 }
 
                 onCountChanged: if (root.autoScroll) Qt.callLater(() => recordView.positionViewAtEnd())
+
+                ScrollBar.vertical: ScrollBar {
+                    id: receiveScrollBar
+                    policy: ScrollBar.AlwaysOn
+                    width: 8
+                    anchors.right: parent.right
+                    anchors.rightMargin: -12
+                    background: Rectangle {
+                        radius: 4
+                        color: Qt.rgba(root.theme.borderColor.r, root.theme.borderColor.g, root.theme.borderColor.b, 0.36)
+                    }
+                    contentItem: Rectangle {
+                        implicitWidth: 8
+                        radius: 4
+                        color: receiveScrollBar.pressed
+                               ? root.theme.focusColor
+                               : Qt.rgba(root.theme.focusColor.r, root.theme.focusColor.g, root.theme.focusColor.b, receiveScrollBar.hovered ? 0.82 : 0.58)
+                    }
+                }
 
                 Text {
                     anchors.centerIn: parent
@@ -149,9 +180,55 @@ EPaneCard {
         }
     }
 
+    function escapeHtml(text) {
+        return String(text).replace(/&/g, "&amp;")
+                           .replace(/</g, "&lt;")
+                           .replace(/>/g, "&gt;")
+                           .replace(/\"/g, "&quot;")
+                           .replace(/'/g, "&#39;")
+    }
+
+    function keywordList() {
+        return root.keywordText.split(",").map(s => s.trim()).filter(s => s.length > 0)
+    }
+
+    function escapeRegExp(text) {
+        return String(text).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+    }
+
+    function formatRecordText(text) {
+        let escaped = escapeHtml(text)
+        const numberColor = root.theme.isDark ? "#FFD166" : "#B45309"
+        escaped = escaped.replace(/([0-9]+)/g, "<span style=\"color:" + numberColor + "; font-weight:600;\">$1</span>")
+
+        const kws = keywordList()
+        if (!root.keywordHighlight || kws.length === 0)
+            return escaped
+
+        const keywordColor = root.theme.isDark ? "#7DD3FC" : "#0E7490"
+        const flags = root.highlightCaseSensitive ? "g" : "gi"
+        try {
+            const pattern = root.highlightRegex ? kws.join("|") : kws.map(escapeRegExp).join("|")
+            if (pattern.length === 0) return escaped
+            return escaped.replace(new RegExp(pattern, flags), "<span style=\"color:" + keywordColor + "; font-weight:700;\">$&</span>")
+        } catch (error) {
+            return escaped
+        }
+    }
+
     function matchesKeyword(text) {
-        const kws = root.keywordText.split(",").map(s => s.trim()).filter(s => s.length > 0)
+        const kws = keywordList()
         if (kws.length === 0) return true
-        return kws.some(k => text.indexOf(k) >= 0)
+        const source = String(text)
+        if (root.highlightRegex) {
+            const flags = root.highlightCaseSensitive ? "" : "i"
+            try {
+                return kws.some(k => new RegExp(k, flags).test(source))
+            } catch (error) {
+                return true
+            }
+        }
+        const haystack = root.highlightCaseSensitive ? source : source.toLowerCase()
+        return kws.some(k => haystack.indexOf(root.highlightCaseSensitive ? k : k.toLowerCase()) >= 0)
     }
 }

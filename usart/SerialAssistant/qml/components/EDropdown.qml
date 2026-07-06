@@ -18,9 +18,17 @@ ComboBox {
     rightPadding: 32
     font.pixelSize: 13
 
+    function valueForIndex(index) {
+        if (index < 0 || index >= count) return undefined
+        const data = root.model[index]
+        if (data === undefined || data === null) return undefined
+        if (typeof data === "object" && data.value !== undefined) return data.value
+        return data
+    }
+
     function indexForValue(value) {
         for (let index = 0; index < count; ++index) {
-            if (valueAt(index) === value)
+            if (valueForIndex(index) === value)
                 return index
         }
         return -1
@@ -40,7 +48,7 @@ ComboBox {
     onSelectedValueChanged: currentIndex = indexForValue(selectedValue)
     onModelChanged: currentIndex = indexForValue(selectedValue)
     onCountChanged: currentIndex = indexForValue(selectedValue)
-    onActivated: valueSelected(currentValue)
+    onActivated: index => valueSelected(valueForIndex(index))
 
     contentItem: Text {
         leftPadding: 0

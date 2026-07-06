@@ -26,6 +26,10 @@ class SerialPortController final : public QObject
     Q_PROPERTY(int parity READ parity WRITE setParity NOTIFY parityChanged)
     Q_PROPERTY(int stopBits READ stopBits WRITE setStopBits NOTIFY stopBitsChanged)
     Q_PROPERTY(int flowControl READ flowControl WRITE setFlowControl NOTIFY flowControlChanged)
+    Q_PROPERTY(bool dtrEnabled READ dtrEnabled WRITE setDtrEnabled NOTIFY dtrEnabledChanged)
+    Q_PROPERTY(bool rtsEnabled READ rtsEnabled WRITE setRtsEnabled NOTIFY rtsEnabledChanged)
+    Q_PROPERTY(bool autoOpen READ autoOpen WRITE setAutoOpen NOTIFY autoOpenChanged)
+    Q_PROPERTY(bool rememberPort READ rememberPort WRITE setRememberPort NOTIFY rememberPortChanged)
     Q_PROPERTY(QVariantList baudRateOptions READ baudRateOptions CONSTANT)
     Q_PROPERTY(QVariantList dataBitsOptions READ dataBitsOptions CONSTANT)
     Q_PROPERTY(QVariantList parityOptions READ parityOptions CONSTANT)
@@ -46,6 +50,10 @@ public:
     [[nodiscard]] int parity() const;
     [[nodiscard]] int stopBits() const;
     [[nodiscard]] int flowControl() const;
+    [[nodiscard]] bool dtrEnabled() const;
+    [[nodiscard]] bool rtsEnabled() const;
+    [[nodiscard]] bool autoOpen() const;
+    [[nodiscard]] bool rememberPort() const;
     [[nodiscard]] QVariantList baudRateOptions() const;
     [[nodiscard]] QVariantList dataBitsOptions() const;
     [[nodiscard]] QVariantList parityOptions() const;
@@ -61,6 +69,10 @@ public:
     void setParity(int parity);
     void setStopBits(int stopBits);
     void setFlowControl(int flowControl);
+    void setDtrEnabled(bool dtrEnabled);
+    void setRtsEnabled(bool rtsEnabled);
+    void setAutoOpen(bool autoOpen);
+    void setRememberPort(bool rememberPort);
 
     Q_INVOKABLE void refreshPorts();
     Q_INVOKABLE void openPort();
@@ -75,6 +87,10 @@ signals:
     void parityChanged();
     void stopBitsChanged();
     void flowControlChanged();
+    void dtrEnabledChanged();
+    void rtsEnabledChanged();
+    void autoOpenChanged();
+    void rememberPortChanged();
     void isOpenChanged();
     void statusTextChanged();
     void errorTextChanged();
@@ -88,6 +104,7 @@ private slots:
 
 private:
     void applySettings();
+    void tryAutoOpen();
     void setStatusText(const QString& statusText);
     void setErrorText(const QString& errorText);
     void closeForParameterChange();
@@ -102,6 +119,11 @@ private:
     int m_parity;
     int m_stopBits;
     int m_flowControl;
+    bool m_dtrEnabled;
+    bool m_rtsEnabled;
+    bool m_autoOpen;
+    bool m_rememberPort;
+    bool m_autoOpenAttempted = false;
     QString m_statusText;
     QString m_errorText;
 };

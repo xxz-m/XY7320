@@ -26,6 +26,14 @@ ConsoleController::ConsoleController(SerialPortController* serialController,
         connect(serialController, &SerialPortController::dataReceived,
                 this, &ConsoleController::appendReceivedBytes);
     }
+
+    if (m_recordModel && m_settingsManager) {
+        m_recordModel->setTimeFormat(m_settingsManager->timestampFormat());
+        connect(m_settingsManager, &SettingsManager::timestampFormatChanged, this, [this]() {
+            if (m_recordModel && m_settingsManager)
+                m_recordModel->setTimeFormat(m_settingsManager->timestampFormat());
+        });
+    }
 }
 
 ConsoleRecordModel* ConsoleController::records() const { return m_recordModel; }
@@ -98,7 +106,9 @@ void ConsoleController::commitRecord(const QByteArray& data, const QDateTime& ti
 
     ++m_rxFrames;
     if (!m_receivePaused && m_recordModel) {
-        const QString text = TextCodec::decodeText(data).trimmed();
+        const TextCodec::Encoding encoding = TextCodec::encodingFromName(m_settingsManager ? m_settingsManager->receiveEncoding() : QString());
+        const auto invalidPolicy = static_cast<TextCodec::InvalidBytePolicy>(m_settingsManager ? m_settingsManager->invalidBytePolicy() : 0);
+        const QString text = TextCodec::decodeText(data, encoding, invalidPolicy).trimmed();
         m_recordModel->appendReceive(timestamp, data, text, TextCodec::formatHex(data));
     }
     Q_EMIT statisticsChanged();

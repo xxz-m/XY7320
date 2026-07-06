@@ -13,7 +13,10 @@ ApplicationWindow {
     visible: true
     title: qsTr("SerialAssistant")
     flags: Qt.Window | Qt.FramelessWindowHint
-    color: appTheme.primaryColor
+    color: "transparent"
+
+    property int resizeHandleSize: 8
+    property int frameRadius: 18
 
     ETheme {
         id: appTheme
@@ -21,9 +24,8 @@ ApplicationWindow {
         focusColor: settingsManager.accentColor
     }
 
-    property bool enterToSend: false
+    property bool enterToSend: settingsManager.enterToSend
     property bool keywordFilter: false
-    property bool keywordHighlight: false
     property string keywordText: ""
     property bool settingsExpanded: true
     property bool settingsPanelVisible: false
@@ -32,17 +34,23 @@ ApplicationWindow {
     onClosing: serialController.closePort()
 
     Rectangle {
+        id: appFrame
         anchors.fill: parent
+        anchors.margins: 1
+        radius: window.frameRadius
         color: appTheme.primaryColor
+        border.width: 1
+        border.color: appTheme.borderColor
+        clip: true
 
         ColumnLayout {
             anchors.fill: parent
-            anchors.margins: 16
+            anchors.margins: 16 + window.resizeHandleSize
             spacing: 12
 
             WindowTopBar {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 42
+                Layout.preferredHeight: 46
             }
 
             RowLayout {
@@ -69,9 +77,21 @@ ApplicationWindow {
                         Layout.preferredHeight: 70
                         spacing: 12
                         Rectangle {
-                            Layout.preferredWidth: 48; Layout.preferredHeight: 48
-                            radius: 12; color: appTheme.focusColor
-                            Text { anchors.centerIn: parent; text: "S"; color: "white"; font.pixelSize: 23; font.bold: true }
+                            Layout.preferredWidth: 48
+                            Layout.preferredHeight: 48
+                            radius: 12
+                            clip: true
+                            color: appTheme.elevatedColor
+                            border.width: 1
+                            border.color: appTheme.borderColor
+
+                            Image {
+                                anchors.fill: parent
+                                source: Qt.resolvedUrl("assets/icons/app_icon.png")
+                                fillMode: Image.PreserveAspectCrop
+                                smooth: true
+                                mipmap: true
+                            }
                         }
                         ColumnLayout {
                             spacing: 2
@@ -171,7 +191,8 @@ ApplicationWindow {
                             Text { text: qsTr("端口"); color: appTheme.mutedTextColor; font.pixelSize: 12 }
                             EDropdown {
                                 theme: appTheme; Layout.fillWidth: true; Layout.preferredHeight: 38
-                                model: serialController.ports; selectedValue: serialController.portName
+                                model: serialController.ports.length > 0 ? serialController.ports : [qsTr("无可用端口")]
+                                selectedValue: serialController.ports.length > 0 ? serialController.portName : qsTr("无可用端口")
                                 enabled: serialController.ports.length > 0
                                 onValueSelected: value => serialController.portName = value
                             }
@@ -206,11 +227,18 @@ ApplicationWindow {
                     Layout.fillHeight: true
                     recordModel: consoleController.records
                     timestampEnabled: settingsManager.timestampEnabled
+                    timestampScope: settingsManager.timestampScope
                     autoScroll: settingsManager.autoScroll
                     receivePaused: consoleController.receivePaused
                     keywordFilter: window.keywordFilter
+                    keywordHighlight: settingsManager.highlightEnabled
+                    highlightCaseSensitive: settingsManager.highlightCaseSensitive
+                    highlightRegex: settingsManager.highlightRegex
                     keywordText: window.keywordText
                     hexDisplay: settingsManager.hexDisplay
+                    terminalFont: settingsManager.terminalFont
+                    terminalFontSize: settingsManager.terminalFontSize
+                    uiDensity: settingsManager.uiDensity
                     onPauseToggled: consoleController.receivePaused = !consoleController.receivePaused
                     onCleared: consoleController.clear()
                 }
@@ -227,8 +255,12 @@ ApplicationWindow {
                     hexSend: transmitController.hexSend
                     loopSend: transmitController.loopSend
                     loopIntervalMs: transmitController.loopIntervalMs
-                    enterToSend: window.enterToSend
-                    appendNewline: transmitController.lineEnding === 3
+                    enterToSend: settingsManager.enterToSend
+                    appendNewline: settingsManager.appendNewline
+                    multilineInput: settingsManager.multilineInput
+                    terminalFont: settingsManager.terminalFont
+                    terminalFontSize: settingsManager.terminalFontSize
+                    uiDensity: settingsManager.uiDensity
                     timestampEnabled: settingsManager.timestampEnabled
                     onCleared: sendText = ""
                     onSendRequested: transmitController.send(sendText)
@@ -240,8 +272,11 @@ ApplicationWindow {
                             else transmitController.stopLoopSend()
                         }
                         else if (name === "loopIntervalMs") transmitController.loopIntervalMs = value
-                        else if (name === "enterToSend") window.enterToSend = value
-                        else if (name === "appendNewline") transmitController.lineEnding = value ? 3 : 0
+                        else if (name === "enterToSend") settingsManager.enterToSend = value
+                        else if (name === "appendNewline") {
+                            settingsManager.appendNewline = value
+                            transmitController.lineEnding = value ? 3 : 0
+                        }
                     }
                 }
 
@@ -269,24 +304,54 @@ ApplicationWindow {
         SettingsPanel {
             id: settingsPanel
             theme: appTheme
+            settingsManager: settingsManager
+            serialController: serialController
+            transmitController: transmitController
             visible: window.settingsPanelVisible
             currentSection: window.currentSettingsSection
-            demoTimestamp: settingsManager.timestampEnabled
             width: Math.min(440, window.width - 40)
             anchors.top: parent.top
             anchors.bottom: parent.bottom
             anchors.right: parent.right
-            anchors.margins: 16
+            anchors.margins: 16 + window.resizeHandleSize
             z: 21
             onCloseRequested: window.settingsPanelVisible = false
-            onDemoTimestampChanged: settingsManager.timestampEnabled = demoTimestamp
 
         }
+
+        MoveHandle { anchors.left: parent.left; anchors.right: parent.right; anchors.top: parent.top; anchors.leftMargin: window.resizeHandleSize; anchors.rightMargin: window.resizeHandleSize; height: window.resizeHandleSize }
+        MoveHandle { anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom; anchors.leftMargin: window.resizeHandleSize; anchors.rightMargin: window.resizeHandleSize; height: window.resizeHandleSize }
+        MoveHandle { anchors.left: parent.left; anchors.top: parent.top; anchors.bottom: parent.bottom; anchors.topMargin: window.resizeHandleSize; anchors.bottomMargin: window.resizeHandleSize; width: window.resizeHandleSize }
+        MoveHandle { anchors.right: parent.right; anchors.top: parent.top; anchors.bottom: parent.bottom; anchors.topMargin: window.resizeHandleSize; anchors.bottomMargin: window.resizeHandleSize; width: window.resizeHandleSize }
+        ResizeHandle { edge: Qt.TopEdge | Qt.LeftEdge; anchors.left: parent.left; anchors.top: parent.top; width: window.resizeHandleSize; height: window.resizeHandleSize; resizeCursor: Qt.SizeFDiagCursor }
+        ResizeHandle { edge: Qt.TopEdge | Qt.RightEdge; anchors.right: parent.right; anchors.top: parent.top; width: window.resizeHandleSize; height: window.resizeHandleSize; resizeCursor: Qt.SizeBDiagCursor }
+        ResizeHandle { edge: Qt.BottomEdge | Qt.LeftEdge; anchors.left: parent.left; anchors.bottom: parent.bottom; width: window.resizeHandleSize; height: window.resizeHandleSize; resizeCursor: Qt.SizeBDiagCursor }
+        ResizeHandle { edge: Qt.BottomEdge | Qt.RightEdge; anchors.right: parent.right; anchors.bottom: parent.bottom; width: window.resizeHandleSize; height: window.resizeHandleSize; resizeCursor: Qt.SizeFDiagCursor }
     }
 
     function openSettings(section) {
         currentSettingsSection = section
         settingsPanelVisible = true
+    }
+
+    component MoveHandle: MouseArea {
+        z: 100
+        hoverEnabled: true
+        acceptedButtons: Qt.LeftButton
+        cursorShape: Qt.SizeAllCursor
+        onPressed: window.startSystemMove()
+    }
+
+    component ResizeHandle: MouseArea {
+        id: resizeHandle
+        required property int edge
+        property int resizeCursor: Qt.ArrowCursor
+
+        z: 101
+        hoverEnabled: true
+        acceptedButtons: Qt.LeftButton
+        cursorShape: resizeHandle.resizeCursor
+        onPressed: window.startSystemResize(edge)
     }
 
     component WindowTopBar: Rectangle {
@@ -296,24 +361,26 @@ ApplicationWindow {
         border.width: 1
         border.color: appTheme.borderColor
 
-        DragHandler {
-            target: null
-            onActiveChanged: if (active) window.startSystemMove()
-        }
-
         RowLayout {
             anchors.fill: parent
             anchors.leftMargin: 16
-            anchors.rightMargin: 8
-            spacing: 8
+            anchors.rightMargin: 10
+            spacing: 6
 
-            Text {
+            Item {
                 Layout.fillWidth: true
-                text: qsTr("SerialAssistant")
-                color: appTheme.textColor
-                font.pixelSize: 13
-                font.bold: true
-                elide: Text.ElideRight
+                Layout.fillHeight: true
+
+                Text {
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: qsTr("SerialAssistant")
+                    color: appTheme.textColor
+                    font.pixelSize: 13
+                    font.bold: true
+                    elide: Text.ElideRight
+                }
             }
 
             WindowToolButton {
@@ -340,14 +407,17 @@ ApplicationWindow {
         property bool danger: false
         signal clicked()
 
-        Layout.preferredWidth: 30
-        Layout.preferredHeight: 30
-        radius: 15
+        Layout.preferredWidth: 44
+        Layout.preferredHeight: 34
+        Layout.alignment: Qt.AlignVCenter
+        radius: height / 2
         color: mouse.pressed
                ? (button.danger ? appTheme.dangerColor : appTheme.windowButtonPressedColor)
                : (mouse.containsMouse
                   ? (button.danger ? appTheme.dangerColor : appTheme.windowButtonHoverColor)
-                  : "transparent")
+                  : Qt.rgba(appTheme.elevatedColor.r, appTheme.elevatedColor.g, appTheme.elevatedColor.b, 0.78))
+        border.width: 1
+        border.color: mouse.containsMouse ? appTheme.focusColor : appTheme.borderColor
 
         MaterialIcon {
             anchors.centerIn: parent
@@ -359,7 +429,10 @@ ApplicationWindow {
         MouseArea {
             id: mouse
             anchors.fill: parent
+            z: 10
             hoverEnabled: true
+            acceptedButtons: Qt.LeftButton
+            preventStealing: true
             cursorShape: Qt.PointingHandCursor
             onClicked: button.clicked()
         }

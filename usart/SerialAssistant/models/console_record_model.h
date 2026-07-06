@@ -56,6 +56,7 @@ public:
     void appendReceive(const QDateTime& timestamp, const QByteArray& data, const QString& text, const QString& hexText);
     void appendTransmit(const QDateTime& timestamp, const QByteArray& data, const QString& text, const QString& hexText);
     void appendSystem(const QString& message, bool isError = false);
+    void setTimeFormat(const QString& timeFormat);
 
     Q_INVOKABLE void clear();
 
@@ -64,6 +65,7 @@ private:
     void enforceLimit();
 
     QVector<ConsoleRecord> m_records;
+    QString m_timeFormat = QStringLiteral("HH:mm:ss.zzz");
     quint64 m_nextId = 1;
     int m_maxRecords = 5000;
 };

@@ -11,6 +11,7 @@ qt_standard_project_setup(REQUIRES 6.8)
 
 qt_add_executable(SerialAssistant
     main.cpp
+    app_icon.rc
         backend/io/serial_port_controller.cpp
         backend/io/serial_port_controller.h
         backend/settings/settings_manager.cpp
@@ -48,6 +49,9 @@ qt_add_qml_module(SerialAssistant
         qml/components/cards/SendSettingsCard.qml
     RESOURCES
         qml/assets/fonts/MaterialSymbolsRounded.ttf
+        qml/assets/icons/app_icon.png
+        qml/assets/icons/app_icon_256.png
+        qml/assets/icons/app_icon.ico
 )
 
 target_link_libraries(SerialAssistant

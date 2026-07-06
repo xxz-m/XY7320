@@ -19,6 +19,10 @@ SerialPortController::SerialPortController(SettingsManager* settingsManager, QOb
     , m_parity(settingsManager ? settingsManager->parity() : QSerialPort::NoParity)
     , m_stopBits(settingsManager ? settingsManager->stopBits() : QSerialPort::OneStop)
     , m_flowControl(settingsManager ? settingsManager->flowControl() : QSerialPort::NoFlowControl)
+    , m_dtrEnabled(settingsManager ? settingsManager->dtrEnabled() : false)
+    , m_rtsEnabled(settingsManager ? settingsManager->rtsEnabled() : false)
+    , m_autoOpen(settingsManager ? settingsManager->autoOpen() : false)
+    , m_rememberPort(settingsManager ? settingsManager->rememberPort() : true)
     , m_statusText(QStringLiteral("未连接"))
 {
     connect(&m_serialPort, &QSerialPort::readyRead, this, &SerialPortController::readAvailableData);
@@ -44,6 +48,10 @@ int SerialPortController::dataBits() const { return m_dataBits; }
 int SerialPortController::parity() const { return m_parity; }
 int SerialPortController::stopBits() const { return m_stopBits; }
 int SerialPortController::flowControl() const { return m_flowControl; }
+bool SerialPortController::dtrEnabled() const { return m_dtrEnabled; }
+bool SerialPortController::rtsEnabled() const { return m_rtsEnabled; }
+bool SerialPortController::autoOpen() const { return m_autoOpen; }
+bool SerialPortController::rememberPort() const { return m_rememberPort; }
 
 QVariantList SerialPortController::baudRateOptions() const
 {
@@ -94,7 +102,7 @@ void SerialPortController::setPortName(const QString& portName)
         return;
     closeForParameterChange();
     m_portName = portName;
-    if (m_settingsManager)
+    if (m_settingsManager && m_rememberPort)
         m_settingsManager->setPortName(portName);
     Q_EMIT portNameChanged();
 }
@@ -154,6 +162,54 @@ void SerialPortController::setFlowControl(int flowControl)
     Q_EMIT flowControlChanged();
 }
 
+void SerialPortController::setDtrEnabled(bool dtrEnabled)
+{
+    if (m_dtrEnabled == dtrEnabled)
+        return;
+    m_dtrEnabled = dtrEnabled;
+    if (m_serialPort.isOpen())
+        m_serialPort.setDataTerminalReady(m_dtrEnabled);
+    if (m_settingsManager)
+        m_settingsManager->setDtrEnabled(m_dtrEnabled);
+    Q_EMIT dtrEnabledChanged();
+}
+
+void SerialPortController::setRtsEnabled(bool rtsEnabled)
+{
+    if (m_rtsEnabled == rtsEnabled)
+        return;
+    m_rtsEnabled = rtsEnabled;
+    if (m_serialPort.isOpen())
+        m_serialPort.setRequestToSend(m_rtsEnabled);
+    if (m_settingsManager)
+        m_settingsManager->setRtsEnabled(m_rtsEnabled);
+    Q_EMIT rtsEnabledChanged();
+}
+
+void SerialPortController::setAutoOpen(bool autoOpen)
+{
+    if (m_autoOpen == autoOpen)
+        return;
+    m_autoOpen = autoOpen;
+    if (m_settingsManager)
+        m_settingsManager->setAutoOpen(m_autoOpen);
+    Q_EMIT autoOpenChanged();
+    if (m_autoOpen)
+        tryAutoOpen();
+}
+
+void SerialPortController::setRememberPort(bool rememberPort)
+{
+    if (m_rememberPort == rememberPort)
+        return;
+    m_rememberPort = rememberPort;
+    if (m_settingsManager)
+        m_settingsManager->setRememberPort(m_rememberPort);
+    if (m_settingsManager && m_rememberPort)
+        m_settingsManager->setPortName(m_portName);
+    Q_EMIT rememberPortChanged();
+}
+
 void SerialPortController::refreshPorts()
 {
     QVariantList nextPorts;
@@ -177,6 +233,28 @@ void SerialPortController::refreshPorts()
 
     m_ports = std::move(nextPorts);
     Q_EMIT portsChanged();
+
+    bool currentPortExists = false;
+    QVariantMap fallbackPort;
+    QVariantMap preferredPort;
+    for (const QVariant& port : m_ports) {
+        const QVariantMap item = port.toMap();
+        const QString value = item.value(QStringLiteral("value")).toString();
+        if (value == m_portName)
+            currentPortExists = true;
+        if (fallbackPort.isEmpty())
+            fallbackPort = item;
+        if (preferredPort.isEmpty() && value.compare(QStringLiteral("COM1"), Qt::CaseInsensitive) != 0)
+            preferredPort = item;
+    }
+
+    if ((!currentPortExists || m_portName.isEmpty()) && !m_ports.isEmpty()) {
+        const QVariantMap selectedPort = preferredPort.isEmpty() ? fallbackPort : preferredPort;
+        if (m_rememberPort || m_portName.isEmpty())
+            setPortName(selectedPort.value(QStringLiteral("value")).toString());
+    }
+
+    tryAutoOpen();
 }
 
 void SerialPortController::openPort()
@@ -199,6 +277,9 @@ void SerialPortController::openPort()
         Q_EMIT errorOccurred(m_errorText);
         return;
     }
+
+    m_serialPort.setDataTerminalReady(m_dtrEnabled);
+    m_serialPort.setRequestToSend(m_rtsEnabled);
 
     setErrorText(QString());
     setStatusText(QStringLiteral("已连接 %1").arg(m_portName));
@@ -272,6 +353,15 @@ void SerialPortController::applySettings()
     m_serialPort.setParity(static_cast<QSerialPort::Parity>(m_parity));
     m_serialPort.setStopBits(static_cast<QSerialPort::StopBits>(m_stopBits));
     m_serialPort.setFlowControl(static_cast<QSerialPort::FlowControl>(m_flowControl));
+}
+
+void SerialPortController::tryAutoOpen()
+{
+    if (!m_autoOpen || m_autoOpenAttempted || m_serialPort.isOpen() || m_portName.isEmpty())
+        return;
+
+    m_autoOpenAttempted = true;
+    openPort();
 }
 
 void SerialPortController::setStatusText(const QString& statusText)

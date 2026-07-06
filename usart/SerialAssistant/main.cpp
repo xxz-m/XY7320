@@ -13,6 +13,7 @@
 #include <QDebug>
 #include <QFile>
 #include <QGuiApplication>
+#include <QIcon>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QQmlError>
@@ -57,6 +58,7 @@ int main(int argc, char* argv[])
     QGuiApplication app(argc, argv);
     QCoreApplication::setOrganizationName(QStringLiteral("XYKJ"));
     QCoreApplication::setApplicationName(QStringLiteral("SerialAssistant"));
+    app.setWindowIcon(QIcon(QStringLiteral(":/qt/qml/SerialAssistant/qml/assets/icons/app_icon.png")));
 
     SettingsManager settingsManager;
     SerialPortController serialPortController(&settingsManager);

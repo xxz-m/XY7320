@@ -6,7 +6,9 @@
 #include "text_codec.h"
 
 #include <QChar>
+#include <QStringConverter>
 #include <QStringDecoder>
+#include <QStringEncoder>
 
 namespace {
 bool isHexSeparator(QChar ch)
@@ -25,11 +27,66 @@ int hexValue(QChar ch)
         return ch.unicode() - QLatin1Char('A').unicode() + 10;
     return -1;
 }
+
+QString escapeInvalidBytes(const QByteArray& data)
+{
+    QString text;
+    text.reserve(data.size() * 4);
+    for (unsigned char byte : data) {
+        if (byte >= 0x20 && byte <= 0x7e) {
+            text.append(QChar(byte));
+        } else if (byte == '\r') {
+            text.append(QStringLiteral("\\r"));
+        } else if (byte == '\n') {
+            text.append(QStringLiteral("\\n"));
+        } else if (byte == '\t') {
+            text.append(QStringLiteral("\\t"));
+        } else {
+            text.append(QStringLiteral("\\x%1").arg(byte, 2, 16, QLatin1Char('0')).toUpper());
+        }
+    }
+    return text;
+}
+
+QString decodeWithConverter(const QByteArray& data, QStringConverter::Encoding encoding, TextCodec::InvalidBytePolicy invalidBytePolicy)
+{
+    if (invalidBytePolicy == TextCodec::InvalidBytePolicy::Escape) {
+        QStringDecoder strictDecoder(encoding, QStringConverter::Flag::ConvertInvalidToNull);
+        const QString decoded = strictDecoder.decode(data);
+        if (!decoded.contains(QChar::Null))
+            return decoded;
+        return escapeInvalidBytes(data);
+    }
+
+    QStringDecoder decoder(encoding, QStringConverter::Flag::ConvertInvalidToNull);
+    QString decoded = decoder.decode(data);
+    if (invalidBytePolicy == TextCodec::InvalidBytePolicy::Ignore)
+        decoded.remove(QChar::Null);
+    else
+        decoded.replace(QChar::Null, QChar(0xfffd));
+    return decoded;
+}
+}
+
+TextCodec::Encoding TextCodec::encodingFromName(const QString& name)
+{
+    if (name.compare(QStringLiteral("GBK"), Qt::CaseInsensitive) == 0)
+        return Encoding::Gbk;
+    if (name.compare(QStringLiteral("ASCII"), Qt::CaseInsensitive) == 0)
+        return Encoding::Ascii;
+    if (name.compare(QStringLiteral("Latin-1"), Qt::CaseInsensitive) == 0
+        || name.compare(QStringLiteral("Latin1"), Qt::CaseInsensitive) == 0)
+        return Encoding::Latin1;
+    return Encoding::Utf8;
 }
 
 QByteArray TextCodec::encodeText(const QString& text, Encoding encoding)
 {
     switch (encoding) {
+    case Encoding::Gbk: {
+        QStringEncoder encoder(QStringConverter::System);
+        return encoder.encode(text);
+    }
     case Encoding::Latin1:
         return text.toLatin1();
     case Encoding::Ascii: {
@@ -45,23 +102,30 @@ QByteArray TextCodec::encodeText(const QString& text, Encoding encoding)
     }
 }
 
-QString TextCodec::decodeText(const QByteArray& data, Encoding encoding)
+QString TextCodec::decodeText(const QByteArray& data, Encoding encoding, InvalidBytePolicy invalidBytePolicy)
 {
     switch (encoding) {
+    case Encoding::Gbk:
+        return decodeWithConverter(data, QStringConverter::System, invalidBytePolicy);
     case Encoding::Latin1:
         return QString::fromLatin1(data);
     case Encoding::Ascii: {
         QString text;
         text.reserve(data.size());
-        for (unsigned char byte : data)
-            text.append(byte <= 0x7f ? QChar(byte) : QChar(0xfffd));
+        for (unsigned char byte : data) {
+            if (byte <= 0x7f) {
+                text.append(QChar(byte));
+            } else if (invalidBytePolicy == InvalidBytePolicy::Escape) {
+                text.append(QStringLiteral("\\x%1").arg(byte, 2, 16, QLatin1Char('0')).toUpper());
+            } else if (invalidBytePolicy == InvalidBytePolicy::Replace) {
+                text.append(QChar(0xfffd));
+            }
+        }
         return text;
     }
     case Encoding::Utf8:
-    default: {
-        QStringDecoder decoder(QStringDecoder::Utf8);
-        return decoder.decode(data);
-    }
+    default:
+        return decodeWithConverter(data, QStringConverter::Utf8, invalidBytePolicy);
     }
 }
 

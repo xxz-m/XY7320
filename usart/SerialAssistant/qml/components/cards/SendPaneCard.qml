@@ -13,6 +13,10 @@ EPaneCard {
     property int loopIntervalMs: 200
     property bool enterToSend: false
     property bool appendNewline: false
+    property bool multilineInput: true
+    property string terminalFont: "Consolas"
+    property int terminalFontSize: 12
+    property int uiDensity: 1
     property alias sendText: sendTextArea.text
     property int byteCount: 0
     property bool isPortOpen: false
@@ -52,15 +56,18 @@ EPaneCard {
                     color: root.theme.textColor
                     selectionColor: root.theme.focusColor
                     selectedTextColor: "white"
-                    font.family: "Consolas"
-                    font.pixelSize: 12
-                    padding: 10
+                    font.family: root.terminalFont
+                    font.pixelSize: root.terminalFontSize
+                    padding: root.uiDensity === 0 ? 8 : (root.uiDensity === 2 ? 12 : 10)
                     background: null
 
                     Keys.onPressed: event => {
-                        if ((root.enterToSend || (event.modifiers & Qt.ControlModifier))
-                                && (event.key === Qt.Key_Return || event.key === Qt.Key_Enter)) {
+                        const isEnter = event.key === Qt.Key_Return || event.key === Qt.Key_Enter
+                        const wantsSend = root.enterToSend || (event.modifiers & Qt.ControlModifier)
+                        if (isEnter && wantsSend) {
                             root.sendRequested()
+                            event.accepted = true
+                        } else if (isEnter && !root.multilineInput) {
                             event.accepted = true
                         }
                     }

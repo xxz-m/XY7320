@@ -6,6 +6,7 @@
 #include "console_record_model.h"
 
 #include <QColor>
+#include <QtGlobal>
 
 namespace {
 QString directionColor(const QString& direction, bool isError)
@@ -42,7 +43,7 @@ QVariant ConsoleRecordModel::data(const QModelIndex& index, int role) const
     case IdRole:
         return QVariant::fromValue(record.id);
     case RecordTimeRole:
-        return record.timestamp.toString(QStringLiteral("HH:mm:ss.zzz"));
+        return record.timestamp.toString(m_timeFormat);
     case DirectionRole:
         return record.direction;
     case ContentRole:
@@ -95,6 +96,16 @@ void ConsoleRecordModel::appendTransmit(const QDateTime& timestamp,
 void ConsoleRecordModel::appendSystem(const QString& message, bool isError)
 {
     appendRecord(ConsoleRecord{0, QDateTime::currentDateTime(), QByteArray(), QStringLiteral("system"), message, QString(), isError});
+}
+
+void ConsoleRecordModel::setTimeFormat(const QString& timeFormat)
+{
+    const QString nextFormat = timeFormat.isEmpty() ? QStringLiteral("HH:mm:ss.zzz") : timeFormat;
+    if (m_timeFormat == nextFormat)
+        return;
+    m_timeFormat = nextFormat;
+    if (!m_records.isEmpty())
+        Q_EMIT dataChanged(index(0, 0), index(m_records.size() - 1, 0), {RecordTimeRole});
 }
 
 void ConsoleRecordModel::clear()

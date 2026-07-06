@@ -7,32 +7,12 @@ import SerialAssistant
 Rectangle {
     id: root
     required property var theme
+    required property var settingsManager
+    required property var serialController
+    required property var transmitController
     property string currentSection: "serial"
     readonly property string title: sectionTitle(currentSection)
     signal closeRequested()
-
-    // 未接入当前阶段后端的设置仍作为界面占位。
-    property bool demoDtr: false
-    property bool demoRts: false
-    property bool demoAutoOpen: false
-    property bool demoRememberPort: true
-    property string demoReceiveEncoding: "UTF-8"
-    property string demoSendEncoding: "UTF-8"
-    property string demoInvalidBytes: "替换字符"
-    property int demoLineEnding: 0
-    property bool demoEnterToSend: false
-    property bool demoAppendNewline: false
-    property bool demoMultiline: true
-    property int demoTheme: 0
-    property int demoDensity: 1
-    property string demoTerminalFont: "Consolas"
-    property bool demoHighlight: true
-    property bool demoCaseSensitive: false
-    property bool demoRegex: false
-    property bool demoTimestamp: true
-    property int demoTimestampScope: 0
-    property string demoTimeFormat: "HH:mm:ss.SSS"
-    property bool demoMilliseconds: true
 
     radius: 14
     color: root.theme.secondaryColor
@@ -108,15 +88,15 @@ Rectangle {
                     theme: root.theme; Layout.fillWidth: true; Layout.leftMargin: 14; Layout.rightMargin: 14
                     visible: root.currentSection === "serial"
                     title: qsTr("流控状态")
-                    SettingSwitch { theme: root.theme; title: "DTR"; description: qsTr("数据终端就绪信号"); checked: root.demoDtr; onCheckedChanged: root.demoDtr = checked }
-                    SettingSwitch { theme: root.theme; title: "RTS"; description: qsTr("请求发送信号"); checked: root.demoRts; onCheckedChanged: root.demoRts = checked }
+                    SettingSwitch { theme: root.theme; title: "DTR"; description: qsTr("数据终端就绪信号"); checked: serialController.dtrEnabled; onCheckedChanged: serialController.dtrEnabled = checked }
+                    SettingSwitch { theme: root.theme; title: "RTS"; description: qsTr("请求发送信号"); checked: serialController.rtsEnabled; onCheckedChanged: serialController.rtsEnabled = checked }
                 }
                 SettingGroup {
                     theme: root.theme; Layout.fillWidth: true; Layout.leftMargin: 14; Layout.rightMargin: 14
                     visible: root.currentSection === "serial"
                     title: qsTr("启动与重连")
-                    SettingSwitch { theme: root.theme; title: qsTr("启动时自动打开串口"); checked: root.demoAutoOpen; onCheckedChanged: root.demoAutoOpen = checked }
-                    SettingSwitch { theme: root.theme; title: qsTr("记忆上次端口"); checked: root.demoRememberPort; onCheckedChanged: root.demoRememberPort = checked }
+                    SettingSwitch { theme: root.theme; title: qsTr("启动时自动打开串口"); checked: serialController.autoOpen; onCheckedChanged: serialController.autoOpen = checked }
+                    SettingSwitch { theme: root.theme; title: qsTr("记忆上次端口"); checked: serialController.rememberPort; onCheckedChanged: serialController.rememberPort = checked }
                     NumberSetting { label: qsTr("断线重连间隔"); valueText: "1000"; suffix: "ms" }
                 }
 
@@ -126,9 +106,9 @@ Rectangle {
                     visible: root.currentSection === "encoding"
                     title: qsTr("文本编码")
                     description: qsTr("分别指定接收数据和发送文本使用的字符编码。")
-                    ValueSelect { label: qsTr("接收编码"); value: root.demoReceiveEncoding; model: ["UTF-8", "GBK", "ASCII", "Latin-1"]; onChosen: root.demoReceiveEncoding = value }
-                    ValueSelect { label: qsTr("发送编码"); value: root.demoSendEncoding; model: ["UTF-8", "GBK", "ASCII", "Latin-1"]; onChosen: root.demoSendEncoding = value }
-                    ValueSelect { label: qsTr("无效字节处理"); value: root.demoInvalidBytes; model: [qsTr("替换字符"), qsTr("忽略"), qsTr("转义显示")]; onChosen: root.demoInvalidBytes = value }
+                    ValueSelect { label: qsTr("接收编码"); value: settingsManager.receiveEncoding; model: ["UTF-8", "GBK", "ASCII", "Latin-1"]; onChosen: value => settingsManager.receiveEncoding = String(value) }
+                    ValueSelect { label: qsTr("发送编码"); value: settingsManager.sendEncoding; model: ["UTF-8", "GBK", "ASCII", "Latin-1"]; onChosen: value => settingsManager.sendEncoding = String(value) }
+                    ValueSelect { label: qsTr("无效字节处理"); value: settingsManager.invalidBytePolicy; model: [{ text: qsTr("替换字符"), value: 0 }, { text: qsTr("忽略"), value: 1 }, { text: qsTr("转义显示"), value: 2 }]; onChosen: value => settingsManager.invalidBytePolicy = Number(value) }
                 }
                 SettingGroup {
                     theme: root.theme; Layout.fillWidth: true; Layout.leftMargin: 14; Layout.rightMargin: 14
@@ -143,15 +123,15 @@ Rectangle {
                     visible: root.currentSection === "lineEnding"
                     title: qsTr("发送行尾")
                     description: qsTr("发送文本时追加到数据末尾的控制字符。")
-                    SegmentedSelector { theme: root.theme; Layout.fillWidth: true; options: [qsTr("无"), "LF", "CR", "CRLF"]; currentIndex: transmitController.lineEnding; onSelected: (index, value) => transmitController.lineEnding = index }
+                    SegmentedSelector { theme: root.theme; Layout.fillWidth: true; options: [qsTr("无"), "LF", "CR", "CRLF"]; currentIndex: transmitController.lineEnding; onSelected: (index, value) => { transmitController.lineEnding = index; settingsManager.appendNewline = index === 3 } }
                 }
                 SettingGroup {
                     theme: root.theme; Layout.fillWidth: true; Layout.leftMargin: 14; Layout.rightMargin: 14
                     visible: root.currentSection === "lineEnding"
                     title: qsTr("输入行为")
-                    SettingSwitch { theme: root.theme; title: qsTr("回车直接发送"); checked: root.demoEnterToSend; onCheckedChanged: root.demoEnterToSend = checked }
-                    SettingSwitch { theme: root.theme; title: qsTr("发送后追加新行"); checked: root.demoAppendNewline; onCheckedChanged: root.demoAppendNewline = checked }
-                    SettingSwitch { theme: root.theme; title: qsTr("允许多行输入"); checked: root.demoMultiline; onCheckedChanged: root.demoMultiline = checked }
+                    SettingSwitch { theme: root.theme; title: qsTr("回车直接发送"); checked: settingsManager.enterToSend; onCheckedChanged: settingsManager.enterToSend = checked }
+                    SettingSwitch { theme: root.theme; title: qsTr("发送后追加新行"); checked: settingsManager.appendNewline; onCheckedChanged: { settingsManager.appendNewline = checked; transmitController.lineEnding = checked ? 3 : 0 } }
+                    SettingSwitch { theme: root.theme; title: qsTr("允许多行输入"); checked: settingsManager.multilineInput; onCheckedChanged: settingsManager.multilineInput = checked }
                 }
 
                 // 个性化
@@ -199,7 +179,7 @@ Rectangle {
                     title: qsTr("界面与字体")
                     SegmentedSelector { theme: root.theme; Layout.fillWidth: true; options: [qsTr("紧凑"), qsTr("标准"), qsTr("宽松")]; currentIndex: settingsManager.uiDensity; onSelected: (index, value) => settingsManager.uiDensity = index }
                     ValueSelect { label: qsTr("终端字体"); value: settingsManager.terminalFont; model: ["Consolas", "Cascadia Mono", "JetBrains Mono", qsTr("系统等宽")]; onChosen: value => settingsManager.terminalFont = String(value) }
-                    NumberSetting { label: qsTr("终端字号"); valueText: "12"; suffix: "px" }
+                    NumberSetting { label: qsTr("终端字号"); valueText: settingsManager.terminalFontSize.toString(); suffix: "px"; onValueAccepted: value => settingsManager.terminalFontSize = value }
                 }
 
                 // 关键字高亮
@@ -207,9 +187,9 @@ Rectangle {
                     theme: root.theme; Layout.fillWidth: true; Layout.leftMargin: 14; Layout.rightMargin: 14
                     visible: root.currentSection === "highlight"
                     title: qsTr("匹配规则")
-                    SettingSwitch { theme: root.theme; title: qsTr("启用关键字高亮"); checked: root.demoHighlight; onCheckedChanged: root.demoHighlight = checked }
-                    SettingSwitch { theme: root.theme; title: qsTr("区分大小写"); checked: root.demoCaseSensitive; onCheckedChanged: root.demoCaseSensitive = checked }
-                    SettingSwitch { theme: root.theme; title: qsTr("使用正则表达式"); checked: root.demoRegex; onCheckedChanged: root.demoRegex = checked }
+                    SettingSwitch { theme: root.theme; title: qsTr("启用关键字高亮"); checked: settingsManager.highlightEnabled; onCheckedChanged: settingsManager.highlightEnabled = checked }
+                    SettingSwitch { theme: root.theme; title: qsTr("区分大小写"); checked: settingsManager.highlightCaseSensitive; onCheckedChanged: settingsManager.highlightCaseSensitive = checked }
+                    SettingSwitch { theme: root.theme; title: qsTr("使用正则表达式"); checked: settingsManager.highlightRegex; onCheckedChanged: settingsManager.highlightRegex = checked }
                 }
                 SettingGroup {
                     theme: root.theme; Layout.fillWidth: true; Layout.leftMargin: 14; Layout.rightMargin: 14
@@ -227,7 +207,7 @@ Rectangle {
                     visible: root.currentSection === "timestamp"
                     title: qsTr("时间戳显示")
                     SettingSwitch { theme: root.theme; title: qsTr("启用时间戳"); checked: settingsManager.timestampEnabled; onCheckedChanged: settingsManager.timestampEnabled = checked }
-                    SegmentedSelector { theme: root.theme; Layout.fillWidth: true; options: [qsTr("仅接收"), qsTr("收发全部")]; currentIndex: root.demoTimestampScope; onSelected: (index, value) => root.demoTimestampScope = index }
+                    SegmentedSelector { theme: root.theme; Layout.fillWidth: true; options: [qsTr("仅接收"), qsTr("收发全部")]; currentIndex: settingsManager.timestampScope; onSelected: (index, value) => settingsManager.timestampScope = index }
                     ValueSelect { label: qsTr("时间格式"); value: settingsManager.timestampFormat; model: ["HH:mm:ss.SSS", "HH:mm:ss", "yyyy-MM-dd HH:mm:ss"]; onChosen: value => settingsManager.timestampFormat = String(value) }
                     SettingSwitch { theme: root.theme; title: qsTr("显示毫秒"); checked: settingsManager.timestampFormat.indexOf("SSS") >= 0; onCheckedChanged: settingsManager.timestampFormat = checked ? "HH:mm:ss.SSS" : "HH:mm:ss" }
                 }
@@ -310,10 +290,18 @@ Rectangle {
         property string label: ""
         property string valueText: ""
         property string suffix: ""
+        signal valueAccepted(int value)
         Layout.fillWidth: true
         spacing: 8
         Text { Layout.fillWidth: true; text: numberSetting.label; color: root.theme.textColor; font.pixelSize: 12 }
-        EInput { theme: root.theme; text: numberSetting.valueText; Layout.preferredWidth: 82; Layout.preferredHeight: 32; validator: IntValidator { bottom: 0; top: 99999 } }
+        EInput {
+            theme: root.theme
+            text: numberSetting.valueText
+            Layout.preferredWidth: 82
+            Layout.preferredHeight: 32
+            validator: IntValidator { bottom: 0; top: 99999 }
+            onEditingFinished: numberSetting.valueAccepted(Number(text))
+        }
         Text { text: numberSetting.suffix; color: root.theme.mutedTextColor; font.pixelSize: 11; Layout.preferredWidth: 24 }
     }
     component HighlightRule: RowLayout {

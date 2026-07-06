@@ -23,7 +23,7 @@ TransmitController::TransmitController(SerialPortController* serialController,
     , m_hexSend(settingsManager ? settingsManager->hexSend() : false)
     , m_loopSend(false)
     , m_loopIntervalMs(settingsManager ? settingsManager->loopIntervalMs() : 200)
-    , m_lineEnding(settingsManager ? settingsManager->lineEnding() : None)
+    , m_lineEnding(settingsManager && settingsManager->appendNewline() ? CRLF : (settingsManager ? settingsManager->lineEnding() : None))
 {
     m_loopTimer.setInterval(m_loopIntervalMs);
     connect(&m_loopTimer, &QTimer::timeout, this, &TransmitController::sendLoopPayload);
@@ -36,6 +36,7 @@ TransmitController::TransmitController(SerialPortController* serialController,
                 stopLoopSend();
         });
     }
+
 }
 
 bool TransmitController::hexSend() const { return m_hexSend; }
@@ -173,7 +174,8 @@ QByteArray TransmitController::buildPayload(const QString& input, QString* error
 
     if (errorText)
         errorText->clear();
-    QByteArray payload = TextCodec::encodeText(input);
+    const TextCodec::Encoding encoding = TextCodec::encodingFromName(m_settingsManager ? m_settingsManager->sendEncoding() : QString());
+    QByteArray payload = TextCodec::encodeText(input, encoding);
     payload.append(lineEndingBytes());
     return payload;
 }
@@ -205,7 +207,10 @@ void TransmitController::recordTransmit(const QByteArray& payload)
 {
     m_txBytes += static_cast<qulonglong>(payload.size());
     ++m_txFrames;
-    if (m_recordModel)
-        m_recordModel->appendTransmit(QDateTime::currentDateTime(), payload, TextCodec::decodeText(payload).trimmed(), TextCodec::formatHex(payload));
+    if (m_recordModel) {
+        const TextCodec::Encoding encoding = TextCodec::encodingFromName(m_settingsManager ? m_settingsManager->sendEncoding() : QString());
+        const QString text = TextCodec::decodeText(payload, encoding).trimmed();
+        m_recordModel->appendTransmit(QDateTime::currentDateTime(), payload, text, TextCodec::formatHex(payload));
+    }
     Q_EMIT statisticsChanged();
 }
