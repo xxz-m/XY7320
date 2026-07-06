@@ -46,3 +46,63 @@ Listings/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# ====== Qt / CMake 构建产物（通用规则，防止任何工具产物入库） ======
+# 构建目录
+build/
+*/build/
+*/*/build/
+
+# CMake 临时文件
+CMakeCache.txt
+CMakeCache.txt.prev
+CMakeFiles/
+CMakeConfigureLog.yaml
+CMakeUserPresets.json
+cmake_install.cmake
+*.cmake.verify_globs
+*.cmake.check_cache
+clean_additional.cmake
+rules.ninja
+build.ninja
+.ninja_deps
+.ninja_log
+TargetDirectories.txt
+
+# Qt 生成目录 / Autogen
+.qt/
+.qtc_clangd/
+.qtcreator/
+.qmlls.build.ini*
+.rcc/
+*.rcc/
+qml_imports/
+qmltypes/
+deploy_qml_imports/
+SerialAssistant_autogen/
+SerialAssistant_autogen_*/
+
+# Qt 构建二进制
+*.exe
+*.dll
+*.dll.a
+*.a
+*.so
+*.lib
+*.exp
+
+# Qt QML 缓存
+.rcc/qmlcache/
+qmlcache/
+*.aotstats
+*.aotstatslist
+*_qmltyperegistrations.cpp
+*_qmlcache_loader.cpp
+*_qml_loader_file_list.rsp
+meta_types/
+foreign_types.txt
+Testing/
+
+# Qt 日志
+qml.log
+qml.log.err

@@ -1,3 +1,0 @@
-set(__QT_DEPLOY_TARGET_SerialAssistant_FILE C:/Users/XYKJ/Desktop/esp32/XY7320_ST/usart/SerialAssistant/build/SerialAssistant.exe)
-set(__QT_DEPLOY_TARGET_SerialAssistant_TYPE EXECUTABLE)
-set(__QT_DEPLOY_TARGET_SerialAssistant_RUNTIME_DLLS D:/qt/6.8.3/mingw_64/bin/Qt6QuickControls2.dll;D:/qt/6.8.3/mingw_64/bin/Qt6SerialPort.dll;D:/qt/6.8.3/mingw_64/bin/Qt6QuickTemplates2.dll;D:/qt/6.8.3/mingw_64/bin/Qt6Quick.dll;D:/qt/6.8.3/mingw_64/bin/Qt6QmlMeta.dll;D:/qt/6.8.3/mingw_64/bin/Qt6QmlWorkerScript.dll;D:/qt/6.8.3/mingw_64/bin/Qt6OpenGL.dll;D:/qt/6.8.3/mingw_64/bin/Qt6Gui.dll;D:/qt/6.8.3/mingw_64/bin/Qt6QmlModels.dll;D:/qt/6.8.3/mingw_64/bin/Qt6Qml.dll;D:/qt/6.8.3/mingw_64/bin/Qt6Network.dll;D:/qt/6.8.3/mingw_64/bin/Qt6Core.dll)
