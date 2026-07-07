@@ -304,9 +304,9 @@ ApplicationWindow {
         SettingsPanel {
             id: settingsPanel
             theme: appTheme
-            settingsManager: settingsManager
-            serialController: serialController
-            transmitController: transmitController
+            appSettings: settingsManager
+            serialBackend: serialController
+            transmitBackend: transmitController
             visible: window.settingsPanelVisible
             currentSection: window.currentSettingsSection
             width: Math.min(440, window.width - 40)
