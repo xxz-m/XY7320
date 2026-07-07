@@ -25,10 +25,10 @@ public:
     /** @brief 获取单例 */
     static TaskStateAdcB& Instance();
 
-    /** @brief 进入：调用 AdcService::StartTaskB */
+    /** @brief 进入：切换 GSM 模式并调用 AdcService::StartTaskB */
     void entry() override;
 
-    /** @brief 退出：调用 AdcService::Stop + SetScopeMode(400/450) */
+    /** @brief 退出：调用 AdcService::Stop */
     void exit() override;
 
     /**

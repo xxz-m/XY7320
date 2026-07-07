@@ -25,10 +25,10 @@ public:
     /** @brief 获取单例 */
     static TaskStateAdcA& Instance();
 
-    /** @brief 进入：调用 AdcService::StartTaskA */
+    /** @brief 进入：切换 400/450 模式并调用 AdcService::StartTaskA */
     void entry() override;
 
-    /** @brief 退出：调用 AdcService::Stop + SetScopeMode(GSM) */
+    /** @brief 退出：调用 AdcService::Stop */
     void exit() override;
 
     /**

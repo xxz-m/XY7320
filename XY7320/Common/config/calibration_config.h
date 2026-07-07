@@ -7,8 +7,8 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#define CALIB_ENABLE_932_TABLE   1
-
+#define CALIB_ENABLE_GSM_TABLE   1
+#define CALIB_ENABLE_DMR_TABLE   1
 #ifdef __cplusplus
 }
 #endif

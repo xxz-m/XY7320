@@ -10,6 +10,7 @@
 #include <QByteArray>
 #include <QDateTime>
 #include <QString>
+#include <QStringList>
 #include <QVector>
 
 /**
@@ -32,6 +33,8 @@ struct ConsoleRecord
 class ConsoleRecordModel final : public QAbstractListModel
 {
     Q_OBJECT
+    Q_PROPERTY(QString displayText READ displayText NOTIFY displayTextChanged)
+    Q_PROPERTY(QString displayRichText READ displayRichText NOTIFY displayTextChanged)
 
 public:
     enum Role {
@@ -52,20 +55,36 @@ public:
     [[nodiscard]] int rowCount(const QModelIndex& parent = QModelIndex()) const override;
     [[nodiscard]] QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const override;
     [[nodiscard]] QHash<int, QByteArray> roleNames() const override;
+    [[nodiscard]] QString displayText() const;
+    [[nodiscard]] QString displayRichText() const;
 
     void appendReceive(const QDateTime& timestamp, const QByteArray& data, const QString& text, const QString& hexText);
     void appendTransmit(const QDateTime& timestamp, const QByteArray& data, const QString& text, const QString& hexText);
     void appendSystem(const QString& message, bool isError = false);
     void setTimeFormat(const QString& timeFormat);
 
+    Q_INVOKABLE void setDisplayFilter(bool enabled,
+                                      const QString& keywordText,
+                                      bool caseSensitive,
+                                      bool regexEnabled);
     Q_INVOKABLE void clear();
+
+signals:
+    void displayTextChanged();
 
 private:
     void appendRecord(ConsoleRecord record);
     void enforceLimit();
+    void rebuildDisplayText();
 
     QVector<ConsoleRecord> m_records;
     QString m_timeFormat = QStringLiteral("HH:mm:ss.zzz");
+    QString m_displayText;
+    QString m_displayRichText;
+    QStringList m_filterKeywords;
+    bool m_filterEnabled = false;
+    bool m_filterCaseSensitive = false;
+    bool m_filterRegexEnabled = false;
     quint64 m_nextId = 1;
     int m_maxRecords = 5000;
 };

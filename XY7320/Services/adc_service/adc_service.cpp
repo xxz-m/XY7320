@@ -37,6 +37,7 @@ void AdcService::Init()
     auto& scope = Oscilloscope::getInstance();
     scope.initOscilloscope();
     m_scopeMode = SCOPE_MODE_400_450;
+
 }
 
 /**
@@ -75,6 +76,8 @@ void AdcService::StartTaskA()
 void AdcService::StartTaskB()
 {
     mode_ = Mode::TaskB;
+    m_gsmPowerMeasurement.Reset();
+    m_gsmPowerData = {};
     BspAdc_Stop();
     BspAdc_Start();
     LOG_Printf("AdcService,StartTaskB\n");
@@ -174,18 +177,29 @@ void AdcService::ProcessTaskB()
                     sizeof(uint16_t) * BSP_ADC_TARGET_SAMPLE_COUNT);
     }
 
-    /* 2) 仅在 GSM 模式下跑 Oscilloscope */
+    /* 2) 仅在 GSM 模式下跑 Oscilloscope 和功率测量 */
     auto& scope = Oscilloscope::getInstance();
     if (m_scopeMode == SCOPE_MODE_GSM) {
         scope.TickLoopGSM(m_snapshot[4], m_snapshot[5]);
         m_filteredResult = scope.getResult();
+        m_gsmPowerMeasurement.Update(m_filteredResult.wavePEP5_avg,
+                                     m_filteredResult.wavePEP6_avg,
+                                     HAL_GetTick(),
+                                     &m_gsmPowerData);
     }
 
-    /* 3) 日志降频：每 40 帧打印一次 */
+    /* 3) 日志降频：每 40 帧打印一次，dBm 使用 dBm*100 定点值 */
     if (++log_div >= 40u) {
         log_div = 0;
-        LOG_Printf("AdcTaskB,,Fil,%u,%u\n",
-                   m_filteredResult.wavePEP5_avg,
-                   m_filteredResult.wavePEP6_avg);
+        LOG_Printf("AdcTaskB,GSM,adc,%u,%u,dbmX100,%d,%d,uw,%lu,%lu,pepUw,%lu,%lu,valid,%u\n",
+                    m_gsmPowerData.p1v,
+                    m_gsmPowerData.p2v,
+                    m_gsmPowerData.dbm1_x100,
+                    m_gsmPowerData.dbm2_x100,
+                   (unsigned long)m_gsmPowerData.w1x_uw,
+                   (unsigned long)m_gsmPowerData.w2x_uw,
+                   (unsigned long)m_gsmPowerData.w1x_uw_pep,
+                   (unsigned long)m_gsmPowerData.w2x_uw_pep,
+                   m_gsmPowerData.valid ? 1u : 0u);
     }
 }

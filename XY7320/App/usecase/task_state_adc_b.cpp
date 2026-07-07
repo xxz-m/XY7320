@@ -16,22 +16,18 @@ TaskStateAdcB& TaskStateAdcB::Instance()
 
 TaskStateAdcB::TaskStateAdcB() : fsm::State("AdcTaskB") {}
 
-/** @brief 进入状态：启动 ADC B 通道采集 */
+/** @brief 进入状态：切换到 GSM 模式并启动 ADC B 通道采集 */
 void TaskStateAdcB::entry()
 {
+    AdcService::Instance().SetScopeMode(SCOPE_MODE_GSM);
     AdcService::Instance().StartTaskB();
     LOG_Printf("TaskStateAdcB,Entry\n");
 }
 
-/** @brief 退出状态：停止 ADC，并把 Oscilloscope 重置为默认 400/450 模式
- *
- * NOTE：把 Scope 模式重置为 400/450 作为默认；
- *       如未来增加更多状态需重构此处的"重置默认值"逻辑。
- */
+/** @brief 退出状态：停止 ADC 采集 */
 void TaskStateAdcB::exit()
 {
     AdcService::Instance().Stop();
-    AdcService::Instance().SetScopeMode(SCOPE_MODE_400_450);
     LOG_Printf("TaskStateAdcB,Exit\n");
 }
 

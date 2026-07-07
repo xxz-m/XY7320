@@ -25,7 +25,7 @@
 #include <stdint.h>
 #include "Oscilloscope.h"
 #include <cstring>
-
+#include "gsm_power_measurement.h"
 class AdcService {
 public:
     /**
@@ -107,6 +107,7 @@ public:
      * 在 ProcessTaskA / ProcessTaskB 中填充，调用方应在下一轮 Update 之前取走。
      */
     ScopeResult_t GetFilteredResult() const { return m_filteredResult; }
+    GsmPowerData_t GetGsmPowerData() const { return m_gsmPowerData; }
 
 private:
     AdcService() = default;
@@ -121,6 +122,8 @@ private:
     ScopeMode_t m_scopeMode = SCOPE_MODE_400_450;       ///< 当前 Oscilloscope 模式
     ScopeResult_t m_filteredResult{};                   ///< 最新一次 Oscilloscope 结果
     uint16_t m_snapshot[6][ADC_SIZE_MAX];               ///< 原始数据快照（Oscilloscope 会原地修改）
+    GsmPowerMeasurement m_gsmPowerMeasurement;
+    GsmPowerData_t m_gsmPowerData{};
 };
 
 #endif /* XY7320_ADC_SERVICE_H */
