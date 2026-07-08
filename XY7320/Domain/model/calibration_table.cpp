@@ -102,9 +102,9 @@ bool Calibration_5906AdcToDbm(uint16_t value,
 }
 #endif
 
-/* DMR：AD8361 功率检测芯片校准表，ADC/mV 采样值 -> dBm*10 */
+/* DMR：ADL8361 正向功率检测芯片校准表，ADC/mV 采样值 -> dBm*10 */
 #if CALIB_ENABLE_DMR_TABLE
-const uint16_t ad_8361_mv_adc[615] = {
+const uint16_t ad_adl8361_mv_adc[615] = {
         3343, 3258, 2467, 2354, 2348, 2341, 2335, 2327, 2319, 2311, 2308, 2304,
         2300, 2296, 2292, 2288, 2285, 2281, 2277, 2273, 2269, 2265, 2260, 2254,
         2249, 2244, 2239, 2234, 2228, 2222, 2216, 2212, 2207, 2203, 2200, 2196,
@@ -158,7 +158,7 @@ const uint16_t ad_8361_mv_adc[615] = {
         152, 146, 138, 132, 124, 116, 108, 100, 90, 78, 54, 23,
         23, 0, 0
 };
-const int16_t ad_8361_dbmX10[615] = {
+const int16_t ad_adl8361_dbmX10[615] = {
         190, 150, 100, 91, 90, 89, 88, 87, 86, 85,
         84, 83, 82, 81, 80, 79, 78, 77, 76, 75,
         74, 73, 72, 71, 70, 69, 68, 67, 66, 65,
@@ -223,20 +223,66 @@ const int16_t ad_8361_dbmX10[615] = {
         -542, -550, -600, -700, -800,
 };
 
-#define AD_8361_TABLE_LENGTH ((uint16_t)(sizeof(ad_8361_mv_adc) / sizeof(ad_8361_mv_adc[0])))
+const uint16_t ad_adl8317_mv_adc[] = {
+    1157, 1154, 1152, 1150, 1146, 1143, 1141, 1135, 1133, 1128, 1124, 1119,
+    1112, 1109, 1104, 1096, 1091, 1083, 1077, 1069, 1061, 1057, 1051, 1049,
+    1041, 1037, 1031, 1026, 1023, 1021, 1015, 1012, 1007, 1002, 997, 995,
+    990, 986, 980, 971, 967, 962, 955, 949, 945, 939, 931, 924,
+    914, 906, 893, 889, 870, 855, 840, 829, 824, 817, 813, 811,
+    808, 805, 801, 797, 791, 788, 782, 778, 774, 769, 763, 759,
+    752, 748, 741, 731, 723, 719, 711, 701, 692, 686, 674, 661,
+    653, 645, 637, 628, 620, 610, 602, 597, 591, 587, 582, 577,
+    568, 565, 551, 542, 536, 520, 505, 500, 487, 472, 461, 447,
+    438, 427, 408, 395, 383, 365, 350, 332, 307, 277, 244, 174,
+    104, 34, 0,
+};
+
+const int16_t ad_adl8317_dbmX10[] = {
+    448, 446, 445, 443, 442, 440, 438, 436, 434, 432, 431, 428,
+    426, 423, 420, 418, 415, 411, 408, 404, 400, 399, 396, 395,
+    392, 390, 387, 385, 384, 382, 380, 378, 376, 374, 372, 371,
+    368, 367, 364, 361, 358, 356, 354, 351, 349, 346, 342, 339,
+    335, 331, 326, 323, 315, 308, 301, 296, 293, 290, 289, 287,
+    286, 285, 283, 281, 279, 277, 275, 273, 271, 268, 266, 264,
+    261, 259, 256, 251, 248, 246, 242, 237, 233, 230, 225, 219,
+    215, 211, 208, 203, 200, 195, 191, 189, 186, 185, 183, 181,
+    178, 176, 169, 165, 161, 154, 149, 145, 138, 132, 126, 121,
+    117, 111, 103, 96, 91, 85, 77, 70, 60, 47, 31, 1,
+    -30, -1000, -1000,
+};
+
+#define ADL8361_TABLE_LENGTH ((uint16_t)(sizeof(ad_adl8361_mv_adc) / sizeof(ad_adl8361_mv_adc[0])))
+#define ADL8317_TABLE_LENGTH ((uint16_t)(sizeof(ad_adl8317_mv_adc) / sizeof(ad_adl8317_mv_adc[0])))
+
+static_assert(sizeof(ad_adl8361_mv_adc) / sizeof(ad_adl8361_mv_adc[0]) ==
+              sizeof(ad_adl8361_dbmX10) / sizeof(ad_adl8361_dbmX10[0]),
+              "ADL8361 table length mismatch");
+static_assert(sizeof(ad_adl8317_mv_adc) / sizeof(ad_adl8317_mv_adc[0]) ==
+              sizeof(ad_adl8317_dbmX10) / sizeof(ad_adl8317_dbmX10[0]),
+              "ADL8317 table length mismatch");
 
 /**
- * @brief  获取 AD8361 校准表长度
+ * @brief  获取 ADL8361 正向校准表长度
  *
  * @return 表项数量，单位：个
  */
-uint16_t Calibration_Get8361TableLength(void)
+uint16_t Calibration_GetADL8361TableLength(void)
 {
-    return AD_8361_TABLE_LENGTH;
+    return ADL8361_TABLE_LENGTH;
 }
 
 /**
- * @brief  使用 AD8361 校准表将 ADC/mV 采样值换算为 dBm
+ * @brief  获取 ADL8317 反向校准表长度
+ *
+ * @return 表项数量，单位：个
+ */
+uint16_t Calibration_GetADL8317TableLength(void)
+{
+    return ADL8317_TABLE_LENGTH;
+}
+
+/**
+ * @brief  使用 ADL8361 正向校准表将 ADC/mV 采样值换算为 dBm
  *
  * @param value      当前 ADC/mV 采样值
  * @param offset_db  外部链路补偿，单位 dB
@@ -244,13 +290,34 @@ uint16_t Calibration_Get8361TableLength(void)
  *
  * @return true 换算成功，false 参数错误或表无效
  */
-bool Calibration_8361AdcToDbm(uint16_t value,
-                              float offset_db,
-                              float* out_dbm)
+bool Calibration_ADL8361AdcToDbm(uint16_t value,
+                                 float offset_db,
+                                 float* out_dbm)
 {
-    return Calibration_AdcToDbm(ad_8361_mv_adc,
-                                ad_8361_dbmX10,
-                                AD_8361_TABLE_LENGTH,
+    return Calibration_AdcToDbm(ad_adl8361_mv_adc,
+                                ad_adl8361_dbmX10,
+                                ADL8361_TABLE_LENGTH,
+                                value,
+                                offset_db,
+                                out_dbm);
+}
+
+/**
+ * @brief  使用 ADL8317 反向校准表将 ADC/mV 采样值换算为 dBm
+ *
+ * @param value      当前 ADC/mV 采样值
+ * @param offset_db  外部链路补偿，单位 dB
+ * @param out_dbm    输出功率，单位 dBm
+ *
+ * @return true 换算成功，false 参数错误或表无效
+ */
+bool Calibration_ADL8317AdcToDbm(uint16_t value,
+                                 float offset_db,
+                                 float* out_dbm)
+{
+    return Calibration_AdcToDbm(ad_adl8317_mv_adc,
+                                ad_adl8317_dbmX10,
+                                ADL8317_TABLE_LENGTH,
                                 value,
                                 offset_db,
                                 out_dbm);

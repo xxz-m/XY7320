@@ -63,6 +63,8 @@ void AdcService::SetScopeMode(ScopeMode_t mode)
 void AdcService::StartTaskA()
 {
     mode_ = Mode::TaskA;
+    m_dmrPowerMeasurement.Reset();
+    m_dmrPowerData = {};
 
     BspAdc_Stop();
     BspAdc_Start();
@@ -147,16 +149,35 @@ void AdcService::ProcessTaskA()
         scope.TickLoop400_450(m_snapshot[0], m_snapshot[1],
                               m_snapshot[2], m_snapshot[3]);
         m_filteredResult = scope.getResult();
+        m_dmrPowerMeasurement.Update(m_filteredResult.wavePEP1_avg,
+                                     m_filteredResult.wavePEP2_avg,
+                                     m_filteredResult.wavePEP3_avg,
+                                     m_filteredResult.wavePEP4_avg,
+                                     HAL_GetTick(),
+                                     &m_dmrPowerData);
     }
 
     /* 3) 日志降频：每 40 帧打印一次 */
     if (++log_div >= 40u) {
         log_div = 0;
-        LOG_Printf("AdcTaskA,Raw,Fil,%u,%u,%u,%u\n",
-                   m_filteredResult.wavePEP1_avg,
-                   m_filteredResult.wavePEP2_avg,
-                   m_filteredResult.wavePEP3_avg,
-                   m_filteredResult.wavePEP4_avg);
+        LOG_Printf("AdcTaskA,DMR,adc,%u,%u,%u,%u,dbmX100,%d,%d,%d,%d,uw,%lu,%lu,%lu,%lu,pepUw,%lu,%lu,%lu,%lu,valid,%u\n",
+                   m_dmrPowerData.p1v_413,
+                   m_dmrPowerData.p2v_413,
+                   m_dmrPowerData.p1v_457,
+                   m_dmrPowerData.p2v_457,
+                   m_dmrPowerData.dbm1_x100_413,
+                   m_dmrPowerData.dbm2_x100_413,
+                   m_dmrPowerData.dbm1_x100_457,
+                   m_dmrPowerData.dbm2_x100_457,
+                   (unsigned long)m_dmrPowerData.w1x_uw_413,
+                   (unsigned long)m_dmrPowerData.w2x_uw_413,
+                   (unsigned long)m_dmrPowerData.w1x_uw_457,
+                   (unsigned long)m_dmrPowerData.w2x_uw_457,
+                   (unsigned long)m_dmrPowerData.w1x_uw_pep_413,
+                   (unsigned long)m_dmrPowerData.w2x_uw_pep_413,
+                   (unsigned long)m_dmrPowerData.w1x_uw_pep_457,
+                   (unsigned long)m_dmrPowerData.w2x_uw_pep_457,
+                   m_dmrPowerData.valid ? 1u : 0u);
     }
 }
 

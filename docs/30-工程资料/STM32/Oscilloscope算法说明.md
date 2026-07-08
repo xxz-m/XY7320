@@ -7,20 +7,24 @@ tags:
 status: active
 ---
 
-# Oscilloscope 算法说明 — waveLimitFilter
+# Oscilloscope 滤波策略说明 — waveLimitFilter
+
+> **关于本文件名**：文件名保留 `Oscilloscope算法说明.md` 是历史约定，多份外部文档（项目总览、首页、文档地图、工程资料总览、开发日志、校准与测量链路总览）均已通过此路径建立双链，**不轻易改名**。
+> 
+> **关于本文档定位**：本文内容是 `Oscilloscope` 模块的**滤波策略与工程实现说明**，不是某种"自研算法"的算法论文。`waveLimitFilter` 的真实身份是"迭代斩波 + 截尾均值 + 跨帧状态机"的工程组合，每一项都是 DSP 基础操作 + 项目工程增量的叠加。
 
 ## 1. 文档目的
 
 帮助维护者理解 `Domain/filter/Oscilloscope.cpp` 中 `waveLimitFilter` 的真实执行流程，纠正两种常见误解：
 
-- ❌ “先排序后丢掉小于平均的点”—— **错**。本算法不排序。
-- ❌ “加权平均”—— **错**。所有点权重相同，是普通算术平均。
+- ❌ "先排序后丢掉小于平均的点"——**错**。本算法不排序。
+- ❌ "加权平均"——**错**。所有点权重相同，是普通算术平均。
 
 本文档配套 `docs/30-工程资料/STM32/waveLimitFilter动画.html` 使用。
 
 ---
 
-## 2. 算法核心一句话
+## 2. 核心策略一句话
 
 > **斩波迭代 → 排序 → 截尾 → 算术平均**
 
@@ -28,7 +32,7 @@ status: active
 
 ---
 
-## 3. 完整算法流程（伪代码）
+## 3. 完整流程（伪代码）
 
 ```cpp
 templen = len;
@@ -56,6 +60,8 @@ return select_sort(in, templen)     // ← 第 2+3+4 步：排序+截尾+平均
 ---
 
 ## 4. 四步详解
+
+> 本节是 `waveLimitFilter` 主流程，**不**是项目自研算法。它是"迭代斩波 + 截尾均值"两项 DSP 基础操作的工程组合。`waveLimitFilter_x` 是在此基础上叠加跨帧状态机的工程增量（见 7.2 节）。
 
 ### 第 1 步：斩波迭代（核心：阈值逐步抬升）
 
@@ -234,4 +240,4 @@ ModeManager::Task_ModeManager (1ms Tick)
 - `Domain/filter/Oscilloscope.h` — 接口定义
 - `Domain/filter/Oscilloscope.cpp` — 算法实现
 - `docs/30-工程资料/STM32/Oscilloscope接入方案.md` — AdcService 接入方案
-- `docs/30-工程资料/STM32/waveLimitFilter动画.html` — 算法可视化动画
+- `docs/30-工程资料/STM32/waveLimitFilter动画.html` — 流程可视化动画

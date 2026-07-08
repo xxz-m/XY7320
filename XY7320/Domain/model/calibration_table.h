@@ -32,14 +32,21 @@ bool Calibration_5906AdcToDbm(uint16_t value,
 #endif
 
 #if CALIB_ENABLE_DMR_TABLE
-/* DMR：AD8361 功率检测芯片校准表 */
-extern const uint16_t ad_8361_mv_adc[];
-extern const int16_t ad_8361_dbmX10[];
+/* DMR：ADL8361 正向功率检测芯片校准表 */
+extern const uint16_t ad_adl8361_mv_adc[];
+extern const int16_t ad_adl8361_dbmX10[];
+/* DMR：ADL8317 反向功率检测芯片校准表 */
+extern const uint16_t ad_adl8317_mv_adc[];
+extern const int16_t ad_adl8317_dbmX10[];
 
-uint16_t Calibration_Get8361TableLength(void);
-bool Calibration_8361AdcToDbm(uint16_t value,
-                              float offset_db,
-                              float* out_dbm);
+uint16_t Calibration_GetADL8361TableLength(void);
+uint16_t Calibration_GetADL8317TableLength(void);
+bool Calibration_ADL8361AdcToDbm(uint16_t value,
+                                 float offset_db,
+                                 float* out_dbm);
+bool Calibration_ADL8317AdcToDbm(uint16_t value,
+                                 float offset_db,
+                                 float* out_dbm);
 #endif
 
 bool Calibration_AdcToDbm(const uint16_t ad_table[],

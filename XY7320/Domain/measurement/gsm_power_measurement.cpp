@@ -28,7 +28,7 @@ int16_t DbmToX100(float dbm)
 }
 } // namespace
 
-void GsmPowerMeasurement::Reset()
+void GSMPowerMeasurement::Reset()
 {
     hasValidSignal_ = false;
     lastValidTimeMs_ = 0;
@@ -40,7 +40,7 @@ void GsmPowerMeasurement::Reset()
     pepW2xUw_ = 0;
 }
 
-bool GsmPowerMeasurement::Update(uint16_t p1v,
+bool GSMPowerMeasurement::Update(uint16_t p1v,
                                  uint16_t p2v,
                                  uint32_t now_ms,
                                  GsmPowerData_t* out)

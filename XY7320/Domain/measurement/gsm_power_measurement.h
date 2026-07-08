@@ -47,7 +47,7 @@ typedef struct
  *   4. 在短时间掉信号时保持上一次有效功率，避免显示闪烁。
  *   5. 维护 PEP 峰值功率。
  */
-class GsmPowerMeasurement {
+class GSMPowerMeasurement {
 public:
     /**
      * @brief 清空保持状态和 PEP 峰值
