@@ -122,7 +122,7 @@ EPaneCard {
                     persistentSelection: true
                     wrapMode: TextEdit.WrapAnywhere
                     textFormat: TextEdit.RichText
-                    text: root.buildDisplayRichText(root.recordModel ? root.recordModel.displayRichText : "")
+                    text: root.recordModel ? root.buildDisplayRichText(root.recordModel.displayRichText) : ""
                     color: root.theme.textColor
                     selectedTextColor: root.theme.isDark ? "#0F172A" : "#FFFFFF"
                     selectionColor: root.theme.focusColor
@@ -130,6 +130,53 @@ EPaneCard {
                     font.pixelSize: root.terminalFontSize
 
                     onTextChanged: if (root.autoScroll) Qt.callLater(() => recordFlickable.contentY = Math.max(0, recordFlickable.contentHeight - recordFlickable.height))
+
+                    function appendDelta(delta) {
+                        if (!delta || delta.length === 0)
+                            return
+                        const prefix = receiveTextEdit.length === 0 ? "" : "<br/>"
+                        // 直接修改 text 末尾，避免整段重排；保留 selection 让用户能继续复制。
+                        const cursor = receiveTextEdit.cursorPosition
+                        const anchor = receiveTextEdit.selectionStart
+                        const selectionLength = receiveTextEdit.selectionEnd - anchor
+                        receiveTextEdit.insert(receiveTextEdit.length, prefix + delta)
+                        receiveTextEdit.cursorPosition = cursor
+                        if (selectionLength > 0) {
+                            receiveTextEdit.selectionStart = anchor
+                            receiveTextEdit.selectionEnd = anchor + selectionLength
+                        }
+                    }
+
+                    function rebuildFromModel() {
+                        if (!root.recordModel) {
+                            receiveTextEdit.text = ""
+                            return
+                        }
+                        receiveTextEdit.text = root.buildDisplayRichText(root.recordModel.displayRichText)
+                    }
+
+                    Connections {
+                        target: root.recordModel
+                        function onPendingRichTextChanged() {
+                            if (!root.recordModel)
+                                return
+                            receiveTextEdit.appendDelta(root.buildDisplayRichText(root.recordModel.pendingRichText))
+                        }
+                        function onDisplayRichTextChanged() {
+                            receiveTextEdit.rebuildFromModel()
+                        }
+                    }
+
+                    Connections {
+                        target: root
+                        function onHexDisplayChanged() { receiveTextEdit.rebuildFromModel() }
+                        function onTimestampEnabledChanged() { receiveTextEdit.rebuildFromModel() }
+                        function onKeywordHighlightChanged() { receiveTextEdit.rebuildFromModel() }
+                        function onHighlightCaseSensitiveChanged() { receiveTextEdit.rebuildFromModel() }
+                        function onHighlightRegexChanged() { receiveTextEdit.rebuildFromModel() }
+                        function onKeywordTextChanged() { receiveTextEdit.rebuildFromModel() }
+                        function onRecordModelChanged() { receiveTextEdit.rebuildFromModel() }
+                    }
                 }
 
                 Text {

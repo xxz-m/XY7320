@@ -79,6 +79,9 @@ QStringList splitKeywords(const QString& keywordText)
 ConsoleRecordModel::ConsoleRecordModel(QObject* parent)
     : QAbstractListModel(parent)
 {
+    m_flushTimer.setSingleShot(true);
+    m_flushTimer.setInterval(60);
+    connect(&m_flushTimer, &QTimer::timeout, this, &ConsoleRecordModel::flushPending);
 }
 
 int ConsoleRecordModel::rowCount(const QModelIndex& parent) const
@@ -142,6 +145,11 @@ QString ConsoleRecordModel::displayRichText() const
     return m_displayRichText;
 }
 
+QString ConsoleRecordModel::pendingRichText() const
+{
+    return m_pendingRichText;
+}
+
 void ConsoleRecordModel::appendReceive(const QDateTime& timestamp,
                                        const QByteArray& data,
                                        const QString& text,
@@ -171,7 +179,10 @@ void ConsoleRecordModel::setTimeFormat(const QString& timeFormat)
     m_timeFormat = nextFormat;
     if (!m_records.isEmpty()) {
         Q_EMIT dataChanged(index(0, 0), index(m_records.size() - 1, 0), {RecordTimeRole});
+        m_flushTimer.stop();
+        m_pendingRichText.clear();
         rebuildDisplayText();
+        Q_EMIT displayRichTextChanged();
     }
 }
 
@@ -192,30 +203,39 @@ void ConsoleRecordModel::setDisplayFilter(bool enabled,
     m_filterKeywords = nextKeywords;
     m_filterCaseSensitive = caseSensitive;
     m_filterRegexEnabled = regexEnabled;
+    m_flushTimer.stop();
+    m_pendingRichText.clear();
     rebuildDisplayText();
+    Q_EMIT displayRichTextChanged();
 }
 
 void ConsoleRecordModel::clear()
 {
     if (m_records.isEmpty())
         return;
+    m_flushTimer.stop();
     beginResetModel();
     m_records.clear();
     m_displayText.clear();
     m_displayRichText.clear();
+    m_pendingRichText.clear();
     endResetModel();
     Q_EMIT displayTextChanged();
+    Q_EMIT displayRichTextChanged();
+    Q_EMIT pendingRichTextChanged();
 }
 
 void ConsoleRecordModel::appendRecord(ConsoleRecord record)
 {
     record.id = m_nextId++;
+    if (!record.timestamp.isValid())
+        record.timestamp = QDateTime::currentDateTime();
     const int row = m_records.size();
     beginInsertRows(QModelIndex(), row, row);
     m_records.append(std::move(record));
     endInsertRows();
     enforceLimit();
-    rebuildDisplayText();
+    scheduleFlush();
 }
 
 void ConsoleRecordModel::enforceLimit()
@@ -241,26 +261,8 @@ void ConsoleRecordModel::rebuildDisplayText()
         const QString time = record.timestamp.toString(m_timeFormat);
         const QString payload = record.text.isEmpty() ? record.hexText : record.text;
 
-        if (m_filterEnabled && !m_filterKeywords.isEmpty()) {
-            bool matched = false;
-            for (const QString& keyword : m_filterKeywords) {
-                if (m_filterRegexEnabled) {
-                    QRegularExpression::PatternOptions options = QRegularExpression::NoPatternOption;
-                    if (!m_filterCaseSensitive)
-                        options |= QRegularExpression::CaseInsensitiveOption;
-                    const QRegularExpression regex(keyword, options);
-                    if (regex.isValid() && regex.match(payload).hasMatch()) {
-                        matched = true;
-                        break;
-                    }
-                } else if (payload.contains(keyword, m_filterCaseSensitive ? Qt::CaseSensitive : Qt::CaseInsensitive)) {
-                    matched = true;
-                    break;
-                }
-            }
-            if (!matched)
-                continue;
-        }
+        if (!matchesFilter(payload))
+            continue;
 
         const QString color = directionColor(record.direction, record.isError);
         const QString icon = directionIcon(record.direction);
@@ -279,4 +281,76 @@ void ConsoleRecordModel::rebuildDisplayText()
     m_displayText = plainLines.join(QLatin1Char('\n'));
     m_displayRichText = richLines.join(QStringLiteral("<br/>"));
     Q_EMIT displayTextChanged();
+}
+
+QString ConsoleRecordModel::formatRichLine(const ConsoleRecord& record) const
+{
+    const QString direction = record.direction.toUpper();
+    const QString time = record.timestamp.toString(m_timeFormat);
+    const QString payload = record.text.isEmpty() ? record.hexText : record.text;
+    const QString color = directionColor(record.direction, record.isError);
+    const QString icon = directionIcon(record.direction);
+
+    return QStringLiteral("<span class=\"time\">[%1]</span> "
+                          "<span style=\"color:%2; font-weight:700;\">%3 %4</span> "
+                          "<span>%5</span>")
+        .arg(escapeHtml(time),
+             color,
+             escapeHtml(icon),
+             escapeHtml(direction),
+             highlightNumbers(escapeHtml(payload)));
+}
+
+bool ConsoleRecordModel::matchesFilter(const QString& payload) const
+{
+    if (!m_filterEnabled || m_filterKeywords.isEmpty())
+        return true;
+    for (const QString& keyword : m_filterKeywords) {
+        if (m_filterRegexEnabled) {
+            QRegularExpression::PatternOptions options = QRegularExpression::NoPatternOption;
+            if (!m_filterCaseSensitive)
+                options |= QRegularExpression::CaseInsensitiveOption;
+            const QRegularExpression regex(keyword, options);
+            if (regex.isValid() && regex.match(payload).hasMatch())
+                return true;
+        } else if (payload.contains(keyword, m_filterCaseSensitive ? Qt::CaseSensitive : Qt::CaseInsensitive)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void ConsoleRecordModel::scheduleFlush()
+{
+    if (!m_flushTimer.isActive())
+        m_flushTimer.start();
+}
+
+void ConsoleRecordModel::flushPending()
+{
+    if (m_records.isEmpty()) {
+        m_pendingRichText.clear();
+        Q_EMIT pendingRichTextChanged();
+        return;
+    }
+
+    const int firstDirty = qMax(0, m_records.size() - 64); // 兜底窗口：最多重建 64 行
+    QStringList pending;
+    pending.reserve(m_records.size() - firstDirty);
+    for (int i = firstDirty; i < m_records.size(); ++i) {
+        const ConsoleRecord& record = m_records.at(i);
+        const QString payload = record.text.isEmpty() ? record.hexText : record.text;
+        if (!matchesFilter(payload))
+            continue;
+        pending.append(formatRichLine(record));
+    }
+
+    // 始终追加显示尾段（双缓冲：保留全量副本，仅发送增量尾巴给 QML）
+    const QString delta = pending.join(QStringLiteral("<br/>"));
+    if (delta.isEmpty()) {
+        m_pendingRichText.clear();
+    } else {
+        m_pendingRichText = delta;
+    }
+    Q_EMIT pendingRichTextChanged();
 }

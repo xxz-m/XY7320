@@ -11,6 +11,7 @@
 #include <QDateTime>
 #include <QString>
 #include <QStringList>
+#include <QTimer>
 #include <QVector>
 
 /**
@@ -34,7 +35,8 @@ class ConsoleRecordModel final : public QAbstractListModel
 {
     Q_OBJECT
     Q_PROPERTY(QString displayText READ displayText NOTIFY displayTextChanged)
-    Q_PROPERTY(QString displayRichText READ displayRichText NOTIFY displayTextChanged)
+    Q_PROPERTY(QString displayRichText READ displayRichText NOTIFY displayRichTextChanged)
+    Q_PROPERTY(QString pendingRichText READ pendingRichText NOTIFY pendingRichTextChanged)
 
 public:
     enum Role {
@@ -57,6 +59,7 @@ public:
     [[nodiscard]] QHash<int, QByteArray> roleNames() const override;
     [[nodiscard]] QString displayText() const;
     [[nodiscard]] QString displayRichText() const;
+    [[nodiscard]] QString pendingRichText() const;
 
     void appendReceive(const QDateTime& timestamp, const QByteArray& data, const QString& text, const QString& hexText);
     void appendTransmit(const QDateTime& timestamp, const QByteArray& data, const QString& text, const QString& hexText);
@@ -71,22 +74,30 @@ public:
 
 signals:
     void displayTextChanged();
+    void displayRichTextChanged();
+    void pendingRichTextChanged();
 
 private:
     void appendRecord(ConsoleRecord record);
     void enforceLimit();
     void rebuildDisplayText();
+    void scheduleFlush();
+    void flushPending();
+    QString formatRichLine(const ConsoleRecord& record) const;
+    bool matchesFilter(const QString& payload) const;
 
     QVector<ConsoleRecord> m_records;
     QString m_timeFormat = QStringLiteral("HH:mm:ss.zzz");
     QString m_displayText;
     QString m_displayRichText;
+    QString m_pendingRichText;
     QStringList m_filterKeywords;
     bool m_filterEnabled = false;
     bool m_filterCaseSensitive = false;
     bool m_filterRegexEnabled = false;
     quint64 m_nextId = 1;
     int m_maxRecords = 5000;
+    QTimer m_flushTimer;
 };
 
 #endif

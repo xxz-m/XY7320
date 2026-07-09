@@ -69,10 +69,10 @@ void ConsoleController::appendReceivedBytes(const QByteArray& data)
     m_rxBytes += static_cast<qulonglong>(data.size());
     Q_EMIT statisticsChanged();
 
-    if (m_pendingData.isEmpty())
-        m_pendingTimestamp = QDateTime::currentDateTime();
-
     for (char byte : data) {
+        if (m_pendingData.isEmpty())
+            m_pendingTimestamp = QDateTime::currentDateTime();
+
         m_pendingData.append(byte);
         if (byte == '\n') {
             const QByteArray recordData = m_pendingData;
@@ -109,7 +109,8 @@ void ConsoleController::commitRecord(const QByteArray& data, const QDateTime& ti
         const TextCodec::Encoding encoding = TextCodec::encodingFromName(m_settingsManager ? m_settingsManager->receiveEncoding() : QString());
         const auto invalidPolicy = static_cast<TextCodec::InvalidBytePolicy>(m_settingsManager ? m_settingsManager->invalidBytePolicy() : 0);
         const QString text = TextCodec::decodeText(data, encoding, invalidPolicy).trimmed();
-        m_recordModel->appendReceive(timestamp, data, text, TextCodec::formatHex(data));
+        const QDateTime recordTimestamp = timestamp.isValid() ? timestamp : QDateTime::currentDateTime();
+        m_recordModel->appendReceive(recordTimestamp, data, text, TextCodec::formatHex(data));
     }
     Q_EMIT statisticsChanged();
 }

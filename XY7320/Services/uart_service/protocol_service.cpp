@@ -27,21 +27,22 @@ void ProtocolService::Init()
 }
 void ProtocolService::Update()
 {
-    if (!BspUartRcv_IsFrameReady()) {
+    BspUartRcv_t *upgradeRcv = BspUartRcv_GetUpgrade();
+    if (!BspUartRcv_IsFrameReady(upgradeRcv)) {
         return;
     }
 
-    uint16_t len = BspUartRcv_GetFrameLength();
+    uint16_t len = BspUartRcv_GetFrameLength(upgradeRcv);
     if (len == 0 || len > sizeof(m_rxChunk)) {
         /* 单次突发帧不应超过单 chunk；超长帧属异常（协议帧最长 256B），
          * 直接清标志丢弃，避免后续解析时越界覆盖 m_streamBuf。 */
-        BspUartRcv_ClearFlag();
+        BspUartRcv_ClearFlag(upgradeRcv);
         return;
     }
-    BspUartRcv_CopyFrame(m_rxChunk);
+    BspUartRcv_CopyFrame(upgradeRcv, m_rxChunk);
 
     /* 必须先复制再清标志，否则接收层可能复用当前帧缓冲。 */
-    BspUartRcv_ClearFlag();
+    BspUartRcv_ClearFlag(upgradeRcv);
 
     AppendInput(m_rxChunk, len);
     ProcessStream();
@@ -189,6 +190,6 @@ void ProtocolService::SendPacket(uint8_t cmd, const uint8_t *data, uint8_t data_
 
     uint16_t send_len = Protocol::EncodePacket(&txPacket, m_txBuf);
     if (send_len > 0) {
-        BspUartRcv_SendAck(m_txBuf, send_len);
+        BspUartRcv_SendAck(BspUartRcv_GetUpgrade(), m_txBuf, send_len);
     }
 }

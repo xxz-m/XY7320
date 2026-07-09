@@ -23,7 +23,9 @@ constexpr uint8_t PROTOCOL_UPGRADE_REQUEST_LEN = 13U;
 
 /** DMA 接收缓冲区，由 BspUartRcv 模块直接写入 */
 constexpr uint16_t UART_DMA_BUF_SIZE = 256U;
+constexpr uint16_t UART_PROC_BUF_SIZE = 256U;
 uint8_t s_dma_rx_buf[UART_DMA_BUF_SIZE];
+uint8_t s_proc_rx_buf[UART_PROC_BUF_SIZE];
 }
 
 UpdateService& UpdateService::Instance()
@@ -48,12 +50,18 @@ void UpdateService::Init()
     /* 1. 清空本地缓冲（保留成员，避免后续接口调整引起布局变化） */
     memset(m_rxBuf, 0, sizeof(m_rxBuf));
 
-    /* 2. 初始化串口 DMA 接收（绑定 USART2 句柄 + DMA 缓冲区）
+    /* 2. 初始化串口 DMA 接收（绑定 USART2 句柄 + 独立实例缓冲区）
      *    硬编码 USART2：与上位机协议保持一致；如改硬件需同步 PC 工具固定码。 */
-    BspUartRcv_Init(&huart2, s_dma_rx_buf, UART_DMA_BUF_SIZE);
+    BspUartRcv_t *upgradeRcv = BspUartRcv_GetUpgrade();
+    BspUartRcv_Init(upgradeRcv,
+                    &huart2,
+                    s_dma_rx_buf,
+                    UART_DMA_BUF_SIZE,
+                    s_proc_rx_buf,
+                    UART_PROC_BUF_SIZE);
 
     /* 3. 启动 DMA 接收 + 使能 IDLE 中断，之后串口数据自动流入 */
-    BspUartRcv_Start();
+    BspUartRcv_Start(upgradeRcv);
 
     /* 4. 写 A1 为当前运行版本（标记为已下载） */
     VersionStore::Instance().WriteA1(
@@ -102,8 +110,8 @@ bool UpdateService::HandleProtocolUpgradeRequest(const uint8_t *data, uint8_t le
 
 void UpdateService::ResetToBootloaderAfterAck()
 {
-    /* 复位前清理串口状态，防止 DMA 残留导致 Bootloader 起来后首个字节错位 */
-    BspUartRcv_DeInit();
+    /* 复位前清理升级串口状态，防止 DMA 残留导致 Bootloader 起来后首个字节错位 */
+    BspUartRcv_DeInit(BspUartRcv_GetUpgrade());
 
     BspTimOs_DelayMs(50);
     BspTimOs_SystemReset();
