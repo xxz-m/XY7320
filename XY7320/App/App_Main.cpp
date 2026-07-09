@@ -16,7 +16,9 @@
 #include "task_led.h"
 #include "adc_service.h"
 #include "task_update.h"
+#include "task_gnss.h"
 #include "mode_manager.h"
+#include "gnss_service.h"
 
 /**
  * @brief 初始化所有 Services
@@ -27,7 +29,8 @@
  *  3. UpdateService 初始化协议串口 DMA 并写 A1 当前版本
  *  4. ProtocolService 初始化协议解析缓冲
  *  5. ModeManager 初始化状态机（进入 Idle）
- *  6. AdcService 放最后，确保 BSP ADC 时钟已就绪
+ *  6. AdcService 初始化采样服务
+ *  7. GnssService 初始化 USART3 GNSS DMA+IDLE 接收
  */
 extern "C" void App_Main_Init(void)
 {
@@ -40,6 +43,7 @@ extern "C" void App_Main_Init(void)
     ProtocolService::Instance().Init();
     ModeManager::Instance().Init();
     AdcService::Instance().Init();
+    GnssService::Instance().Init();
 }
 
 static void Task_ModeManager(void *arg);
@@ -50,6 +54,7 @@ static void Task_ModeManager(void *arg);
  * Priority 含义（数值越大优先级越高）：
  *  - Task_UpdateConfig        = 5（最高优先：保证协议帧及时处理）
  *  - Task_ModeManager         = 3（次高：每 1ms Tick 调度状态机）
+ *  - Task_Gnss                = 2（GNSS 串口数据拆行与解析）
  *  - Task_LED                 = 1（最低：闪烁节拍不需要严格实时）
  */
 extern "C" void App_Main_Start(void)
@@ -59,8 +64,10 @@ extern "C" void App_Main_Start(void)
     LOG_Printf("Task_LED,Create,OK\r\n");
     OS_CreateTask(Task_UpdateConfig, nullptr, 5);
     LOG_Printf("Task_UpdateConfig,Create,OK\r\n");
-    OS_CreateTask(Task_ModeManager, nullptr, 3);  // 新增
+    OS_CreateTask(Task_ModeManager, nullptr, 3);
     LOG_Printf("Task_ModeManager,Create,OK\r\n");
+    OS_CreateTask(Task_Gnss, nullptr, 2);
+    LOG_Printf("Task_Gnss,Create,OK\r\n");
 }
 
 /**

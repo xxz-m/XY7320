@@ -1,7 +1,10 @@
 /**
  * @file    bsp_uart_rcv.h
- * @brief   串口 DMA 接收模块
- *          基于 DMA + IDLE 中断实现不定长帧接收，双缓冲机制
+ * @brief   可实例化 UART DMA + IDLE 接收 BSP 模块
+ *
+ *          本模块只负责把 UART DMA 接收到的一段原始字节安全搬运到处理缓冲，
+ *          不理解上层协议语义。每一路 UART 需要独立的 BspUartRcv_t 上下文，
+ *          避免多个串口复用时互相覆盖状态。
  */
 
 #ifndef XY7320_BSP_UART_RCV_H
@@ -16,62 +19,100 @@ extern "C" {
 #endif
 
 /**
- * @brief  初始化串口 DMA 接收
- * @param  huart  串口句柄（由 CubeMX 生成，如 &huart2）
- * @param  buf    DMA 接收缓冲区（调用方分配）
- * @param  size   缓冲区大小（字节）
- */
-void BspUartRcv_Init(UART_HandleTypeDef *huart, uint8_t *buf, uint16_t size);
-
-/** 启动 DMA 接收 + 使能 IDLE 中断 */
-void BspUartRcv_Start(void);
-
-/**
- * @brief  反初始化串口 DMA 接收
+ * @brief  UART DMA + IDLE 接收实例上下文
  *
- * 停止 DMA、禁用 IDLE 中断、DeInit UART。
- * 用于系统复位前清理串口状态，确保 Bootloader 启动时串口干净。
+ * @note   调用方负责提供 dmaBuf/procBuf 的静态存储空间，BSP 只保存指针。
+ *         dmaBuf 由 DMA 写入；procBuf 保存最近一次 IDLE 分段后的数据副本。
  */
-void BspUartRcv_DeInit(void);
+typedef struct {
+    UART_HandleTypeDef *huart;        /**< 绑定的 UART 句柄 */
+    uint8_t *dmaBuf;                  /**< DMA 接收缓冲 */
+    uint16_t dmaBufSize;              /**< DMA 接收缓冲大小 */
+    uint8_t *procBuf;                 /**< 处理缓冲，主循环从这里复制数据 */
+    uint16_t procBufSize;             /**< 处理缓冲大小 */
+    volatile uint16_t frameLen;       /**< 当前可取数据长度 */
+    volatile bool frameReady;         /**< 数据就绪标志 */
+    volatile bool overflow;           /**< 上一段未取走时新数据到达 */
+} BspUartRcv_t;
 
-/** 是否有完整帧到达 */
-bool BspUartRcv_IsFrameReady(void);
+/** 获取升级串口接收实例（当前绑定 USART2）。 */
+BspUartRcv_t *BspUartRcv_GetUpgrade(void);
 
-/** 获取当前帧长度 */
-uint16_t BspUartRcv_GetFrameLength(void);
+/** 获取 GNSS/传感器串口接收实例（预留给 USART3）。 */
+BspUartRcv_t *BspUartRcv_GetGnss(void);
 
 /**
- * @brief  将帧数据拷贝到外部缓冲区
- * @param  dst  目标缓冲区（调用方确保容量 >= 帧长度）
+ * @brief  初始化 UART DMA 接收实例
+ * @param  ctx          接收实例上下文
+ * @param  huart        UART 句柄（由 CubeMX 生成，如 &huart2）
+ * @param  dmaBuf       DMA 接收缓冲区（调用方分配）
+ * @param  dmaBufSize   DMA 接收缓冲区大小
+ * @param  procBuf      处理缓冲区（调用方分配）
+ * @param  procBufSize  处理缓冲区大小
  */
-void BspUartRcv_CopyFrame(uint8_t *dst);
+void BspUartRcv_Init(BspUartRcv_t *ctx,
+                     UART_HandleTypeDef *huart,
+                     uint8_t *dmaBuf,
+                     uint16_t dmaBufSize,
+                     uint8_t *procBuf,
+                     uint16_t procBufSize);
 
-/** 清除帧就绪标志（必须在取走帧数据后调用） */
-void BspUartRcv_ClearFlag(void);
+/** 启动指定实例的 DMA 接收 + IDLE 中断。 */
+void BspUartRcv_Start(BspUartRcv_t *ctx);
+
+/** 停止指定实例的 DMA 接收并清空状态。 */
+void BspUartRcv_DeInit(BspUartRcv_t *ctx);
+
+/** 指定实例是否有数据段到达。 */
+bool BspUartRcv_IsFrameReady(const BspUartRcv_t *ctx);
+
+/** 获取指定实例当前数据段长度。 */
+uint16_t BspUartRcv_GetFrameLength(const BspUartRcv_t *ctx);
+
+/**
+ * @brief  将指定实例的数据段拷贝到外部缓冲区
+ * @param  ctx  接收实例上下文
+ * @param  dst  目标缓冲区（调用方确保容量 >= frameLen）
+ */
+void BspUartRcv_CopyFrame(const BspUartRcv_t *ctx, uint8_t *dst);
+
+/** 清除指定实例的数据就绪标志（必须在取走数据后调用）。 */
+void BspUartRcv_ClearFlag(BspUartRcv_t *ctx);
+
+/** 查询并清除溢出状态。 */
+bool BspUartRcv_TakeOverflow(BspUartRcv_t *ctx);
 
 /**
  * @brief  发送应答数据（阻塞）
+ * @param  ctx   接收实例上下文，用于确定发送 UART
  * @param  data  应答数据
  * @param  len   数据长度
  */
-void BspUartRcv_SendAck(const uint8_t *data, uint16_t len);
+void BspUartRcv_SendAck(BspUartRcv_t *ctx, const uint8_t *data, uint16_t len);
 
 /**
  * @brief  直接发送应答（绕过 HAL 状态机）
  *
- * 用于 DMA 接收模式下需要发送数据的场景。
- * 内部会停止 DMA、禁用中断，然后用寄存器直接发送。
+ * 用于 DMA 接收模式下 HAL 状态机异常的兜底场景。内部会停止 DMA、
+ * 禁用 IDLE/RXNE 中断，然后用寄存器直接发送。
  *
+ * @param  ctx   接收实例上下文，用于确定发送 UART
  * @param  data  应答数据
  * @param  len   数据长度
  */
-void BspUartRcv_SendAckDirect(const uint8_t *data, uint16_t len);
+void BspUartRcv_SendAckDirect(BspUartRcv_t *ctx, const uint8_t *data, uint16_t len);
 
 /**
- * USART IDLE 中断处理入口
- * 在 stm32f4xx_it.c 的 USART2_IRQHandler 中调用
+ * @brief  UART IDLE 中断处理入口
+ *
+ * @warning 必须在对应 UART 的中断服务函数中被调用，且 huart 必须与 ctx 绑定同一实例。
+ *          函数内会调用 HAL_UART_DMAStop 并立刻重启 DMA，不要在任务上下文调用。
+ *          不要在本函数内执行日志、协议解析或任何阻塞操作。
+ *
+ * @param  ctx    接收实例上下文
+ * @param  huart  当前 IRQ 对应的 UART 句柄
  */
-void BspUartRcv_HandleIdleIrq(UART_HandleTypeDef *huart);
+void BspUartRcv_HandleIdleIrq(BspUartRcv_t *ctx, UART_HandleTypeDef *huart);
 
 #ifdef __cplusplus
 }

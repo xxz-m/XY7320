@@ -70,6 +70,7 @@ include_directories(Core/Inc Drivers/STM32F4xx_HAL_Driver/Inc Drivers/STM32F4xx_
     Services/report
     Services/led_service
     Services/upgrade
+    Services/gnss_service
 
     # Domain 层 - 领域算法与模型
     Domain/filter

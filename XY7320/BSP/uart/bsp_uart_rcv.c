@@ -1,225 +1,235 @@
 /**
  * @file    bsp_uart_rcv.c
- * @brief   串口 DMA 接收模块实现
+ * @brief   可实例化 UART DMA + IDLE 接收 BSP 模块实现
  *
  * 工作原理：
- * 1. 使用 DMA 自动接收串口数据，不占用 CPU
- * 2. 利用 IDLE 中断检测"一帧数据接收完成"
- *    - 当串口一段时间没收到新数据，触发 IDLE 中断
- *    - 这表示上位机发完了一帧，中间没有断开
- * 3. 在中断中计算接收长度，拷贝到内部缓冲，置标志
- * 4. 主循环轮询检查标志，取走数据进行处理
+ * 1. 每一路 UART 使用独立 BspUartRcv_t 上下文保存句柄、DMA 缓冲和状态。
+ * 2. DMA 自动接收串口数据，不占用逐字节中断。
+ * 3. UART IDLE 中断表示当前串口出现空闲间隔，BSP 将这一段原始字节复制到处理缓冲。
+ * 4. 上层服务周期性取走 chunk，并按自己的协议继续拆帧。
  *
- * 为什么用双缓冲：
- * - s_rx_buf：DMA 直接写入的缓冲区，中断中会被覆盖
- * - s_proc_buf：内部备份缓冲，主循环可以安全读取
- * - 这样主循环处理数据时，DMA 可以继续接收下一帧
+ * 注意：IDLE chunk 不等价于完整业务帧。NMEA、主协议等流式协议应在 Service/Domain 层继续拼流解析。
  */
 
 #include "bsp_uart_rcv.h"
 #include <string.h>
 
-/* 接收缓冲区由调用方提供（在 UpdateService 中分配），DMA 直接写入 */
-static uint8_t *s_rx_buf = NULL;
-static uint16_t s_rx_buf_size = 0;
+/* BSP 层只保存 UART 接收实例，不理解升级协议或 GNSS 协议语义。
+ * 每个实例独立绑定 UART/DMA/缓冲区，避免多串口复用时互相覆盖状态。 */
+static BspUartRcv_t s_upgradeUartRcv;
+static BspUartRcv_t s_gnssUartRcv;
 
-/* 内部状态 */
-static uint8_t s_proc_buf[256];               ///< 帧拷贝缓冲，主循环从这里读数据
-static volatile uint16_t s_frame_len = 0;    ///< 这次 UART 新收到的原始字节长度
-static volatile bool s_frame_ready = false;  ///< 帧就绪标志，有一段新的 UART 原始字节可取
-static volatile bool s_overflow = false;     ///< 溢出标志，上一帧还没取走又来了新帧
-static UART_HandleTypeDef *s_huart = NULL;
-
-/**
- * 初始化串口 DMA 接收
- *
- * @param huart  串口句柄（如 &huart2）
- * @param buf    DMA 接收缓冲区（调用方分配）
- * @param size   缓冲区大小
- */
-void BspUartRcv_Init(UART_HandleTypeDef *huart, uint8_t *buf, uint16_t size)
+BspUartRcv_t *BspUartRcv_GetUpgrade(void)
 {
-    s_huart = huart;
-    s_rx_buf = buf;
-    s_rx_buf_size = size;
-    s_frame_ready = false;
-    s_overflow = false;
-    s_frame_len = 0;
+    return &s_upgradeUartRcv;
 }
 
-/**
- * 启动 DMA 接收 + 使能 IDLE 中断
- *
- * 调用后，DMA 会自动把串口数据写入 s_rx_buf
- * 当串口空闲时，触发 IDLE 中断
- */
-void BspUartRcv_Start(void)
+BspUartRcv_t *BspUartRcv_GetGnss(void)
 {
-    s_frame_ready = false;
-    s_overflow = false;
-    s_frame_len = 0;
-
-    /* 启动 DMA 接收，DMA 自动把串口数据搬到 s_rx_buf */
-    (void)HAL_UART_Receive_DMA(s_huart, s_rx_buf, s_rx_buf_size);
-
-    /* 使能 IDLE 中断：当串口空闲时触发，表示一帧接收完成 */
-    __HAL_UART_ENABLE_IT(s_huart, UART_IT_IDLE);
+    return &s_gnssUartRcv;
 }
 
-/**
- * 反初始化串口 DMA 接收
- *
- * 停止 DMA、禁用 IDLE 中断、DeInit UART。
- * 用于系统复位前清理串口状态，确保 Bootloader 启动时串口干净。
- */
-void BspUartRcv_DeInit(void)
+void BspUartRcv_Init(BspUartRcv_t *ctx,
+                     UART_HandleTypeDef *huart,
+                     uint8_t *dmaBuf,
+                     uint16_t dmaBufSize,
+                     uint8_t *procBuf,
+                     uint16_t procBufSize)
 {
-    if (s_huart == NULL) {
+    if (ctx == NULL) {
         return;
     }
 
-    HAL_UART_DMAStop(s_huart);
-    __HAL_UART_DISABLE_IT(s_huart, UART_IT_IDLE);
-    HAL_UART_DeInit(s_huart);
-
-    s_huart = NULL;
-    s_rx_buf = NULL;
-    s_rx_buf_size = 0;
-    s_frame_ready = false;
-    s_overflow = false;
-    s_frame_len = 0;
+    ctx->huart = huart;
+    ctx->dmaBuf = dmaBuf;
+    ctx->dmaBufSize = dmaBufSize;
+    ctx->procBuf = procBuf;
+    ctx->procBufSize = procBufSize;
+    ctx->frameReady = false;
+    ctx->overflow = false;
+    ctx->frameLen = 0;
 }
 
-/** 检查是否有完整帧到达 */
-bool BspUartRcv_IsFrameReady(void)
+void BspUartRcv_Start(BspUartRcv_t *ctx)
 {
-    return s_frame_ready;
-}
-
-/** 获取当前帧长度 */
-uint16_t BspUartRcv_GetFrameLength(void)
-{
-    return s_frame_len;
-}
-
-/**
- * 将帧数据拷贝到外部缓冲区
- *
- * @param dst  目标缓冲区（调用方确保容量 >= s_frame_len）
- */
-void BspUartRcv_CopyFrame(uint8_t *dst)
-{
-    if (dst != NULL && s_frame_len > 0) {
-        memcpy(dst, s_proc_buf, s_frame_len);
-    }
-}
-
-/** 清除帧就绪标志，必须在 CopyFrame() 取走数据后调用 */
-void BspUartRcv_ClearFlag(void)
-{
-    s_frame_ready = false;
-}
-
-/**
- * 发送应答数据（阻塞）
- *
- * 使用 HAL_UART_Transmit 发送。
- * NOTE: HAL UART 句柄中 gState 管 TX、RxState 管 RX，两者独立，
- *       DMA 接收模式下阻塞发送不会干扰接收，可放心使用。
- */
-void BspUartRcv_SendAck(const uint8_t *data, uint16_t len)
-{
-    if (s_huart != NULL && data != NULL && len > 0) {
-        (void)HAL_UART_Transmit(s_huart, (uint8_t *)data, len, 100);
-    }
-}
-
-/**
- * 直接发送应答数据（绕过 HAL 状态机）
- *
- * 绕过 HAL 直接用寄存器发送。当前 HAL 版本下 SendAck 已可正常工作，
- * 此函数保留作为备用方案。
- *
- * DEPRECATED: 优先使用 BspUartRcv_SendAck()，仅在 HAL 状态机异常时使用本函数。
- * FIXME: SendAckDirect 硬编码了 DMA1_Stream5，只支持 USART2
- */
-void BspUartRcv_SendAckDirect(const uint8_t *data, uint16_t len)
-{
-    if (s_huart == NULL || data == NULL || len == 0) {
+    if (ctx == NULL || ctx->huart == NULL || ctx->dmaBuf == NULL || ctx->dmaBufSize == 0U) {
         return;
     }
 
-    USART_TypeDef *uart = s_huart->Instance;
+    ctx->frameReady = false;
+    ctx->overflow = false;
+    ctx->frameLen = 0;
 
-    /* 第一步：停止 DMA 接收（避免寄存器操作与 DMA 传输竞争） */
-    if (uart == USART2) {
-        DMA1_Stream5->CR &= ~DMA_SxCR_EN;
-        while (DMA1_Stream5->CR & DMA_SxCR_EN);
+    (void)HAL_UART_Receive_DMA(ctx->huart, ctx->dmaBuf, ctx->dmaBufSize);
+    __HAL_UART_ENABLE_IT(ctx->huart, UART_IT_IDLE);
+}
+
+void BspUartRcv_DeInit(BspUartRcv_t *ctx)
+{
+    if (ctx == NULL || ctx->huart == NULL) {
+        return;
     }
 
-    /* 第二步：禁用 USART 中断，防止发送过程中 IDLE 中断触发干扰 */
-    __HAL_UART_DISABLE_IT(s_huart, UART_IT_IDLE);
-    __HAL_UART_DISABLE_IT(s_huart, UART_IT_RXNE);
+    HAL_UART_DMAStop(ctx->huart);
+    __HAL_UART_DISABLE_IT(ctx->huart, UART_IT_IDLE);
+    HAL_UART_DeInit(ctx->huart);
 
-    /* 第三步：寄存器直接发送（不经过 HAL 状态机） */
+    ctx->huart = NULL;
+    ctx->dmaBuf = NULL;
+    ctx->dmaBufSize = 0;
+    ctx->procBuf = NULL;
+    ctx->procBufSize = 0;
+    ctx->frameReady = false;
+    ctx->overflow = false;
+    ctx->frameLen = 0;
+}
+
+bool BspUartRcv_IsFrameReady(const BspUartRcv_t *ctx)
+{
+    return (ctx != NULL) && ctx->frameReady;
+}
+
+uint16_t BspUartRcv_GetFrameLength(const BspUartRcv_t *ctx)
+{
+    return (ctx != NULL) ? ctx->frameLen : 0U;
+}
+
+void BspUartRcv_CopyFrame(const BspUartRcv_t *ctx, uint8_t *dst)
+{
+    if (ctx != NULL && dst != NULL && ctx->procBuf != NULL && ctx->frameLen > 0U) {
+        memcpy(dst, ctx->procBuf, ctx->frameLen);
+    }
+}
+
+void BspUartRcv_ClearFlag(BspUartRcv_t *ctx)
+{
+    if (ctx == NULL) {
+        return;
+    }
+
+    ctx->frameReady = false;
+    ctx->frameLen = 0;
+}
+
+bool BspUartRcv_TakeOverflow(BspUartRcv_t *ctx)
+{
+    if (ctx == NULL) {
+        return false;
+    }
+
+    const bool overflow = ctx->overflow;
+    ctx->overflow = false;
+    return overflow;
+}
+
+void BspUartRcv_SendAck(BspUartRcv_t *ctx, const uint8_t *data, uint16_t len)
+{
+    if (ctx != NULL && ctx->huart != NULL && data != NULL && len > 0U) {
+        (void)HAL_UART_Transmit(ctx->huart, (uint8_t *)data, len, 100);
+    }
+}
+
+/**
+ * @brief 绕过 HAL 直接寄存器发送
+ *
+ * @note  设计意图：当升级主协议确认 STM32 HAL 状态机异常（例如 DMA busy 卡死），
+ *        必须把当前应答送达上位机时使用。函数内会停 DMA、关 IDLE/RXNE，避免与
+ *        正在发送的字节产生竞争，然后轮询 TXE/TC 写入 DR。
+ * @warning 使用前必须评估对当前接收流程的影响：发送期间接收将暂停，发送完成后
+ *          由调用方负责重启 DMA 接收和 IDLE 中断。
+ */
+void BspUartRcv_SendAckDirect(BspUartRcv_t *ctx, const uint8_t *data, uint16_t len)
+{
+    if (ctx == NULL || ctx->huart == NULL || data == NULL || len == 0U) {
+        return;
+    }
+
+    USART_TypeDef *uart = ctx->huart->Instance;
+
+    if (ctx->huart->hdmarx != NULL && ctx->huart->hdmarx->Instance != NULL) {
+        DMA_Stream_TypeDef *stream = ctx->huart->hdmarx->Instance;
+        // 直接关闭 RX DMA，避免在我们轮询 TX 期间 DMA 还在抢总线/缓冲区
+        stream->CR &= ~DMA_SxCR_EN;
+        while (stream->CR & DMA_SxCR_EN) {
+            // 等 DMA 控制器真正停止，避免后续访问寄存器时序冲突
+        }
+    }
+
+    // 关掉 IDLE 和 RXNE：发送期间不希望被接收事件打断寄存器发送流程，
+    // 也防止 TX 期间产生的 RXNE 被当成下一帧起始
+    __HAL_UART_DISABLE_IT(ctx->huart, UART_IT_IDLE);
+    __HAL_UART_DISABLE_IT(ctx->huart, UART_IT_RXNE);
+
     for (uint16_t i = 0; i < len; i++) {
-        while (!(uart->SR & USART_SR_TXE));  /* 等待发送寄存器空 */
+        while ((uart->SR & USART_SR_TXE) == 0U) {
+            // TXE=1 表示数据寄存器空，可以写入下一个字节；轮询保证背靠背发送
+        }
         uart->DR = data[i];
     }
 
-    /* 第四步：等待发送完成（TC = 1 表示包括停止位都已发出） */
-    while (!(uart->SR & USART_SR_TC));
+    // TC=1 才说明最后一个字节真的从移位寄存器发出去了，
+    // 否则上层可能误判发送完成，导致后续操作时序错位
+    while ((uart->SR & USART_SR_TC) == 0U) {
+    }
 }
 
 /**
- * USART IDLE 中断处理入口
+ * @brief UART IDLE 中断处理入口
  *
- * 在 stm32f4xx_it.c 的 USART2_IRQHandler 中调用
- *
- * 工作流程：
- * 1. 检查是否是 IDLE 中断
- * 2. 清除 IDLE 标志
- * 3. 停止 DMA
- * 4. 计算接收长度
- * 5. 拷贝数据到内部缓冲
- * 6. 置就绪标志
- * 7. 重启 DMA 接收下一帧
+ * @warning 仅允许在 UART 中断服务函数里调用：
+ *          - 调用顺序必须与 USARTx_IRQHandler 中 ISR 路由一致；
+ *          - huart 必须与 ctx 绑定同一 UART 实例；
+ *          - 函数内会停 DMA 再立即重启，不要在中断中插入日志或解析；
+ *          - procBuf 被占用且数据未取走时，新到达的 chunk 会置 overflow。
  */
-void BspUartRcv_HandleIdleIrq(UART_HandleTypeDef *huart)
+void BspUartRcv_HandleIdleIrq(BspUartRcv_t *ctx, UART_HandleTypeDef *huart)
 {
-    if (huart == NULL || s_huart == NULL || huart->Instance != s_huart->Instance) {
+    if (ctx == NULL || huart == NULL || ctx->huart == NULL || huart->Instance != ctx->huart->Instance) {
+        // huart 不匹配说明 ISR 路由写错或 ctx 没绑同一路串口，
+        // 直接退出避免错搬其他串口的数据
         return;
     }
 
     if (__HAL_UART_GET_FLAG(huart, UART_FLAG_IDLE) == RESET) {
+        // 不是本路 UART 触发的 IDLE，防止共享 ISR 误触发
         return;
     }
 
     __HAL_UART_CLEAR_IDLEFLAG(huart);
+    // 必须先停 DMA 再读 NDTR：
+    //   - DMA 仍在运行时 NDTR 会随总线写入变化，得到的数据长度不可信
+    //   - 停 DMA 后 NDTR 保持不变，才能算出“已接收字节数 = size - NDTR”
     HAL_UART_DMAStop(huart);
 
-    /*
-     * 计算实际接收长度
-     * 原理：DMA 计数器从 s_rx_buf_size 递减到 0
-     *       剩余值 = s_rx_buf_size - 已接收长度
-     *       所以：已接收长度 = s_rx_buf_size - 剩余值
-     */
-    uint16_t rx_len = s_rx_buf_size - __HAL_DMA_GET_COUNTER(huart->hdmarx);
-    if (rx_len > s_rx_buf_size) {
-        rx_len = s_rx_buf_size;
+    if (ctx->dmaBuf == NULL || ctx->procBuf == NULL || ctx->dmaBufSize == 0U || huart->hdmarx == NULL) {
+        ctx->overflow = true;
+        return;
     }
 
-    /* TODO: 增加帧长度越界检查，当前 s_proc_buf 固定 256 字节 */
-    if (!s_frame_ready) {
-        if (rx_len <= sizeof(s_proc_buf)) {
-            s_frame_len = rx_len;
-            memcpy(s_proc_buf, s_rx_buf, rx_len);
-            s_frame_ready = true;
+    uint16_t rxLen = ctx->dmaBufSize - __HAL_DMA_GET_COUNTER(huart->hdmarx);
+    if (rxLen > ctx->dmaBufSize) {
+        // 防御性裁剪：NDTR 在异常情况下可能读出比 size 大的值，避免反转
+        rxLen = ctx->dmaBufSize;
+    }
+
+    if (!ctx->frameReady) {
+        if (rxLen <= ctx->procBufSize) {
+            ctx->frameLen = rxLen;
+            if (rxLen > 0U) {
+                // 仅在收到非空数据时复制，避免 0 长度 memcpy 留下脏数据
+                memcpy(ctx->procBuf, ctx->dmaBuf, rxLen);
+            }
+            ctx->frameReady = (rxLen > 0U);
+        } else {
+            // 处理缓冲放不下当前 chunk，置 overflow 等待上层处理
+            ctx->overflow = true;
         }
     } else {
-        s_overflow = true;
+        // 上一次 chunk 还没被取走，新数据到达只能丢弃并记 overflow
+        ctx->overflow = true;
     }
 
-    /* 重启 DMA 接收下一帧 */
-    (void)HAL_UART_Receive_DMA(huart, s_rx_buf, s_rx_buf_size);
+    // 立刻重启 DMA，保持连续接收；这里不需要再次开启 IDLE 中断，
+    // 因为 USART 的 IDLE 中断使能位在停 DMA 过程中不会被清除
+    (void)HAL_UART_Receive_DMA(huart, ctx->dmaBuf, ctx->dmaBufSize);
 }
