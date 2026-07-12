@@ -14,15 +14,17 @@ namespace mode {
 /** 模式 ID 枚举（第一阶段最小集） */
 enum ModeId {
     MODE_IDLE,          ///< 空闲模式，系统默认状态
-    MODE_ADC_TASK_A,    ///< ADC Task A 模式，负责 A 通道采集
-    MODE_ADC_TASK_B,    ///< ADC Task B 模式，负责 B 通道采集
+    MODE_DMR,            ///< DMR 模式，负责 PA15 周期、脉宽和功率采集
+    MODE_GSM,            ///< GSM 模式，负责 PA2 周期、脉宽和功率采集
+    MODE_GNSS,
 };
 
 /** 事件类型枚举 */
 enum EventType {
     EVT_SWITCH_TO_IDLE,         ///< 切换到空闲模式
-    EVT_SWITCH_TO_ADC_TASK_A,   ///< 切换到 ADC Task A 模式
-    EVT_SWITCH_TO_ADC_TASK_B,   ///< 切换到 ADC Task B 模式
+    EVT_SWITCH_TO_DMR,          ///< 切换到 DMR 模式
+    EVT_SWITCH_TO_GSM,          ///< 切换到 GSM 模式
+    EVT_SWITCH_TO_GNSS,
 };
 
 /* ====== 具体事件类 ====== */
@@ -33,18 +35,22 @@ public:
     SwitchToIdleEvent() : fsm::Event(EVT_SWITCH_TO_IDLE) {}
 };
 
-/** 切换到 ADC Task A 模式事件 */
-class SwitchToAdcTaskAEvent : public fsm::Event {
+/** 切换到 DMR 模式事件 */
+class SwitchToDmrEvent : public fsm::Event {
 public:
-    SwitchToAdcTaskAEvent() : fsm::Event(EVT_SWITCH_TO_ADC_TASK_A) {}
+    SwitchToDmrEvent() : fsm::Event(EVT_SWITCH_TO_DMR) {}
 };
 
-/** 切换到 ADC Task B 模式事件 */
-class SwitchToAdcTaskBEvent : public fsm::Event {
+/** 切换到 GSM 模式事件 */
+class SwitchToGsmEvent : public fsm::Event {
 public:
-    SwitchToAdcTaskBEvent() : fsm::Event(EVT_SWITCH_TO_ADC_TASK_B) {}
+    SwitchToGsmEvent() : fsm::Event(EVT_SWITCH_TO_GSM) {}
 };
-
+class  SwitchToGnssEvent : public fsm::Event
+{
+public:
+     SwitchToGnssEvent() : fsm::Event(EVT_SWITCH_TO_GNSS) {}
+};
 } // namespace mode
 
 #endif //XY7320_MODE_TYPES_H

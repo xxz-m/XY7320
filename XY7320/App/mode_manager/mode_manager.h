@@ -2,7 +2,7 @@
  * @file    mode_manager.h
  * @brief   模式管理器
  *
- *          状态机核心调度，管理 Idle/AdcTaskA/AdcTaskB 三种模式的切换。
+ *          状态机核心调度，管理 Idle/DMR/GSM 三种模式的切换。
  */
 
 #ifndef XY7320_MODE_MANAGER_H

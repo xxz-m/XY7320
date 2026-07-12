@@ -71,6 +71,7 @@ include_directories(${includes}
     Services/led_service
     Services/upgrade
     Services/gnss_service
+    Services/input_capture_service
 
     # Domain 层 - 领域算法与模型
     Domain/filter

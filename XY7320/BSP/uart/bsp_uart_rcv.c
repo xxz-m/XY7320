@@ -64,6 +64,20 @@ void BspUartRcv_Start(BspUartRcv_t *ctx)
     __HAL_UART_ENABLE_IT(ctx->huart, UART_IT_IDLE);
 }
 
+void BspUartRcv_Stop(BspUartRcv_t *ctx)
+{
+    if (ctx == NULL || ctx->huart == NULL) {
+        return;
+    }
+
+    HAL_UART_DMAStop(ctx->huart);
+    __HAL_UART_DISABLE_IT(ctx->huart, UART_IT_IDLE);
+
+    ctx->frameReady = false;
+    ctx->overflow = false;
+    ctx->frameLen = 0U;
+}
+
 void BspUartRcv_DeInit(BspUartRcv_t *ctx)
 {
     if (ctx == NULL || ctx->huart == NULL) {

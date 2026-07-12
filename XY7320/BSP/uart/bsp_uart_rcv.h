@@ -57,10 +57,28 @@ void BspUartRcv_Init(BspUartRcv_t *ctx,
                      uint8_t *procBuf,
                      uint16_t procBufSize);
 
-/** 启动指定实例的 DMA 接收 + IDLE 中断。 */
+/**
+ * @brief 启动指定实例的 DMA 接收和 IDLE 中断。
+ * @param ctx 接收实例上下文，必须已由 BspUartRcv_Init() 配置。
+ */
 void BspUartRcv_Start(BspUartRcv_t *ctx);
-
-/** 停止指定实例的 DMA 接收并清空状态。 */
+/**
+ * @brief 停止指定实例的 DMA 接收和 IDLE 中断
+ *
+ * 保留 UART、DMA 缓冲区和实例配置，允许后续再次调用
+ * BspUartRcv_Start() 重新启动接收。
+ *
+ * @param ctx UART 接收实例
+ */
+void BspUartRcv_Stop(BspUartRcv_t *ctx);
+/**
+ * @brief 释放指定实例的 DMA 接收配置。
+ *
+ * 除停止 DMA 和 IDLE 中断外，还会清空 UART、缓冲区和长度配置；
+ * 后续重新使用前必须再次调用 BspUartRcv_Init()。
+ *
+ * @param ctx 接收实例上下文。
+ */
 void BspUartRcv_DeInit(BspUartRcv_t *ctx);
 
 /** 指定实例是否有数据段到达。 */

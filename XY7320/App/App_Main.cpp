@@ -19,6 +19,7 @@
 #include "task_gnss.h"
 #include "mode_manager.h"
 #include "gnss_service.h"
+#include "input_capture_service.h"
 
 /**
  * @brief 初始化所有 Services
@@ -44,6 +45,8 @@ extern "C" void App_Main_Init(void)
     ModeManager::Instance().Init();
     AdcService::Instance().Init();
     GnssService::Instance().Init();
+    InputCaptureService::Instance().Init();
+    (void)InputCaptureService::Instance().Start();
 }
 
 static void Task_ModeManager(void *arg);
@@ -52,10 +55,12 @@ static void Task_ModeManager(void *arg);
  * @brief 创建所有 OS 任务
  *
  * Priority 含义（数值越大优先级越高）：
- *  - Task_UpdateConfig        = 5（最高优先：保证协议帧及时处理）
- *  - Task_ModeManager         = 3（次高：每 1ms Tick 调度状态机）
- *  - Task_Gnss                = 2（GNSS 串口数据拆行与解析）
- *  - Task_LED                 = 1（最低：闪烁节拍不需要严格实时）
+ *  - Task_UpdateConfig = 5（最高优先：保证协议帧及时处理）
+ *  - Task_ModeManager  = 3（次高优先：每 1ms 驱动当前 FSM 状态）
+ *  - Task_LED          = 1（最低优先：LED 闪烁不需要严格实时）
+ *
+ * GNSS 不创建独立 OS 任务；进入 GNSS 状态后，
+ * 由 TaskstateGnss::tick() 调用 GnssService::Update()。
  */
 extern "C" void App_Main_Start(void)
 {
@@ -66,8 +71,6 @@ extern "C" void App_Main_Start(void)
     LOG_Printf("Task_UpdateConfig,Create,OK\r\n");
     OS_CreateTask(Task_ModeManager, nullptr, 3);
     LOG_Printf("Task_ModeManager,Create,OK\r\n");
-    OS_CreateTask(Task_Gnss, nullptr, 2);
-    LOG_Printf("Task_Gnss,Create,OK\r\n");
 }
 
 /**
@@ -80,5 +83,6 @@ static void Task_ModeManager(void *arg)
 {
     (void)arg;
     ModeManager::Instance().Tick();
+    InputCaptureService::Instance().Update();
     OS_DelayMs(1);
 }

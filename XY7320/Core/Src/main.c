@@ -103,6 +103,8 @@ int main(void)
   MX_ADC1_Init();
   MX_TIM3_Init();
   MX_USART3_UART_Init();
+  MX_TIM2_Init();
+  MX_TIM5_Init();
   /* USER CODE BEGIN 2 */
   OS_Init();
   BspTimOs_SetTickCallback(OS_Tick);

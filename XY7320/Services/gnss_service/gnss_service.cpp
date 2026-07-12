@@ -45,9 +45,9 @@ GnssService& GnssService::Instance()
 
 void GnssService::Init()
 {
-    // 1. 把 USART3 绑定到 BSP 的 GNSS 实例；DBA/PROC 各 512B 是按
-    //    NMEA 单行 + 多行 1Hz 输出 + IDLE chunk 余量取的。
-    // 2. Init 与 Start 必须配对：Init 只配置上下文，Start 才真正打开 DMA 和 IDLE。
+    // 把 USART3 绑定到 BSP 的 GNSS 实例；DMA/处理缓冲区各 512B，
+    // 用于容纳 NMEA 单行、多行输出以及 IDLE 分段的余量。
+    // Init 只配置上下文，Start 才真正打开 DMA 和 IDLE 中断。
     BspUartRcv_t *gnssRcv = BspUartRcv_GetGnss();
     BspUartRcv_Init(gnssRcv,
                     &huart3,
@@ -55,7 +55,7 @@ void GnssService::Init()
                     GNSS_DMA_BUF_SIZE,
                     s_gnssProcBuf,
                     GNSS_PROC_BUF_SIZE);
-    BspUartRcv_Start(gnssRcv);
+    //BspUartRcv_Start(gnssRcv);
 
     // 重置内部状态：避免上一次开机残留的定位/计数器被本次开机误读为有效数据
     m_initialized = true;
@@ -68,7 +68,31 @@ void GnssService::Init()
 
     LOG_Printf("GnssService,Init,USART3,DMA+IDLE,OK\r\n");
 }
-
+void GnssService::Start()
+{
+    if (!m_initialized) {
+        return;
+    }
+    BspUartRcv_Start(BspUartRcv_GetGnss());
+    // 重置内部状态：避免上一次开机残留的定位/计数器被本次开机误读为有效数据
+    m_initialized = true;
+    m_lineLen = 0;
+    m_lineCount = 0;
+    m_validGgaCount = 0;
+    m_validRmcCount = 0;
+    m_logDivider = 0;
+    m_fix = {};
+    LOG_Printf("GnssService,Start,OK\r\n");
+}
+void GnssService::Stop()
+{
+    if (!m_initialized) {
+        return;
+    }
+    BspUartRcv_Stop(BspUartRcv_GetGnss());
+    m_lineLen = 0U;
+    LOG_Printf("GnssService,Stop,OK\r\n");
+}
 /**
  * @brief 周期轮询入口
  *

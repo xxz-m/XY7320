@@ -11,6 +11,7 @@
 #include "bsp_uart_rcv.h"
 #include "update_service.h"
 #include "mode_manager.h"
+#include "configurations.h"
 
 ProtocolService& ProtocolService::Instance()
 {
@@ -129,16 +130,20 @@ void ProtocolService::DispatchPacket(const Protocol::ProtocolPacket &packet)
 void ProtocolService::HandleCommandPacket(const Protocol::ProtocolPacket &packet)
 {
     switch (packet.cmd) {
-    case 0x10:
+    case WAIT_MODEL:
         ModeManager::Instance().RequestSwitch(mode::SwitchToIdleEvent());
         SendPacket(packet.cmd, nullptr, 0);
         break;
-    case 0x11:
-        ModeManager::Instance().RequestSwitch(mode::SwitchToAdcTaskAEvent());
+    case POWER_MODEL:
+        ModeManager::Instance().RequestSwitch(mode::SwitchToDmrEvent());
         SendPacket(packet.cmd, nullptr, 0);
         break;
-    case 0x12:
-        ModeManager::Instance().RequestSwitch(mode::SwitchToAdcTaskBEvent());
+    case POWER_MODEL_GSM:
+        ModeManager::Instance().RequestSwitch(mode::SwitchToGsmEvent());
+        SendPacket(packet.cmd, nullptr, 0);
+        break;
+    case GPS_MODEL:
+        ModeManager::Instance().RequestSwitch(mode::SwitchToGnssEvent());
         SendPacket(packet.cmd, nullptr, 0);
         break;
     default:

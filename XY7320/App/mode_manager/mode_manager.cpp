@@ -7,8 +7,9 @@
 #include "mode_manager.h"
 #include "app_config.h"
 #include "task_state_idle.h"
-#include "task_state_adc_a.h"
-#include "task_state_adc_b.h"
+#include "task_state_dmr.h"
+#include "task_state_gsm.h"
+#include "task_gnss.h"
 
 ModeManager& ModeManager::Instance()
 {
@@ -48,13 +49,17 @@ void ModeManager::RequestSwitch(const fsm::Event &event)
         nextState = &TaskStateIdle::Instance();
         nextMode = mode::MODE_IDLE;
         break;
-    case mode::EVT_SWITCH_TO_ADC_TASK_A:
-        nextState = &TaskStateAdcA::Instance();
-        nextMode = mode::MODE_ADC_TASK_A;
+    case mode::EVT_SWITCH_TO_DMR:
+        nextState = &TaskStateDmr::Instance();
+        nextMode = mode::MODE_DMR;
         break;
-    case mode::EVT_SWITCH_TO_ADC_TASK_B:
-        nextState = &TaskStateAdcB::Instance();
-        nextMode = mode::MODE_ADC_TASK_B;
+    case mode::EVT_SWITCH_TO_GSM:
+        nextState = &TaskStateGsm::Instance();
+        nextMode = mode::MODE_GSM;
+        break;
+    case mode ::EVT_SWITCH_TO_GNSS:
+        nextState = &TaskstateGnss::Instance();
+        nextMode = mode::MODE_GNSS;
         break;
     default:
         /* 未知事件只打印不切换，避免无意义的 exit/entry 抖动 */

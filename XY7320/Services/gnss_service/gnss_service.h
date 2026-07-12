@@ -42,19 +42,40 @@ public:
     /** 获取单例。 */
     static GnssService& Instance();
 
-    /** 初始化 USART3 GNSS DMA+IDLE 接收。 */
+    /**
+     * @brief 初始化 USART3 GNSS 接收上下文。
+     *
+     * 只绑定 UART、DMA 缓冲区和处理缓冲区并清零服务状态，
+     * 不启动 DMA；进入 GNSS 状态后由 Start() 启动接收。
+     */
     void Init();
 
     /**
-     * @brief 周期轮询入口：取 chunk、拼行、解析并更新状态
+     * @brief 周期轮询入口：取 chunk、拼行、解析并更新状态。
      *
      * @warning 必须在主循环或任务上下文调用，禁止在中断里调用。
-     *          必须在 Init() 之后调用，未初始化时直接返回。
-     *          建议以 5~20ms 周期轮询，频率不需要很高。
+     *          必须在 Init() 之后调用；未初始化时直接返回。
+     *          当前由 TaskstateGnss::tick() 周期调用。
      */
     void Update();
 
-    /** 获取最新定位状态。 */
+    /**
+     * @brief 启动 USART3 的 DMA+IDLE 接收。
+     *
+     * Init() 完成后才能调用；重复启动前应先调用 Stop()。
+     * 进入 GNSS FSM 状态时由 TaskstateGnss::entry() 调用。
+     */
+    void Start();
+
+    /**
+     * @brief 停止 USART3 的 DMA+IDLE 接收。
+     *
+     * 保留已绑定的 UART 和缓冲区配置，后续可再次调用 Start()。
+     * 离开 GNSS FSM 状态时由 TaskstateGnss::exit() 调用。
+     */
+    void Stop();
+
+    /** @brief 获取最新定位状态。 */
     const GnssFix& GetFix() const { return m_fix; }
 
     /** 是否已经初始化。 */
