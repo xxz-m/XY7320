@@ -118,9 +118,10 @@ private:
      * @param data      数据负载（可为 NULL）
      * @param data_len  数据长度
      *
+     * @return true 完整帧已进入控制 FIFO；false 编码失败或 FIFO 已满
      * @note 出帧方向端口固定为 XY_PC（origin=本机、goal=PC）。
      */
-    void SendPacket(uint8_t cmd, const uint8_t *data, uint8_t data_len);
+    bool SendPacket(uint8_t cmd, const uint8_t *data, uint8_t data_len);
 
 private:
     static constexpr uint16_t RX_CHUNK_MAX = 256;     ///< 每次从 BSP 取出的原始数据段

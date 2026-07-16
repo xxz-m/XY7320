@@ -9,6 +9,7 @@
 #ifndef XY7320_TASK_STATE_GSM_H
 #define XY7320_TASK_STATE_GSM_H
 
+#include <stdint.h>
 #include "fsm.h"
 
 /**
@@ -32,10 +33,15 @@ public:
     /** @brief 周期处理比较器测量和 GSM 功率采集流程。 */
     void tick() override;
 
+    /** @brief 获取下一个上行序号（单调递增，溢出回卷） */
+    uint16_t nextUploadSeq();
+
 private:
     TaskStateGsm();
 
-    bool m_powerCaptureStarted;
+    bool     m_powerCaptureStarted;
+    uint32_t m_lastUploadMs;
+    uint16_t m_uploadSeq;
 };
 
 #endif /* XY7320_TASK_STATE_GSM_H */

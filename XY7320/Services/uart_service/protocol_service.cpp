@@ -9,6 +9,7 @@
 #include "protocol_service.h"
 #include <string.h>
 #include "bsp_uart_rcv.h"
+#include "uart_tx_service.h"
 #include "update_service.h"
 #include "mode_manager.h"
 #include "configurations.h"
@@ -163,10 +164,10 @@ void ProtocolService::HandleUpgradePacket(const Protocol::ProtocolPacket &packet
                 break;
             }
 
-            SendPacket(packet.cmd, nullptr, 0);
+            const bool ackQueued = SendPacket(packet.cmd, nullptr, 0);
 
-            if (should_reset) {
-                UpdateService::Instance().ResetToBootloaderAfterAck();
+            if (should_reset && ackQueued) {
+                UpdateService::Instance().RequestResetToBootloaderAfterAck();
             }
             break;
         }
@@ -177,7 +178,7 @@ void ProtocolService::HandleUpgradePacket(const Protocol::ProtocolPacket &packet
     }
 }
 
-void ProtocolService::SendPacket(uint8_t cmd, const uint8_t *data, uint8_t data_len)
+bool ProtocolService::SendPacket(uint8_t cmd, const uint8_t *data, uint8_t data_len)
 {
     Protocol::ProtocolPacket txPacket;
     memset(&txPacket, 0, sizeof(txPacket));
@@ -185,16 +186,22 @@ void ProtocolService::SendPacket(uint8_t cmd, const uint8_t *data, uint8_t data_
     Protocol::initProtocol(&txPacket);
 
     txPacket.origin_port = Protocol::XY_7320;
-    txPacket.goal_port = Protocol::XY_PC;
-    txPacket.cmd = cmd;
-    txPacket.data_len = data_len;
+    txPacket.goal_port   = Protocol::XY_PC;
+    txPacket.cmd         = cmd;
+    txPacket.data_len    = data_len;
 
     if (data != nullptr && data_len > 0) {
         memcpy(txPacket.data, data, data_len);
     }
 
-    uint16_t send_len = Protocol::EncodePacket(&txPacket, m_txBuf);
-    if (send_len > 0) {
-        BspUartRcv_SendAck(BspUartRcv_GetUpgrade(), m_txBuf, send_len);
+    const uint16_t send_len = Protocol::EncodePacket(&txPacket, m_txBuf);
+    if (send_len == 0U) {
+        return false;
     }
+
+    /*
+     * 控制 ACK 必须经 UartTxService 入队异步发送，避免业务路径直接
+     * 调 HAL_UART_Transmit / BspUartRcv_SendAck 与 TX DMA 冲突。
+     */
+    return UartTxService::Instance().EnqueueControl(m_txBuf, send_len);
 }

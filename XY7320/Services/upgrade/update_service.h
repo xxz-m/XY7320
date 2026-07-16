@@ -38,8 +38,23 @@ public:
      */
     bool HandleProtocolUpgradeRequest(const uint8_t *data, uint8_t len, bool &should_reset);
 
-    /** 主协议 ACK 发出后执行复位，进入 BootLoader 判定流程 */
-    void ResetToBootloaderAfterAck();
+    /**
+     * @brief 请求在升级 ACK 排空后复位
+     *
+     * 非阻塞接口：只记录请求并丢弃普通 Mode Pending 数据。
+     */
+    void RequestResetToBootloaderAfterAck();
+
+    /**
+     * @brief 周期驱动 ACK 排空与复位状态机
+     *
+     * UartTxService 完全空闲后才释放 USART2 并复位。超时只取消复位，
+     * 避免在 ACK 未完整发送时进入 Bootloader。
+     */
+    void Update();
+
+    /** @brief 查询是否正在等待 ACK 排空。 */
+    bool IsResetPending() const { return m_resetPending; }
 
 private:
     UpdateService() = default;
@@ -49,6 +64,9 @@ private:
 
     /** 升级串口接收缓冲区 */
     uint8_t m_rxBuf[64]{};
+
+    bool m_resetPending = false;
+    uint32_t m_resetRequestTick = 0U;
 };
 
 #endif /* XY7320_UPDATE_SERVICE_H */

@@ -20,6 +20,7 @@
 #include "mode_manager.h"
 #include "gnss_service.h"
 #include "input_capture_service.h"
+#include "uart_tx_service.h"
 
 /**
  * @brief 初始化所有 Services
@@ -29,9 +30,11 @@
  *  2. LedService 立即切到 BLINK，便于裸机阶段可见
  *  3. UpdateService 初始化协议串口 DMA 并写 A1 当前版本
  *  4. ProtocolService 初始化协议解析缓冲
- *  5. ModeManager 初始化状态机（进入 Idle）
- *  6. AdcService 初始化采样服务
- *  7. GnssService 初始化 USART3 GNSS DMA+IDLE 接收
+ *  5. UartTxService 初始化发送 FIFO/ping-pong 与统计计数（在 ProtocolService
+ *     之后，确保首批 ACK 入队时 Service 已就绪）
+ *  6. ModeManager 初始化状态机（进入 Idle）；其 OnModeChanged 不依赖 TX
+ *  7. AdcService 初始化采样服务
+ *  8. GnssService 初始化 USART3 GNSS DMA+IDLE 接收
  */
 extern "C" void App_Main_Init(void)
 {
@@ -42,6 +45,7 @@ extern "C" void App_Main_Init(void)
     /* 初始化升级服务（串口 DMA + 写 A1 版本） */
     UpdateService::Instance().Init();
     ProtocolService::Instance().Init();
+    UartTxService::Instance().Init();
     ModeManager::Instance().Init();
     AdcService::Instance().Init();
     GnssService::Instance().Init();

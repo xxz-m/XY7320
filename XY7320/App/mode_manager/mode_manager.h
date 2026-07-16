@@ -50,11 +50,27 @@ public:
     /** @brief 获取当前模式 ID */
     mode::ModeId currentMode() const { return currentMode_; }
 
+    /** @brief 获取当前会话编号（每次 RequestSwitch 成功切换后自增） */
+    uint32_t currentGeneration() const { return currentGeneration_; }
+
+    /** @brief 获取切换前的模式（供 UartTxService 清旧 Pending 使用） */
+    mode::ModeId previousMode() const { return previousMode_; }
+
+    /** @brief 获取切换前的会话编号 */
+    uint32_t previousGeneration() const { return previousGeneration_; }
+
 private:
     ModeManager() = default;
 
     fsm::State *currentState_ = nullptr;          ///< 当前状态指针
     mode::ModeId currentMode_ = mode::MODE_IDLE;  ///< 当前模式枚举
+
+    /// 会话编号：每次成功切到新模式自增；
+    /// 业务上行帧携带 generation，便于 UartTxService 在 TxCplt 时校验会话，
+    /// 防止 DMR->Idle->DMR 后旧 DMR Pending 数据被错误发出。
+    uint32_t currentGeneration_ = 1U;
+    mode::ModeId previousMode_ = mode::MODE_IDLE;
+    uint32_t previousGeneration_ = 0U;
 };
 
 #endif /* XY7320_MODE_MANAGER_H */

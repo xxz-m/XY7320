@@ -16,10 +16,12 @@
 #include "usart.h"             /* CubeMX: huart2 句柄 */
 #include "version_store.h"     /* Services: 版本配置存储 */
 #include "app_config.h"        /* Common: APP 功能配置（版本号） */
+#include "uart_tx_service.h"   /* Services: 排空异步发送队列 */
 #include <cstring>
 
 namespace {
 constexpr uint8_t PROTOCOL_UPGRADE_REQUEST_LEN = 13U;
+constexpr uint32_t RESET_ACK_DRAIN_TIMEOUT_MS = 500U;
 
 /** DMA 接收缓冲区，由 BspUartRcv 模块直接写入 */
 constexpr uint16_t UART_DMA_BUF_SIZE = 256U;
@@ -47,8 +49,10 @@ UpdateService& UpdateService::Instance()
  */
 void UpdateService::Init()
 {
-    /* 1. 清空本地缓冲（保留成员，避免后续接口调整引起布局变化） */
+    /* 1. 清空本地缓冲与非阻塞复位状态。 */
     memset(m_rxBuf, 0, sizeof(m_rxBuf));
+    m_resetPending = false;
+    m_resetRequestTick = 0U;
 
     /* 2. 初始化串口 DMA 接收（绑定 USART2 句柄 + 独立实例缓冲区）
      *    硬编码 USART2：与上位机协议保持一致；如改硬件需同步 PC 工具固定码。 */
@@ -108,13 +112,38 @@ bool UpdateService::HandleProtocolUpgradeRequest(const uint8_t *data, uint8_t le
     return true;
 }
 
-void UpdateService::ResetToBootloaderAfterAck()
+void UpdateService::RequestResetToBootloaderAfterAck()
 {
-    /* 复位前清理升级串口状态，防止 DMA 残留导致 Bootloader 起来后首个字节错位 */
-    BspUartRcv_DeInit(BspUartRcv_GetUpgrade());
+    if (m_resetPending) {
+        return;
+    }
 
-    BspTimOs_DelayMs(50);
-    BspTimOs_SystemReset();
+    /* 暂停后续 Mode 发布，只等待已在发送的帧和控制 FIFO。 */
+    UartTxService::Instance().SetModeDataSuspended(true);
+    m_resetRequestTick = BspTimOs_GetTick();
+    m_resetPending = true;
+}
+
+void UpdateService::Update()
+{
+    if (!m_resetPending) {
+        return;
+    }
+
+    UartTxService& tx = UartTxService::Instance();
+
+    if (tx.IsIdle()) {
+        m_resetPending = false;
+        BspUartRcv_DeInit(BspUartRcv_GetUpgrade());
+        BspTimOs_SystemReset();
+        return;
+    }
+
+    /* ACK 未排空时禁止强制复位；取消本次请求，等待上位机重试升级握手。 */
+    if ((BspTimOs_GetTick() - m_resetRequestTick) >= RESET_ACK_DRAIN_TIMEOUT_MS) {
+        m_resetPending = false;
+        tx.SetModeDataSuspended(false);
+    }
 }
 
 /**

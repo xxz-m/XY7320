@@ -64,6 +64,7 @@ extern TIM_HandleTypeDef htim2;
 extern TIM_HandleTypeDef htim5;
 extern TIM_HandleTypeDef htim14;
 extern DMA_HandleTypeDef hdma_usart2_rx;
+extern DMA_HandleTypeDef hdma_usart2_tx;
 extern DMA_HandleTypeDef hdma_usart3_rx;
 extern UART_HandleTypeDef huart2;
 extern UART_HandleTypeDef huart3;
@@ -238,6 +239,20 @@ void DMA1_Stream5_IRQHandler(void)
 }
 
 /**
+  * @brief This function handles DMA1 stream6 global interrupt.
+  */
+void DMA1_Stream6_IRQHandler(void)
+{
+  /* USER CODE BEGIN DMA1_Stream6_IRQn 0 */
+
+  /* USER CODE END DMA1_Stream6_IRQn 0 */
+  HAL_DMA_IRQHandler(&hdma_usart2_tx);
+  /* USER CODE BEGIN DMA1_Stream6_IRQn 1 */
+
+  /* USER CODE END DMA1_Stream6_IRQn 1 */
+}
+
+/**
   * @brief This function handles ADC1, ADC2 and ADC3 global interrupts.
   */
 void ADC_IRQHandler(void)
@@ -275,7 +290,9 @@ void USART2_IRQHandler(void)
   /* USER CODE END USART2_IRQn 0 */
   HAL_UART_IRQHandler(&huart2);
   /* USER CODE BEGIN USART2_IRQn 1 */
-  BspUartRcv_HandleIdleIrq(BspUartRcv_GetUpgrade(), &huart2);
+  /* USART2 已切换到 HAL_UARTEx_ReceiveToIdle_DMA，IDLE 切帧改由
+   * HAL_UARTEx_RxEventCallback -> BspUartRcv_HandleRxEvent 处理，
+   * 这里不再调用 BspUartRcv_HandleIdleIrq，避免误关 TX DMA。 */
   /* USER CODE END USART2_IRQn 1 */
 }
 

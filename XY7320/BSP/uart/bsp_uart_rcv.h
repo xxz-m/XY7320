@@ -101,7 +101,13 @@ void BspUartRcv_ClearFlag(BspUartRcv_t *ctx);
 bool BspUartRcv_TakeOverflow(BspUartRcv_t *ctx);
 
 /**
- * @brief  发送应答数据（阻塞）
+ * @brief  发送应答数据（阻塞，HAL_UART_Transmit 100ms 超时）
+ *
+ * @warning 业务路径必须改用 Services/uart_service/UartTxService::EnqueueControl。
+ *          本函数为阻塞发送，会卡住调用任务，并直接操作 HAL UART 状态机；
+ *          一旦与 UartTxService 的异步 TX DMA 并存会破坏 HAL 状态机。
+ *          仅保留作为 Bootloader 升级链路以及单元测试的兜底通道。
+ *
  * @param  ctx   接收实例上下文，用于确定发送 UART
  * @param  data  应答数据
  * @param  len   数据长度
@@ -121,9 +127,13 @@ void BspUartRcv_SendAck(BspUartRcv_t *ctx, const uint8_t *data, uint16_t len);
 void BspUartRcv_SendAckDirect(BspUartRcv_t *ctx, const uint8_t *data, uint16_t len);
 
 /**
- * @brief  UART IDLE 中断处理入口
+ * @brief  UART IDLE 中断处理入口（手动 IDLE 兼容路径，仅 USART3 仍使用）
  *
- * @warning 必须在对应 UART 的中断服务函数中被调用，且 huart 必须与 ctx 绑定同一实例。
+ * @warning 仅在 USART3 等未迁移到 ReceiveToIdle DMA 的串口上调用。
+ *          USART2 已切到 HAL_UARTEx_ReceiveToIdle_DMA，IDLE 切帧走
+ *          HAL_UARTEx_RxEventCallback -> BspUartRcv_HandleRxEvent 路径，
+ *          本入口对 USART2 不再调用，避免误关 TX DMA。
+ *
  *          函数内会调用 HAL_UART_DMAStop 并立刻重启 DMA，不要在任务上下文调用。
  *          不要在本函数内执行日志、协议解析或任何阻塞操作。
  *
@@ -131,6 +141,38 @@ void BspUartRcv_SendAckDirect(BspUartRcv_t *ctx, const uint8_t *data, uint16_t l
  * @param  huart  当前 IRQ 对应的 UART 句柄
  */
 void BspUartRcv_HandleIdleIrq(BspUartRcv_t *ctx, UART_HandleTypeDef *huart);
+
+/**
+ * @brief  UART IDLE / DMA 完成切帧入口（HAL_UARTEx_RxEventCallback 调用）
+ *
+ * @note   ReceiveToIdle DMA 路径：HAL 在 IDLE/完成时会回调
+ *         HAL_UARTEx_RxEventCallback(huart, size)，由调用方转发到这里。
+ *         USART2 当前由这条路径接收数据，避免手动 HAL_UART_DMAStop
+ *         误关 TX DMA。
+ *
+ *         USART2 使用 Normal DMA，函数搬运当前 chunk 后会显式重新调用
+ *         HAL_UARTEx_ReceiveToIdle_DMA，并关闭 HT 中断，只处理 IDLE/TC。
+ *         不要在任务上下文调用，也不要在本函数内执行日志、协议解析或阻塞操作。
+ *
+ * @param  ctx    接收实例上下文
+ * @param  huart  当前 IRQ 对应的 UART 句柄
+ * @param  size   HAL 给出的本次接收字节数（已在 dmaBuf 前 size 字节处）
+ */
+void BspUartRcv_HandleRxEvent(BspUartRcv_t *ctx,
+                              UART_HandleTypeDef *huart,
+                              uint16_t size);
+
+/**
+ * @brief  USART2 错误回调后的 ReceiveToIdle DMA 恢复入口
+ *
+ * 仅在 HAL 已结束当前 RX 传输时重新启动，不清除尚未被上层取走的 procBuf。
+ * 若 RX 仍在运行则保持现状；启动失败会记录 overflow。
+ *
+ * @param  ctx    接收实例上下文
+ * @param  huart  发生错误的 UART 句柄
+ */
+void BspUartRcv_RecoverRxFromError(BspUartRcv_t *ctx,
+                                   UART_HandleTypeDef *huart);
 
 #ifdef __cplusplus
 }

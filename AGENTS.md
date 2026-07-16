@@ -74,6 +74,7 @@ BSP -> HAL / Drivers
 - `System` 做调度、事件、队列、Tick 等基础设施，不承载具体业务。
 - 中断只采集数据、更新最小状态、置标志或投递事件；不要在中断里跑完整协议解析、Flash 业务、文件系统或模式切换。
 - 跨模块共享状态必须收口到明确上下文或服务接口，不要自由散布全局变量。
+- **USART2 正常发送的唯一入口是 `Services/uart_service/UartTxService::EnqueueControl` / `PublishModeData`。业务模块不得直接调用 `HAL_UART_Transmit`、`HAL_UART_Transmit_DMA` 或 `BspUartRcv_SendAck`。** `BspUartRcv_SendAckDirect` 仅供 Bootloader 异常升级链路兜底。
 
 配置集中在 `XY7320/Common/config/`：
 

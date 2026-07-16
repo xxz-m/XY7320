@@ -52,16 +52,38 @@ void BspUartRcv_Init(BspUartRcv_t *ctx,
 
 void BspUartRcv_Start(BspUartRcv_t *ctx)
 {
+    HAL_StatusTypeDef status;
+
     if (ctx == NULL || ctx->huart == NULL || ctx->dmaBuf == NULL || ctx->dmaBufSize == 0U) {
         return;
     }
 
     ctx->frameReady = false;
     ctx->overflow = false;
-    ctx->frameLen = 0;
+    ctx->frameLen = 0U;
 
-    (void)HAL_UART_Receive_DMA(ctx->huart, ctx->dmaBuf, ctx->dmaBufSize);
-    __HAL_UART_ENABLE_IT(ctx->huart, UART_IT_IDLE);
+    if (ctx->huart->Instance == USART2) {
+        /*
+         * USART2 使用 HAL 的 ReceiveToIdle DMA。Normal DMA 在 IDLE/TC 后
+         * 会结束本次接收，因此 RxEvent 回调必须显式重新启动。
+         * 禁用 HT 中断后，每次只处理 IDLE 或 TC，避免把累计 position
+         * 重复当作新增长度搬运。
+         */
+        status = HAL_UARTEx_ReceiveToIdle_DMA(ctx->huart, ctx->dmaBuf, ctx->dmaBufSize);
+        if (status == HAL_OK && ctx->huart->hdmarx != NULL) {
+            __HAL_DMA_DISABLE_IT(ctx->huart->hdmarx, DMA_IT_HT);
+        }
+    } else {
+        /* USART3 GNSS 保持原手动 IDLE 路径。 */
+        status = HAL_UART_Receive_DMA(ctx->huart, ctx->dmaBuf, ctx->dmaBufSize);
+        if (status == HAL_OK) {
+            __HAL_UART_ENABLE_IT(ctx->huart, UART_IT_IDLE);
+        }
+    }
+
+    if (status != HAL_OK) {
+        ctx->overflow = true;
+    }
 }
 
 void BspUartRcv_Stop(BspUartRcv_t *ctx)
@@ -70,8 +92,9 @@ void BspUartRcv_Stop(BspUartRcv_t *ctx)
         return;
     }
 
-    HAL_UART_DMAStop(ctx->huart);
-    __HAL_UART_DISABLE_IT(ctx->huart, UART_IT_IDLE);
+    /* HAL_UART_AbortReceive 只终止 RX，并恢复 RxState/ReceptionType；
+     * 不使用 HAL_UART_DMAStop，避免误停同一 UART 的 TX DMA。 */
+    (void)HAL_UART_AbortReceive(ctx->huart);
 
     ctx->frameReady = false;
     ctx->overflow = false;
@@ -84,8 +107,8 @@ void BspUartRcv_DeInit(BspUartRcv_t *ctx)
         return;
     }
 
-    HAL_UART_DMAStop(ctx->huart);
-    __HAL_UART_DISABLE_IT(ctx->huart, UART_IT_IDLE);
+    /* 升级链路会在确认 TX 已排空后进入这里。先只终止 RX，再释放 UART。 */
+    (void)HAL_UART_AbortReceive(ctx->huart);
     HAL_UART_DeInit(ctx->huart);
 
     ctx->huart = NULL;
@@ -188,9 +211,13 @@ void BspUartRcv_SendAckDirect(BspUartRcv_t *ctx, const uint8_t *data, uint16_t l
 }
 
 /**
- * @brief UART IDLE 中断处理入口
+ * @brief UART IDLE 中断处理入口（手动 IDLE 兼容路径，仅 USART3 仍使用）
  *
- * @warning 仅允许在 UART 中断服务函数里调用：
+ * @warning USART2 已迁移到 HAL_UARTEx_ReceiveToIdle_DMA，不再调用本函数，
+ *          而是由 HAL_UARTEx_RxEventCallback -> BspUartRcv_HandleRxEvent 处理。
+ *          仅在 USART3（未配 ReceiveToIdle DMA）等场景下保留。
+ *
+ *          仅允许在 UART 中断服务函数里调用：
  *          - 调用顺序必须与 USARTx_IRQHandler 中 ISR 路由一致；
  *          - huart 必须与 ctx 绑定同一 UART 实例；
  *          - 函数内会停 DMA 再立即重启，不要在中断中插入日志或解析；
@@ -210,10 +237,17 @@ void BspUartRcv_HandleIdleIrq(BspUartRcv_t *ctx, UART_HandleTypeDef *huart)
     }
 
     __HAL_UART_CLEAR_IDLEFLAG(huart);
-    // 必须先停 DMA 再读 NDTR：
-    //   - DMA 仍在运行时 NDTR 会随总线写入变化，得到的数据长度不可信
-    //   - 停 DMA 后 NDTR 保持不变，才能算出“已接收字节数 = size - NDTR”
-    HAL_UART_DMAStop(huart);
+    /*
+     * 兼容路径：USART3 仍走 HAL_UART_Receive_DMA + 手动 IDLE，
+     * HAL_UART_DMAStop 只关闭 RX DMA（USART3 未配置 TX DMA，无副作用）。
+     */
+    if (huart->hdmarx != NULL && huart->hdmarx->Instance != NULL) {
+        DMA_Stream_TypeDef *rx_stream = huart->hdmarx->Instance;
+        rx_stream->CR &= ~DMA_SxCR_EN;
+        while ((rx_stream->CR & DMA_SxCR_EN) != 0U) {
+            /* 等 DMA 控制器真正停止 */
+        }
+    }
 
     if (ctx->dmaBuf == NULL || ctx->procBuf == NULL || ctx->dmaBufSize == 0U || huart->hdmarx == NULL) {
         ctx->overflow = true;
@@ -246,4 +280,84 @@ void BspUartRcv_HandleIdleIrq(BspUartRcv_t *ctx, UART_HandleTypeDef *huart)
     // 立刻重启 DMA，保持连续接收；这里不需要再次开启 IDLE 中断，
     // 因为 USART 的 IDLE 中断使能位在停 DMA 过程中不会被清除
     (void)HAL_UART_Receive_DMA(huart, ctx->dmaBuf, ctx->dmaBufSize);
+}
+
+/**
+ * @brief UART IDLE / 半包切帧处理入口（HAL_UARTEx_RxEventCallback 调用）
+ *
+ * ReceiveToIdle DMA 路径：HAL 在 IDLE/完成时会回调
+ * HAL_UARTEx_RxEventCallback(huart, size)，由调用方转发到这里。
+ * 与 HandleIdleIrq 的区别：本函数不调用 HAL_UART_DMAStop；Normal DMA
+ * 回调后由本函数显式重启 ReceiveToIdle DMA，因此可以与 TX DMA 并存。
+ *
+ * @param  ctx    接收实例上下文
+ * @param  huart  当前 IRQ 对应的 UART 句柄
+ * @param  size   HAL 给出的本次接收字节数（dmaBuf 前 size 字节）
+ */
+void BspUartRcv_HandleRxEvent(BspUartRcv_t *ctx,
+                              UART_HandleTypeDef *huart,
+                              uint16_t size)
+{
+    if (ctx == NULL || huart == NULL || ctx->huart == NULL || huart->Instance != ctx->huart->Instance) {
+        return;
+    }
+
+    if (ctx->dmaBuf == NULL || ctx->procBuf == NULL || ctx->dmaBufSize == 0U) {
+        ctx->overflow = true;
+        return;
+    }
+
+    if (size > ctx->dmaBufSize) {
+        size = ctx->dmaBufSize;
+    }
+
+    if (!ctx->frameReady) {
+        if (size <= ctx->procBufSize) {
+            ctx->frameLen = size;
+            if (size > 0U) {
+                memcpy(ctx->procBuf, ctx->dmaBuf, size);
+            }
+            ctx->frameReady = (size > 0U);
+        } else {
+            ctx->overflow = true;
+        }
+    } else {
+        ctx->overflow = true;
+    }
+
+    /*
+     * 当前 USART2 RX DMA 为 Normal 模式。HAL 在 IDLE/TC 回调前已经结束
+     * 本次接收并恢复 RxState，因此必须显式重新启动 ReceiveToIdle DMA。
+     * 这里不调用 HAL_UART_DMAStop，不会影响同一 UART 的 TX DMA。
+     */
+    if (HAL_UARTEx_ReceiveToIdle_DMA(huart, ctx->dmaBuf, ctx->dmaBufSize) == HAL_OK) {
+        if (huart->hdmarx != NULL) {
+            __HAL_DMA_DISABLE_IT(huart->hdmarx, DMA_IT_HT);
+        }
+    } else {
+        ctx->overflow = true;
+    }
+}
+
+void BspUartRcv_RecoverRxFromError(BspUartRcv_t *ctx,
+                                   UART_HandleTypeDef *huart)
+{
+    if (ctx == NULL || huart == NULL || ctx->huart == NULL ||
+        huart->Instance != USART2 || huart->Instance != ctx->huart->Instance ||
+        ctx->dmaBuf == NULL || ctx->dmaBufSize == 0U) {
+        return;
+    }
+
+    /* 非阻塞噪声错误不会结束接收，此时不能重复启动同一 RX DMA。 */
+    if (huart->RxState == HAL_UART_STATE_BUSY_RX) {
+        return;
+    }
+
+    if (HAL_UARTEx_ReceiveToIdle_DMA(huart, ctx->dmaBuf, ctx->dmaBufSize) == HAL_OK) {
+        if (huart->hdmarx != NULL) {
+            __HAL_DMA_DISABLE_IT(huart->hdmarx, DMA_IT_HT);
+        }
+    } else {
+        ctx->overflow = true;
+    }
 }

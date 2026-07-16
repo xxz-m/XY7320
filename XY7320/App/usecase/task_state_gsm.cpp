@@ -9,6 +9,23 @@
 #include "app_config.h"
 #include "bsp_tim_capture.h"
 #include "input_capture_service.h"
+#include "uart_tx_service.h"
+#include "mode_manager.h"
+#include "configurations.h"
+#include "bsp_tim_os.h"
+
+namespace {
+constexpr uint32_t kGsmUploadPeriodMs = 200U;
+constexpr uint8_t kGsmPayloadSize = 12U;
+
+void WriteU32Be(uint8_t *dst, uint32_t value)
+{
+    dst[0] = static_cast<uint8_t>((value >> 24) & 0xFFU);
+    dst[1] = static_cast<uint8_t>((value >> 16) & 0xFFU);
+    dst[2] = static_cast<uint8_t>((value >> 8) & 0xFFU);
+    dst[3] = static_cast<uint8_t>(value & 0xFFU);
+}
+} // namespace
 
 /**
  * GSM 状态对应 PA2/TIM5_CH3 比较器输入。
@@ -22,7 +39,9 @@ TaskStateGsm& TaskStateGsm::Instance()
 
 TaskStateGsm::TaskStateGsm()
     : fsm::State("TaskState_GSM"),
-      m_powerCaptureStarted(false)
+      m_powerCaptureStarted(false),
+      m_lastUploadMs(0U),
+      m_uploadSeq(0U)
 {
 }
 
@@ -38,6 +57,8 @@ void TaskStateGsm::entry()
     /* 进入新状态先停止 ADC，保证流程从“周期脉宽”阶段重新开始。 */
     AdcService::Instance().Stop();
     m_powerCaptureStarted = false;
+    m_lastUploadMs = 0U;
+    m_uploadSeq = 0U;
 
     LOG_Printf("TaskState_GSM,Entry,WaitPeriodPulse\n");
 }
@@ -54,6 +75,12 @@ void TaskStateGsm::exit()
 void TaskStateGsm::react(const fsm::Event& event)
 {
     (void)event;
+}
+
+uint16_t TaskStateGsm::nextUploadSeq()
+{
+    ++m_uploadSeq;
+    return m_uploadSeq;
 }
 
 void TaskStateGsm::tick()
@@ -83,4 +110,25 @@ void TaskStateGsm::tick()
 
     /* ADC 尚未产生完整数据时，AdcService::Update() 会自行保持等待。 */
     AdcService::Instance().Update();
+
+    /* 占位上行，结构与 DMR 一致；真值确定后替换为 GsmPowerMeasurement 的序列化字段 */
+    const uint32_t now = BspTimOs_GetTick();
+    if ((now - m_lastUploadMs) < kGsmUploadPeriodMs) {
+        return;
+    }
+    m_lastUploadMs = now;
+
+    /* payload 固定为 3 个 32 位大端字段，禁止上传原生结构体布局。 */
+    uint8_t payload[kGsmPayloadSize]{};
+    WriteU32Be(&payload[0], now);
+    WriteU32Be(&payload[4], captureResult.valid ? captureResult.periodUs : 0U);
+    WriteU32Be(&payload[8], captureResult.valid ? captureResult.pulseWidthUs : 0U);
+
+    (void)UartTxService::Instance().PublishModeData(
+        UPLINK_CMD_GSM_MEAS,
+        mode::MODE_GSM,
+        ModeManager::Instance().currentGeneration(),
+        nextUploadSeq(),
+        payload,
+        sizeof(payload));
 }

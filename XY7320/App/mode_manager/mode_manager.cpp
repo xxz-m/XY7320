@@ -10,6 +10,7 @@
 #include "task_state_dmr.h"
 #include "task_state_gsm.h"
 #include "task_gnss.h"
+#include "uart_tx_service.h"
 
 ModeManager& ModeManager::Instance()
 {
@@ -24,6 +25,9 @@ void ModeManager::Init()
     currentState_ = &TaskStateIdle::Instance();
     currentState_->entry();
     currentMode_ = mode::MODE_IDLE;
+    previousMode_ = mode::MODE_IDLE;
+    currentGeneration_ = 1U;
+    previousGeneration_ = 0U;
     LOG_Printf("ModeManager,Init,%s\n", currentState_->name());
 }
 
@@ -74,8 +78,28 @@ void ModeManager::RequestSwitch(const fsm::Event &event)
 
     /* exit 旧状态 -> 切换 -> entry 新状态 */
     currentState_->exit();
+
+    /* 记录旧会话信息，供 UartTxService 清旧 Pending 使用 */
+    previousMode_ = currentMode_;
+    previousGeneration_ = currentGeneration_;
+
     currentState_ = nextState;
     currentMode_ = nextMode;
     currentState_->entry();
-    LOG_Printf("ModeManager,Switch,%s\n", currentState_->name());
+
+    /*
+     * entry 之后才 ++currentGeneration_ 并通知 UartTxService：
+     *   - 新状态已就绪，再让 UART TX 清理旧 Pending；
+     *   - generation 自增让 DMR->Idle->DMR 的旧 DMR Pending 与新 DMR Pending
+     *     在 UartTxService::PickModeSlotForSend 中被识别为 stale 并丢弃。
+     */
+    ++currentGeneration_;
+    UartTxService::Instance().OnModeChanged(previousMode_,
+                                            previousGeneration_,
+                                            currentMode_,
+                                            currentGeneration_);
+
+    LOG_Printf("ModeManager,Switch,%s,Gen,%lu\n",
+                currentState_->name(),
+                static_cast<unsigned long>(currentGeneration_));
 }
