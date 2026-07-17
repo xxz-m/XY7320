@@ -8,6 +8,7 @@
 
 #include "protocol_service.h"
 #include <string.h>
+#include "app_config.h"
 #include "bsp_uart_rcv.h"
 #include "uart_tx_service.h"
 #include "update_service.h"
@@ -46,6 +47,7 @@ void ProtocolService::Update()
     /* 必须先复制再清标志，否则接收层可能复用当前帧缓冲。 */
     BspUartRcv_ClearFlag(upgradeRcv);
 
+    LOG_Printf("Protocol,RxChunk,%u\r\n", len);
     AppendInput(m_rxChunk, len);
     ProcessStream();
 }
@@ -88,22 +90,29 @@ void ProtocolService::ProcessStream()
         }
 
         if (packet.state == Protocol::unNoError) {
+            LOG_Printf("Protocol,Packet,origin=%02X,goal=%02X,model=%02X,cmd=%02X,data=%u\r\n",
+                       packet.origin_port, packet.goal_port, packet.model, packet.cmd,
+                       packet.data_len);
             if (ValidatePacket(packet)) {
                 DispatchPacket(packet);
+            } else {
+                LOG_Printf("Protocol,Reject,PortOrModel\r\n");
             }
         } else if (packet.state == Protocol::unENDErr) {
             break;
+        } else {
+            LOG_Printf("Protocol,DecodeError,%d\r\n", packet.state);
         }
     }
 }
 
 bool ProtocolService::ValidatePacket(const Protocol::ProtocolPacket &packet)
 {
-    if (packet.goal_port != Protocol::XY_7320) {
-        return false;
-    }
-
-    if (packet.origin_port != Protocol::XY_PC) {
+    const bool currentDirection = packet.goal_port == Protocol::XY_7320 &&
+                                   packet.origin_port == Protocol::XY_PC;
+    const bool legacyDirection = packet.goal_port == Protocol::XY_PC &&
+                                  packet.origin_port == Protocol::XY_7000XMAIN;
+    if (!currentDirection && !legacyDirection) {
         return false;
     }
 
@@ -131,21 +140,43 @@ void ProtocolService::DispatchPacket(const Protocol::ProtocolPacket &packet)
 void ProtocolService::HandleCommandPacket(const Protocol::ProtocolPacket &packet)
 {
     switch (packet.cmd) {
-    case WAIT_MODEL:
+    case WAIT_MODEL: {
         ModeManager::Instance().RequestSwitch(mode::SwitchToIdleEvent());
-        SendPacket(packet.cmd, nullptr, 0);
+        LOG_Printf("Protocol,Mode,IDLE\r\n");
+        const bool ackQueued = SendPacketFromPorts(Protocol::XY_7000XMAIN, Protocol::XY_PC, packet.cmd, nullptr, 0);
+        LOG_Printf("Protocol,Ack,%u\r\n", ackQueued ? 1U : 0U);
         break;
-    case POWER_MODEL:
+    }
+    case POWER_MODEL: {
+        if (packet.data_len >= 2U) {
+            ModeManager::Instance().SetModeParameters(packet.data[0], packet.data[1],
+                                                      ModeManager::Instance().gpsModel());
+        }
         ModeManager::Instance().RequestSwitch(mode::SwitchToDmrEvent());
-        SendPacket(packet.cmd, nullptr, 0);
+        LOG_Printf("Protocol,Mode,DMR\r\n");
+        const bool dmrAckQueued = SendPacketFromPorts(Protocol::XY_7000XMAIN, Protocol::XY_PC, packet.cmd, nullptr, 0);
+        LOG_Printf("Protocol,Ack,%u\r\n", dmrAckQueued ? 1U : 0U);
         break;
-    case POWER_MODEL_GSM:
+    }
+    case POWER_MODEL_GSM: {
+        if (packet.data_len >= 2U) {
+            ModeManager::Instance().SetModeParameters(packet.data[0], packet.data[1],
+                                                      ModeManager::Instance().gpsModel());
+        }
         ModeManager::Instance().RequestSwitch(mode::SwitchToGsmEvent());
-        SendPacket(packet.cmd, nullptr, 0);
+        LOG_Printf("Protocol,Mode,GSM\r\n");
+        const bool gsmAckQueued = SendPacketFromPorts(Protocol::XY_7000XMAIN, Protocol::XY_PC, packet.cmd, nullptr, 0);
+        LOG_Printf("Protocol,Ack,%u\r\n", gsmAckQueued ? 1U : 0U);
         break;
+    }
     case GPS_MODEL:
+        if (packet.data_len >= 1U) {
+            ModeManager::Instance().SetModeParameters(ModeManager::Instance().freqModel(),
+                                                      ModeManager::Instance().catchModel(),
+                                                      packet.data[0]);
+        }
         ModeManager::Instance().RequestSwitch(mode::SwitchToGnssEvent());
-        SendPacket(packet.cmd, nullptr, 0);
+        SendPacketFromPorts(Protocol::XY_7000XMAIN, Protocol::XY_PC, packet.cmd, nullptr, 0);
         break;
     default:
         break;
@@ -180,15 +211,20 @@ void ProtocolService::HandleUpgradePacket(const Protocol::ProtocolPacket &packet
 
 bool ProtocolService::SendPacket(uint8_t cmd, const uint8_t *data, uint8_t data_len)
 {
+    return SendPacketFromPorts(Protocol::XY_7320, Protocol::XY_PC, cmd, data, data_len);
+}
+
+bool ProtocolService::SendPacketFromPorts(uint8_t originPort, uint8_t goalPort,
+                                          uint8_t cmd, const uint8_t *data, uint8_t data_len)
+{
     Protocol::ProtocolPacket txPacket;
     memset(&txPacket, 0, sizeof(txPacket));
 
     Protocol::initProtocol(&txPacket);
-
-    txPacket.origin_port = Protocol::XY_7320;
-    txPacket.goal_port   = Protocol::XY_PC;
-    txPacket.cmd         = cmd;
-    txPacket.data_len    = data_len;
+    txPacket.origin_port = originPort;
+    txPacket.goal_port = goalPort;
+    txPacket.cmd = cmd;
+    txPacket.data_len = data_len;
 
     if (data != nullptr && data_len > 0) {
         memcpy(txPacket.data, data, data_len);
@@ -199,9 +235,5 @@ bool ProtocolService::SendPacket(uint8_t cmd, const uint8_t *data, uint8_t data_
         return false;
     }
 
-    /*
-     * 控制 ACK 必须经 UartTxService 入队异步发送，避免业务路径直接
-     * 调 HAL_UART_Transmit / BspUartRcv_SendAck 与 TX DMA 冲突。
-     */
     return UartTxService::Instance().EnqueueControl(m_txBuf, send_len);
 }

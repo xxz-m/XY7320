@@ -8,8 +8,8 @@ import XY7320Host
 ApplicationWindow {
     id: window
 
-    width: 1280
-    height: 720
+    width: 1375
+    height: 760
     minimumWidth: 1100
     minimumHeight: 680
     visible: true
@@ -18,6 +18,16 @@ ApplicationWindow {
     color: "transparent"
 
     property int currentPage: 0
+    readonly property string pageSubtitle: {
+        switch (currentPage) {
+        case 1: return qsTr("GSM 功率驻波监测")
+        case 2: return qsTr("DMR 功率驻波监测")
+        case 3: return qsTr("串口调试")
+        case 4: return qsTr("升级日志")
+        case 5: return qsTr("设置")
+        default: return qsTr("APP 固件升级与上位机启动框架")
+        }
+    }
     readonly property int resizeMargin: 6
     readonly property int windowRadius: maximized ? 0 : 14
     readonly property bool maximized: visibility === Window.Maximized || visibility === Window.FullScreen
@@ -110,11 +120,11 @@ ApplicationWindow {
 
                     Image {
                         source: "qrc:/xy7320host/assets/images/icon.ico"
-                        sourceSize.width: 24
-                        sourceSize.height: 24
+                        sourceSize.width: 34
+                        sourceSize.height: 34
                         fillMode: Image.PreserveAspectFit
-                        Layout.preferredWidth: 24
-                        Layout.preferredHeight: 24
+                        Layout.preferredWidth: 34
+                        Layout.preferredHeight: 34
                     }
 
                     Text {
@@ -133,7 +143,7 @@ ApplicationWindow {
                     }
 
                     Text {
-                        text: qsTr("APP 固件升级与上位机启动框架")
+                        text: window.pageSubtitle
                         color: Qt.rgba(theme.textColor.r, theme.textColor.g, theme.textColor.b, 0.72)
                         font.pixelSize: 13
                         Layout.fillWidth: true
@@ -219,18 +229,20 @@ ApplicationWindow {
                     Repeater {
                         model: [
                             { name: qsTr("固件升级"), icon: "\uf1c6", page: 0, enabled: true },
-                            { name: qsTr("串口调试"), icon: "\uf120", page: 1, enabled: true },
-                            { name: qsTr("升级日志"), icon: "\uf15c", page: 2, enabled: true },
-                            { name: qsTr("设置"), icon: "\uf013", page: 3, enabled: true },
-                            { name: qsTr("设备监控"), icon: "\uf1e6", page: 4, enabled: false },
-                            { name: qsTr("参数配置"), icon: "\uf085", page: 5, enabled: false },
-                            { name: qsTr("系统维护"), icon: "\uf0ad", page: 6, enabled: false }
+                            { name: qsTr("GSM"), icon: "\uf1e6", page: 1, enabled: true },
+                            { name: qsTr("DMR"), icon: "\uf1e6", page: 2, enabled: true },
+                            { name: qsTr("串口调试"), icon: "\uf120", page: 3, enabled: true },
+                            { name: qsTr("升级日志"), icon: "\uf15c", page: 4, enabled: true },
+                            { name: qsTr("设置"), icon: "\uf013", page: 5, enabled: true },
+                            { name: qsTr("设备监控"), icon: "\uf201", page: 1, enabled: false },
+                            { name: qsTr("参数配置"), icon: "\uf085", page: 6, enabled: false },
+                            { name: qsTr("系统维护"), icon: "\uf0ad", page: 7, enabled: false }
                         ]
 
                         delegate: Rectangle {
                             id: navItem
                             Layout.fillWidth: true
-                            Layout.preferredHeight: 40
+                            Layout.preferredHeight: 54
                             radius: 8
                             color: window.currentPage === modelData.page
                                    ? Qt.rgba(theme.focusColor.r, theme.focusColor.g, theme.focusColor.b, 0.16)
@@ -289,7 +301,7 @@ ApplicationWindow {
 
                     Rectangle {
                         Layout.fillWidth: true
-                        Layout.preferredHeight: 86
+                        Layout.preferredHeight: 106
                         radius: 8
                         color: Qt.rgba(theme.focusColor.r, theme.focusColor.g, theme.focusColor.b, 0.10)
 
@@ -345,6 +357,22 @@ ApplicationWindow {
                     firmwareDialog: firmwareDialog
                     startDialog: startDialog
                     toast: toast
+                }
+
+                MeasurementPage {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    modeName: qsTr("GSM")
+                    dmrMode: false
+                    onRequestReturn: window.currentPage = 0
+                }
+
+                MeasurementPage {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    modeName: qsTr("DMR")
+                    dmrMode: true
+                    onRequestReturn: window.currentPage = 0
                 }
 
                 SerialDebugPage {
@@ -426,6 +454,19 @@ ApplicationWindow {
                     containerColor: theme.primaryColor
                     hoverColor: Qt.rgba(theme.focusColor.r, theme.focusColor.g, theme.focusColor.b, 0.18)
                     onClicked: window.showMinimized()
+                }
+
+                EButton {
+                    width: 30
+                    height: 26
+                    radius: 13
+                    backgroundVisible: true
+                    shadowEnabled: false
+                    text: ""
+                    iconCharacter: window.maximized ? "\uf2d2" : "\uf2d0"
+                    containerColor: theme.primaryColor
+                    hoverColor: Qt.rgba(theme.focusColor.r, theme.focusColor.g, theme.focusColor.b, 0.18)
+                    onClicked: window.maximized ? window.showNormal() : window.showMaximized()
                 }
 
                 EButton {

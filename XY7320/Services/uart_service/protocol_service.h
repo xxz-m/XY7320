@@ -122,6 +122,8 @@ private:
      * @note 出帧方向端口固定为 XY_PC（origin=本机、goal=PC）。
      */
     bool SendPacket(uint8_t cmd, const uint8_t *data, uint8_t data_len);
+    bool SendPacketFromPorts(uint8_t originPort, uint8_t goalPort,
+                             uint8_t cmd, const uint8_t *data, uint8_t data_len);
 
 private:
     static constexpr uint16_t RX_CHUNK_MAX = 256;     ///< 每次从 BSP 取出的原始数据段

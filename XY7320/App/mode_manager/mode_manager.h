@@ -59,6 +59,12 @@ public:
     /** @brief 获取切换前的会话编号 */
     uint32_t previousGeneration() const { return previousGeneration_; }
 
+    void SetModeParameters(uint8_t freqModel, uint8_t catchModel, uint8_t gpsModel);
+
+    uint8_t freqModel() const { return freqModel_; }
+    uint8_t catchModel() const { return catchModel_; }
+    uint8_t gpsModel() const { return gpsModel_; }
+
 private:
     ModeManager() = default;
 
@@ -71,6 +77,9 @@ private:
     uint32_t currentGeneration_ = 1U;
     mode::ModeId previousMode_ = mode::MODE_IDLE;
     uint32_t previousGeneration_ = 0U;
+    uint8_t freqModel_ = 0U;
+    uint8_t catchModel_ = 0U;
+    uint8_t gpsModel_ = 0U;
 };
 
 #endif /* XY7320_MODE_MANAGER_H */

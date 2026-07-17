@@ -421,26 +421,34 @@ uint16_t UartTxService::BuildModeFrame(uint8_t* dst, uint16_t dstSize,
 
     Protocol::ProtocolPacket packet{};
     Protocol::initProtocol(&packet);
-    packet.origin_port = Protocol::XY_7320;
+    packet.origin_port = Protocol::XY_7000XMAIN;
     packet.goal_port = Protocol::XY_PC;
     packet.model = Protocol::unWrite;
     packet.cmd = cmd;
 
     uint16_t idx = 0U;
-    packet.data[idx++] = static_cast<uint8_t>(mode);
-    /* generation 当前协议约定为 2 字节大端，发送低 16 位。 */
-    packet.data[idx++] = static_cast<uint8_t>((generation >> 8) & 0xFFU);
-    packet.data[idx++] = static_cast<uint8_t>(generation & 0xFFU);
-    packet.data[idx++] = static_cast<uint8_t>((seq >> 8) & 0xFFU);
-    packet.data[idx++] = static_cast<uint8_t>(seq & 0xFFU);
-    packet.data[idx++] = payloadLen;
-    if (payloadLen > 0U) {
-        memcpy(&packet.data[idx], payload, payloadLen);
-        idx = static_cast<uint16_t>(idx + payloadLen);
+    if (cmd == UPLINK_CMD_DMR_MEAS || cmd == UPLINK_CMD_GSM_MEAS ||
+        cmd == UPLINK_CMD_GNSS_MEAS) {
+        if (payloadLen > MAX_PROTOCOL_LEN) {
+            return 0U;
+        }
+        memcpy(packet.data, payload, payloadLen);
+        packet.data_len = payloadLen;
+    } else {
+        packet.data[idx++] = static_cast<uint8_t>(mode);
+        packet.data[idx++] = static_cast<uint8_t>((generation >> 8) & 0xFFU);
+        packet.data[idx++] = static_cast<uint8_t>(generation & 0xFFU);
+        packet.data[idx++] = static_cast<uint8_t>((seq >> 8) & 0xFFU);
+        packet.data[idx++] = static_cast<uint8_t>(seq & 0xFFU);
+        packet.data[idx++] = payloadLen;
+        if (payloadLen > 0U) {
+            memcpy(&packet.data[idx], payload, payloadLen);
+            idx = static_cast<uint16_t>(idx + payloadLen);
+        }
+        packet.data[idx++] = 0U;
+        packet.data[idx++] = 0U;
+        packet.data_len = static_cast<uint8_t>(idx);
     }
-    packet.data[idx++] = 0U;
-    packet.data[idx++] = 0U;
-    packet.data_len = static_cast<uint8_t>(idx);
 
     return Protocol::EncodePacket(&packet, dst);
 }

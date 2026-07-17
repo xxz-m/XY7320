@@ -337,6 +337,182 @@ Item {
                     Layout.alignment: Qt.AlignTop
                     spacing: 14
 
+                    ECard {
+                        Layout.fillWidth: true
+                        radius: 10
+                        padding: 16
+                        shadowEnabled: false
+
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 10
+
+                            Text {
+                                text: qsTr("功能切换")
+                                color: theme.textColor
+                                font.pixelSize: 15
+                                font.bold: true
+                                Layout.fillWidth: true
+                            }
+
+                            GridLayout {
+                                Layout.fillWidth: true
+                                columns: 2
+                                columnSpacing: 8
+                                rowSpacing: 8
+
+                                EButton {
+                                    text: qsTr("Idle")
+                                    size: "xs"
+                                    radius: 8
+                                    shadowEnabled: false
+                                    enabled: serialDebug.isOpen
+                                    Layout.fillWidth: true
+                                    Layout.preferredHeight: 36
+                                    onClicked: serialDebug.switchMode("idle")
+                                }
+
+                                EButton {
+                                    text: qsTr("DMR")
+                                    size: "xs"
+                                    radius: 8
+                                    shadowEnabled: false
+                                    enabled: serialDebug.isOpen
+                                    Layout.fillWidth: true
+                                    Layout.preferredHeight: 36
+                                    onClicked: serialDebug.switchMode("dmr")
+                                }
+
+                                EButton {
+                                    text: qsTr("GSM")
+                                    size: "xs"
+                                    radius: 8
+                                    shadowEnabled: false
+                                    enabled: serialDebug.isOpen
+                                    Layout.fillWidth: true
+                                    Layout.preferredHeight: 36
+                                    onClicked: serialDebug.switchMode("gsm")
+                                }
+
+                                EButton {
+                                    text: qsTr("GNSS")
+                                    size: "xs"
+                                    radius: 8
+                                    shadowEnabled: false
+                                    enabled: serialDebug.isOpen
+                                    Layout.fillWidth: true
+                                    Layout.preferredHeight: 36
+                                    onClicked: serialDebug.switchMode("gnss")
+                                }
+                            }
+                        }
+                    }
+
+                    ECard {
+                        Layout.fillWidth: true
+                        radius: 10
+                        padding: 16
+                        shadowEnabled: false
+
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 8
+
+                            Text {
+                                text: qsTr("协议解析")
+                                color: theme.textColor
+                                font.pixelSize: 15
+                                font.bold: true
+                                Layout.fillWidth: true
+                            }
+
+                            InfoRow { label: qsTr("状态"); value: serialDebug.frameStatus }
+                            InfoRow { label: qsTr("方向"); value: serialDebug.frameDirection }
+                            InfoRow { label: qsTr("Model"); value: serialDebug.frameModel }
+                            InfoRow { label: qsTr("Cmd"); value: serialDebug.frameCommand }
+                            InfoRow { label: qsTr("帧长度"); value: serialDebug.frameLength }
+                            InfoRow { label: qsTr("CRC"); value: serialDebug.frameCrcStatus; valueColor: serialDebug.frameCrcStatus.indexOf("正确") >= 0 ? theme.focusColor : theme.textColor }
+
+                            Text {
+                                text: qsTr("Payload HEX")
+                                color: Qt.rgba(theme.textColor.r, theme.textColor.g, theme.textColor.b, 0.58)
+                                font.pixelSize: 12
+                                Layout.fillWidth: true
+                            }
+
+                            Text {
+                                text: serialDebug.framePayloadHex
+                                color: theme.textColor
+                                font.family: "Consolas"
+                                font.pixelSize: 11
+                                wrapMode: Text.Wrap
+                                Layout.fillWidth: true
+                            }
+                        }
+                    }
+
+                    ECard {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 260
+                        radius: 10
+                        padding: 16
+                        shadowEnabled: false
+
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            spacing: 8
+
+                            Text {
+                                text: serialDebug.businessType === "-" ? qsTr("业务数据") : serialDebug.businessType
+                                color: theme.textColor
+                                font.pixelSize: 15
+                                font.bold: true
+                                Layout.fillWidth: true
+                            }
+
+                            Text {
+                                visible: serialDebug.businessFields.length === 0
+                                text: qsTr("等待 DMR、GSM 或 GNSS 业务帧")
+                                color: Qt.rgba(theme.textColor.r, theme.textColor.g, theme.textColor.b, 0.58)
+                                font.pixelSize: 12
+                                Layout.fillWidth: true
+                            }
+
+                            ListView {
+                                visible: serialDebug.businessFields.length > 0
+                                model: serialDebug.businessFields
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+                                clip: true
+                                spacing: 4
+
+                                delegate: RowLayout {
+                                    width: ListView.view.width
+                                    spacing: 8
+
+                                    Text {
+                                        text: modelData.name
+                                        color: Qt.rgba(theme.textColor.r, theme.textColor.g, theme.textColor.b, 0.58)
+                                        font.pixelSize: 11
+                                        Layout.preferredWidth: 110
+                                        elide: Text.ElideRight
+                                    }
+
+                                    Text {
+                                        text: modelData.value
+                                        color: theme.textColor
+                                        font.family: "Consolas"
+                                        font.pixelSize: 11
+                                        horizontalAlignment: Text.AlignRight
+                                        Layout.fillWidth: true
+                                        elide: Text.ElideRight
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     // 串口状态卡片
                     ECard {
                         Layout.fillWidth: true

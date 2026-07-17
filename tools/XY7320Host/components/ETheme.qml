@@ -22,6 +22,12 @@ QtObject {
     property color defaultFocusColor: "#00C4B3"
     property color focusColor: defaultFocusColor
 
+    // 监测/升级页面共用的浅青绿色仪表盘配色。
+    property color instrumentPanelColor: isDark ? "#173b3a" : "#D4F3F0"
+    property color instrumentInsetColor: isDark ? "#20504d" : "#B8E9E4"
+    property color instrumentBorderColor: isDark ? "#19b9ae" : "#00AFA6"
+    property color instrumentActiveColor: isDark ? "#087c76" : "#00AFA6"
+
     // === 全局音量（0.0 - 1.0），用于 EMusicPlayer 绑定 ===
     property real musicVolume: 0.2
 

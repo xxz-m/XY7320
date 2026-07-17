@@ -35,6 +35,7 @@ public:
         Unknown = 0,
         GGA,
         RMC,
+        GSV,
     };
 
     /** GGA 定位质量字段。 */
@@ -49,6 +50,16 @@ public:
         Manual = 7,
         Simulation = 8,
         Unknown = 255,
+    };
+
+    struct GsvInfo {
+        Talker talker = Talker::Unknown;
+        uint8_t messageCount = 0;
+        uint8_t messageNumber = 0;
+        uint8_t satelliteCount = 0;
+        uint8_t satellitesInMessage = 0;
+        uint8_t maxSnr = 0;
+        bool valid = false;
     };
 
     /** RMC 有效状态。 */
@@ -126,6 +137,7 @@ public:
         bool parsed = false;
         GgaInfo gga;
         RmcInfo rmc;
+        GsvInfo gsv;
     };
 
     /**
@@ -144,6 +156,7 @@ private:
 
     static bool ParseGga(const char *line, uint16_t len, DecodeResult *out);
     static bool ParseRmc(const char *line, uint16_t len, DecodeResult *out);
+    static bool ParseGsv(const char *line, uint16_t len, DecodeResult *out);
 
     static bool GetField(const char *line,
                          uint16_t len,

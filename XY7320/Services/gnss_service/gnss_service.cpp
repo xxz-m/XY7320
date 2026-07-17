@@ -65,6 +65,14 @@ void GnssService::Init()
     m_validRmcCount = 0;
     m_logDivider = 0;
     m_fix = {};
+    m_gpsGsvMessageCount = 0U;
+    m_gpsGsvLastMessage = 0U;
+    m_gpsGsvCount = 0U;
+    m_gpsGsvMaxSnr = 0U;
+    m_beidouGsvMessageCount = 0U;
+    m_beidouGsvLastMessage = 0U;
+    m_beidouGsvCount = 0U;
+    m_beidouGsvMaxSnr = 0U;
 
     LOG_Printf("GnssService,Init,USART3,DMA+IDLE,OK\r\n");
 }
@@ -82,6 +90,14 @@ void GnssService::Start()
     m_validRmcCount = 0;
     m_logDivider = 0;
     m_fix = {};
+    m_gpsGsvMessageCount = 0U;
+    m_gpsGsvLastMessage = 0U;
+    m_gpsGsvCount = 0U;
+    m_gpsGsvMaxSnr = 0U;
+    m_beidouGsvMessageCount = 0U;
+    m_beidouGsvLastMessage = 0U;
+    m_beidouGsvCount = 0U;
+    m_beidouGsvMaxSnr = 0U;
     LOG_Printf("GnssService,Start,OK\r\n");
 }
 void GnssService::Stop()
@@ -196,6 +212,8 @@ void GnssService::HandleLine(const char *line, uint16_t len)
     } else if (result.type == ProtocolGnss::SentenceType::RMC && result.rmc.valid) {
         ApplyRmc(result.rmc);
         ++m_validRmcCount;
+    } else if (result.type == ProtocolGnss::SentenceType::GSV && result.gsv.valid) {
+        ApplyGsv(result.gsv);
     }
 
     RefreshFixState();
@@ -233,6 +251,50 @@ void GnssService::ApplyRmc(const ProtocolGnss::RmcInfo& rmc)
     m_fix.speedKmhX1000 = rmc.speedKmhX1000;
     m_fix.rmcActive = rmc.status == ProtocolGnss::RmcStatus::Active;
     m_fix.hasRmc = true;
+}
+
+void GnssService::ApplyGsv(const ProtocolGnss::GsvInfo& gsv)
+{
+    uint8_t *messageCount = nullptr;
+    uint8_t *lastMessage = nullptr;
+    uint8_t *satelliteCount = nullptr;
+    uint8_t *maxSnr = nullptr;
+    uint8_t *publishedCount = nullptr;
+    uint8_t *publishedMaxSnr = nullptr;
+
+    if (gsv.talker == ProtocolGnss::Talker::GPS) {
+        messageCount = &m_gpsGsvMessageCount;
+        lastMessage = &m_gpsGsvLastMessage;
+        satelliteCount = &m_gpsGsvCount;
+        maxSnr = &m_gpsGsvMaxSnr;
+        publishedCount = &m_fix.gpsSatelliteCount;
+        publishedMaxSnr = &m_fix.gpsMaxSnr;
+    } else if (gsv.talker == ProtocolGnss::Talker::BeiDou) {
+        messageCount = &m_beidouGsvMessageCount;
+        lastMessage = &m_beidouGsvLastMessage;
+        satelliteCount = &m_beidouGsvCount;
+        maxSnr = &m_beidouGsvMaxSnr;
+        publishedCount = &m_fix.beidouSatelliteCount;
+        publishedMaxSnr = &m_fix.beidouMaxSnr;
+    } else {
+        return;
+    }
+
+    if (gsv.messageNumber == 1U || gsv.messageCount != *messageCount ||
+        gsv.messageNumber <= *lastMessage) {
+        *satelliteCount = 0U;
+        *maxSnr = 0U;
+    }
+    *messageCount = gsv.messageCount;
+    *lastMessage = gsv.messageNumber;
+    *satelliteCount = gsv.satelliteCount;
+    if (gsv.maxSnr > *maxSnr) {
+        *maxSnr = gsv.maxSnr;
+    }
+    if (gsv.messageNumber == gsv.messageCount) {
+        *publishedCount = *satelliteCount;
+        *publishedMaxSnr = *maxSnr;
+    }
 }
 
 void GnssService::RefreshFixState()

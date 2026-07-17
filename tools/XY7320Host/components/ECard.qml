@@ -10,6 +10,8 @@ Item {
     property bool backgroundVisible: true
 
     property color cardColor: theme.secondaryColor
+    property color borderColor: "transparent"
+    property int borderWidth: 0
     property real radius: 20
     property int padding: 15 // 内容区域的内边距
 
@@ -43,6 +45,8 @@ Item {
         anchors.fill: parent
         radius: root.radius
         color: root.cardColor
+        border.color: root.borderColor
+        border.width: root.borderWidth
     }
 
     // === 内容布局 ===

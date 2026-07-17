@@ -16,7 +16,13 @@
 
 namespace {
 constexpr uint32_t kGsmUploadPeriodMs = 200U;
-constexpr uint8_t kGsmPayloadSize = 12U;
+constexpr uint8_t kGsmPayloadSize = 18U;
+
+void WriteU16Be(uint8_t *dst, uint16_t value)
+{
+    dst[0] = static_cast<uint8_t>((value >> 8) & 0xFFU);
+    dst[1] = static_cast<uint8_t>(value & 0xFFU);
+}
 
 void WriteU32Be(uint8_t *dst, uint32_t value)
 {
@@ -25,7 +31,7 @@ void WriteU32Be(uint8_t *dst, uint32_t value)
     dst[2] = static_cast<uint8_t>((value >> 8) & 0xFFU);
     dst[3] = static_cast<uint8_t>(value & 0xFFU);
 }
-} // namespace
+}
 
 /**
  * GSM 状态对应 PA2/TIM5_CH3 比较器输入。
@@ -118,11 +124,16 @@ void TaskStateGsm::tick()
     }
     m_lastUploadMs = now;
 
-    /* payload 固定为 3 个 32 位大端字段，禁止上传原生结构体布局。 */
+    const GsmPowerData_t powerData = AdcService::Instance().GetGsmPowerData();
     uint8_t payload[kGsmPayloadSize]{};
-    WriteU32Be(&payload[0], now);
-    WriteU32Be(&payload[4], captureResult.valid ? captureResult.periodUs : 0U);
-    WriteU32Be(&payload[8], captureResult.valid ? captureResult.pulseWidthUs : 0U);
+    payload[0] = 0x08U;
+    payload[1] = 0x01U;
+    WriteU16Be(&payload[2], static_cast<uint16_t>(powerData.dbm1_x100));
+    WriteU16Be(&payload[4], static_cast<uint16_t>(powerData.dbm2_x100));
+    WriteU16Be(&payload[6], powerData.p1v);
+    WriteU16Be(&payload[8], powerData.p2v);
+    WriteU32Be(&payload[10], powerData.valid ? captureResult.pulseWidthUs : 0U);
+    WriteU32Be(&payload[14], powerData.valid ? captureResult.periodUs : 0U);
 
     (void)UartTxService::Instance().PublishModeData(
         UPLINK_CMD_GSM_MEAS,

@@ -13,7 +13,7 @@
 
 namespace {
 constexpr uint32_t kGnssUploadPeriodMs = 1000U;
-constexpr uint8_t kGnssPayloadSize = 17U;
+constexpr uint8_t kGnssPayloadSize = 36U;
 
 void WriteU16Be(uint8_t *dst, uint16_t value)
 {
@@ -78,18 +78,30 @@ void TaskstateGnss::tick()
     s_lastUploadMs = now;
     ++s_seq;
 
-    /*
-     * GNSS payload 使用稳定的大端定点格式：latitudeE7、longitudeE7、
-     * fixQuality、satelliteCount、hdopX100、altitudeCm、hasFix。
-     */
     uint8_t payload[kGnssPayloadSize]{};
-    WriteU32Be(&payload[0], static_cast<uint32_t>(fix.latitudeE7));
-    WriteU32Be(&payload[4], static_cast<uint32_t>(fix.longitudeE7));
-    payload[8] = static_cast<uint8_t>(fix.fixQuality);
-    payload[9] = fix.satelliteCount;
-    WriteU16Be(&payload[10], fix.hdopX100);
-    WriteU32Be(&payload[12], static_cast<uint32_t>(fix.altitudeCm));
-    payload[16] = fix.hasFix ? 1U : 0U;
+    payload[0] = ModeManager::Instance().gpsModel();
+    WriteU16Be(&payload[1], 0U);
+    WriteU16Be(&payload[3], 0U);
+    WriteU16Be(&payload[5], 0U);
+    WriteU16Be(&payload[7], 0U);
+    payload[9] = static_cast<uint8_t>(fix.fixQuality);
+    payload[10] = fix.longitudeE7 < 0 ? static_cast<uint8_t>('W') : static_cast<uint8_t>('E');
+    WriteU32Be(&payload[11], static_cast<uint32_t>(fix.longitudeE7 < 0 ? -fix.longitudeE7 : fix.longitudeE7) / 100U);
+    payload[15] = fix.latitudeE7 < 0 ? static_cast<uint8_t>('S') : static_cast<uint8_t>('N');
+    WriteU32Be(&payload[16], static_cast<uint32_t>(fix.latitudeE7 < 0 ? -fix.latitudeE7 : fix.latitudeE7) / 100U);
+    payload[20] = fix.satelliteCount;
+    payload[21] = fix.gpsSatelliteCount;
+    payload[22] = fix.beidouSatelliteCount;
+    payload[23] = fix.gpsMaxSnr;
+    payload[24] = fix.beidouMaxSnr;
+    WriteU16Be(&payload[25], fix.speedKmhX1000);
+    WriteU16Be(&payload[27], static_cast<uint16_t>(fix.altitudeCm / 10));
+    WriteU16Be(&payload[29], fix.utc.year);
+    payload[31] = fix.utc.month;
+    payload[32] = fix.utc.day;
+    payload[33] = fix.utc.hour;
+    payload[34] = fix.utc.minute;
+    payload[35] = fix.utc.second;
 
     (void)UartTxService::Instance().PublishModeData(
         UPLINK_CMD_GNSS_MEAS,

@@ -37,6 +37,13 @@ void ModeManager::Tick()
     currentState_->tick();
 }
 
+void ModeManager::SetModeParameters(uint8_t freqModel, uint8_t catchModel, uint8_t gpsModel)
+{
+    freqModel_ = freqModel;
+    catchModel_ = catchModel;
+    gpsModel_ = gpsModel;
+}
+
 /**
  * 统一切换入口，协议层/业务层都走这里
  *

@@ -56,6 +56,9 @@ bool ProtocolGnss::DecodeLine(const char *line, uint16_t len, DecodeResult *out)
     case SentenceType::RMC:
         out->parsed = ParseRmc(line, len, out);
         break;
+    case SentenceType::GSV:
+        out->parsed = ParseGsv(line, len, out);
+        break;
     default:
         out->parsed = false;
         break;
@@ -158,6 +161,9 @@ ProtocolGnss::SentenceType ProtocolGnss::ParseSentenceType(const char *line, uin
     }
     if (line[3] == 'R' && line[4] == 'M' && line[5] == 'C') {
         return SentenceType::RMC;
+    }
+    if (line[3] == 'G' && line[4] == 'S' && line[5] == 'V') {
+        return SentenceType::GSV;
     }
 
     return SentenceType::Unknown;
@@ -291,6 +297,54 @@ bool ProtocolGnss::ParseRmc(const char *line, uint16_t len, DecodeResult *out)
                 rmc.status == RmcStatus::Active;
 
     out->rmc = rmc;
+    return true;
+}
+
+bool ProtocolGnss::ParseGsv(const char *line, uint16_t len, DecodeResult *out)
+{
+    if (line == nullptr || out == nullptr) {
+        return false;
+    }
+
+    GsvInfo gsv{};
+    gsv.talker = out->talker;
+    const char *field = nullptr;
+    uint16_t fieldLen = 0U;
+    if (!GetField(line, len, 1U, &field, &fieldLen)) {
+        return false;
+    }
+    gsv.messageCount = static_cast<uint8_t>(ParseUnsigned(field, fieldLen));
+    if (!GetField(line, len, 2U, &field, &fieldLen)) {
+        return false;
+    }
+    gsv.messageNumber = static_cast<uint8_t>(ParseUnsigned(field, fieldLen));
+    if (!GetField(line, len, 3U, &field, &fieldLen)) {
+        return false;
+    }
+    gsv.satelliteCount = static_cast<uint8_t>(ParseUnsigned(field, fieldLen));
+
+    uint8_t satellitesInMessage = 0U;
+    uint8_t maxSnr = 0U;
+    for (uint8_t index = 0U; index < 4U; ++index) {
+        const uint8_t snrField = static_cast<uint8_t>(7U + index * 4U);
+        if (!GetField(line, len, snrField, &field, &fieldLen)) {
+            break;
+        }
+        ++satellitesInMessage;
+        if (fieldLen > 0U) {
+            const uint32_t snr = ParseUnsigned(field, fieldLen);
+            if (snr > maxSnr) {
+                maxSnr = static_cast<uint8_t>(snr > 255U ? 255U : snr);
+            }
+        }
+    }
+
+    gsv.satellitesInMessage = satellitesInMessage;
+    gsv.maxSnr = maxSnr;
+    gsv.valid = gsv.messageCount > 0U &&
+                gsv.messageNumber > 0U &&
+                gsv.messageNumber <= gsv.messageCount;
+    out->gsv = gsv;
     return true;
 }
 

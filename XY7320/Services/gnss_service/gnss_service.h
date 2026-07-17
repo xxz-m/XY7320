@@ -22,7 +22,11 @@ struct GnssFix {
 
     int32_t latitudeE7 = 0;       /**< 纬度，单位：度 * 1e7 */
     int32_t longitudeE7 = 0;      /**< 经度，单位：度 * 1e7 */
-    uint8_t satelliteCount = 0;   /**< 卫星数 */
+    uint8_t satelliteCount = 0;   /**< 参与定位的卫星数 */
+    uint8_t gpsSatelliteCount = 0; /**< 可见 GPS 卫星数 */
+    uint8_t beidouSatelliteCount = 0; /**< 可见北斗卫星数 */
+    uint8_t gpsMaxSnr = 0;         /**< GPS 最大信噪比 */
+    uint8_t beidouMaxSnr = 0;      /**< 北斗最大信噪比 */
     uint16_t hdopX100 = 0;        /**< HDOP * 100 */
     int32_t altitudeCm = 0;       /**< 海拔，单位：cm */
     uint16_t speedKnotsX1000 = 0; /**< 地速，单位：节 * 1000 */
@@ -96,6 +100,7 @@ private:
     void HandleLine(const char *line, uint16_t len);
     void ApplyGga(const ProtocolGnss::GgaInfo& gga);
     void ApplyRmc(const ProtocolGnss::RmcInfo& rmc);
+    void ApplyGsv(const ProtocolGnss::GsvInfo& gsv);
     void RefreshFixState();
     void PrintFixBrief();
 
@@ -111,6 +116,14 @@ private:
     uint16_t m_logDivider = 0;
     bool m_initialized = false;
     GnssFix m_fix{};
+    uint8_t m_gpsGsvMessageCount = 0U;
+    uint8_t m_gpsGsvLastMessage = 0U;
+    uint8_t m_gpsGsvCount = 0U;
+    uint8_t m_gpsGsvMaxSnr = 0U;
+    uint8_t m_beidouGsvMessageCount = 0U;
+    uint8_t m_beidouGsvLastMessage = 0U;
+    uint8_t m_beidouGsvCount = 0U;
+    uint8_t m_beidouGsvMaxSnr = 0U;
 };
 
 #endif /* XY7320_GNSS_SERVICE_H */

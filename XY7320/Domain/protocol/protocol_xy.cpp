@@ -94,7 +94,7 @@ uint16_t Protocol::DecodeBuffer(uint8_t *src, uint16_t len, ProtocolPacket *info
         if (!_head) {
             // 查找帧头 0x10 0x02
             if (src[i - 1] == HEAD1 && src[i] == HEAD2) {
-                Packet_len++;
+                Packet_len = 2;
                 _head = 1;
             }
         } else {
@@ -201,7 +201,7 @@ void Protocol::DecodeRibbon(uint8_t *src, uint16_t len, ProtocolPacket *info)
 
     // CRC 校验：对 src[2] 开始的 info_len 字节计算 CRC
     info->crcValue = Get_Crc16(src + 2, info_len);
-    crcValue = src[info_len + 2] << 8 | src[info_len + 3];  // 帧中携带的 CRC
+    crcValue = src[info_len + 4] << 8 | src[info_len + 5];  // 帧中携带的 CRC
     if (info->crcValue == crcValue) {
         int offset = 4;  // 当前读取偏移（跳过帧头2 + info_len 2）
 
@@ -226,8 +226,8 @@ void Protocol::DecodeRibbon(uint8_t *src, uint16_t len, ProtocolPacket *info)
         // 命令码
         info->cmd = src[offset++];
 
-        // 数据段：info_len - 源地址长度 - 目的地址长度 - 固定开销8字节
-        data_len = info_len - info->origin_Address_len - info->goal_Address_len - 8;
+        // 数据段：info_len - 源地址长度 - 目的地址长度 - 固定开销6字节
+        data_len = info_len - info->origin_Address_len - info->goal_Address_len - 6;
         memset(info->data, 0, MAX_PROTOCOL_LEN);
         for (i = 0; i < data_len; i++) {
             info->data[i] = src[offset++];
@@ -272,8 +272,8 @@ uint16_t Protocol::EncodePacket(const ProtocolPacket *Packet, uint8_t *dest)
     buff[len++] = Packet->Head1;
     buff[len++] = Packet->Head2;
 
-    // info_len = 固定开销(8) + 源地址长度 + 目的地址长度 + 数据长度
-    uint16_t info_len = 8 + Packet->origin_Address_len + Packet->goal_Address_len + Packet->data_len;
+    // info_len = 固定开销(6) + 源地址长度 + 目的地址长度 + 数据长度
+    uint16_t info_len = 6 + Packet->origin_Address_len + Packet->goal_Address_len + Packet->data_len;
     buff[len++] = (info_len >> 8) & 0xff;  // 大端序高字节
     buff[len++] = info_len & 0xff;          // 大端序低字节
 

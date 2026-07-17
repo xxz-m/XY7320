@@ -39,9 +39,9 @@ typedef enum workStatus_t
  *     UPLINK_CMD_BATTERY 暂不实现，留作后续 battery/temp 扩展位。
  *  4. 字段长度/上限集中定义，便于 UartTxService 与上位机共享。
  * --------------------------------------------------------------------------- */
-#define UPLINK_CMD_DMR_MEAS   0x30U  /* DMR 模式测量数据上行 */
-#define UPLINK_CMD_GSM_MEAS   0x31U  /* GSM 模式测量数据上行 */
-#define UPLINK_CMD_GNSS_MEAS  0x32U  /* GNSS 模式数据上行 */
+#define UPLINK_CMD_DMR_MEAS   POWER_MODEL
+#define UPLINK_CMD_GSM_MEAS   POWER_MODEL_GSM
+#define UPLINK_CMD_GNSS_MEAS  GPS_MODEL
 #define UPLINK_CMD_BATTERY    0x33U  /* 电池数据上行（预留，当前阶段不实现） */
 
 #define UPLINK_FIELD_MODE_LEN         1U
