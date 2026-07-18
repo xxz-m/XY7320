@@ -7,11 +7,14 @@
 #include "calibration_table.h"
 namespace
 {
+    /* ADL8361/ADL8317 四路 ADC 到 dBm 的硬件链路校准补偿，单位 dB。 */
     constexpr float DMR_P1_OFFSET_DB = 30.72f;
     constexpr float DMR_P2_OFFSET_DB = -2.2f;
     constexpr float DMR_P3_OFFSET_DB = 30.55f;
     constexpr float DMR_P4_OFFSET_DB = -2.42f;
+    /* 信号失效后保留最近有效值的时间窗口，单位 ms。 */
     constexpr uint32_t DMR_TIMEOUT_MS = 1500u;
+    /* 小于 1 uW 的结果按无有效功率处理。 */
     constexpr uint32_t DMR_VALID_POWER_UW = 1u;
     /**
      * @brief 将 float dBm 转为协议使用的 dBm * 100 定点值
@@ -51,6 +54,7 @@ void DMRPowerMeasurement::Reset()
 
 static inline uint32_t hold_if_transient_zero(uint32_t newv, uint32_t lastv, uint8_t *zeroCnt)
 {
+    /* 连续 8 次零值前沿保持，抑制 ADC 瞬态掉零；实际时长由采样周期决定。 */
     const uint8_t ZERO_ACCEPT_COUNT = 8;
 
     if (lastv > 0 && newv == 0) {
@@ -109,6 +113,7 @@ bool DMRPowerMeasurement::Update(uint16_t p1v,
 
     const uint16_t raw_p2v = p2v;
     const uint16_t raw_p4v = p4v;
+    /* 反向检测链路按 1600 - raw 转换；超过基准值时钳位为 0，避免下溢。 */
     const uint16_t lookup_p2v = (p2v <= 1600u) ? (uint16_t)(1600u - p2v) : 0u;
     const uint16_t lookup_p4v = (p4v <= 1600u) ? (uint16_t)(1600u - p4v) : 0u;
 

@@ -10,7 +10,7 @@
 namespace
 {
 /*
- * TIM2/TIM5 当前按 1 MHz 计数，因此捕获计数值的差值可直接按 us 使用。
+ * TIM2/TIM4 当前按 1 MHz 计数，因此捕获计数值的差值可直接按 us 使用。
  * 最大周期同时限制异常边沿间隔，避免错误时间戳形成看似有效的测量结果。
  */
 constexpr uint32_t INPUT_CAPTURE_MIN_PERIOD_US = 2U;

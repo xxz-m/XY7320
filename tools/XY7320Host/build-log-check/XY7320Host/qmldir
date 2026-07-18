@@ -1,0 +1,24 @@
+module XY7320Host
+typeinfo XY7320Host.qmltypes
+prefer :/qt/qml/XY7320Host/
+Main 1.0 Main.qml
+EAlertDialog 1.0 components/EAlertDialog.qml
+EBlurCard 1.0 components/EBlurCard.qml
+EButton 1.0 components/EButton.qml
+ECard 1.0 components/ECard.qml
+ECheckBox 1.0 components/ECheckBox.qml
+EDataTable 1.0 components/EDataTable.qml
+EDropdown 1.0 components/EDropdown.qml
+EInput 1.0 components/EInput.qml
+EList 1.0 components/EList.qml
+ELoader 1.0 components/ELoader.qml
+EProgressBar 1.0 components/EProgressBar.qml
+ESwitchButton 1.0 components/ESwitchButton.qml
+ETheme 1.0 components/ETheme.qml
+EToast 1.0 components/EToast.qml
+LogsPage 1.0 pages/LogsPage.qml
+MeasurementPage 1.0 pages/MeasurementPage.qml
+SerialDebugPage 1.0 pages/SerialDebugPage.qml
+SettingsPage 1.0 pages/SettingsPage.qml
+UpgradePage 1.0 pages/UpgradePage.qml
+

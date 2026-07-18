@@ -12,7 +12,7 @@
 #include "update_service.h"
 
 /**
- * @brief 任务入口：每 10ms 驱动协议 RX 解析与 TX 调度
+ * @brief 任务入口：每 2ms 驱动协议 RX 解析与 TX 调度
  *
  * 流程：
  *  1. ProtocolService::Update：从 BSP 串口接收层取出原始帧 → 拼流 → 拆帧 → 校验 → 分发到升级或命令处理器。
@@ -25,5 +25,5 @@ extern "C" void Task_UpdateConfig(void *arg)
     ProtocolService::Instance().Update();
     UartTxService::Instance().Update();
     UpdateService::Instance().Update();
-    OS_DelayMs(10);
+    OS_DelayMs(2);
 }

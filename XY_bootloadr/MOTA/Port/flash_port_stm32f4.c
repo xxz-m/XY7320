@@ -1,9 +1,21 @@
 #include "main.h"
 #include "string.h"
+/*
+ * STM32F407 分区：Sector 0-3 为 Bootloader，Sector 4-10 为 APP，
+ * Sector 11 从 0x080E0000 开始保留给版本配置，因此升级操作不得越界。
+ */
 #define FLASH_BASE_ADDR      0x08000000U
 #define APP_START_ADDR       0x08010000U
 #define FLASH_END_ADDR       0x080E0000U
 
+/**
+ * @brief 从 APP Flash 分区读取数据。
+ *
+ * @param offset 绝对 Flash 地址，不是相对 APP 分区偏移。
+ * @param buf    输出缓冲区。
+ * @param size   读取字节数。
+ * @return 成功返回读取字节数，地址或参数越界返回 -1。
+ */
 int read(long offset, uint8_t *buf, size_t size)
 {
     if (buf == NULL || size == 0) {
@@ -20,6 +32,17 @@ int read(long offset, uint8_t *buf, size_t size)
     return (int)size;
 }
 
+/**
+ * @brief 向 APP Flash 分区写入数据并回读校验。
+ *
+ * Flash 控制器按 4 字节写入；调用方须提供 4 字节对齐地址，尾部不足
+ * 4 字节时由本实现使用 0xFF 补齐后写入。
+ *
+ * @param offset 绝对 Flash 地址。
+ * @param buf    输入数据。
+ * @param size   逻辑数据长度，单位为字节。
+ * @return 成功返回逻辑数据长度，写入或校验失败返回 -1。
+ */
 int write(long offset, const uint8_t *buf, size_t size)
 {
     uint32_t addr = (uint32_t)offset;
@@ -68,6 +91,12 @@ int write(long offset, const uint8_t *buf, size_t size)
     return (int)size;
 }
 
+/**
+ * @brief 根据绝对 Flash 地址映射 STM32F407 Sector。
+ *
+ * 这些边界对应 F407 的 Sector 0-11；升级擦除仅允许 Sector 4-10，
+ * 以保护 Bootloader 和版本配置区。
+ */
 uint32_t get_sector(uint32_t addr)
 {
     if (addr < 0x08004000U) return FLASH_SECTOR_0;

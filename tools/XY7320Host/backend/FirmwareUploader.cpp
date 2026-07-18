@@ -438,6 +438,7 @@ void FirmwareUploader::checkSelectedFile()
 
 void FirmwareUploader::sendNextPacket()
 {
+    /* 最后一包写完只代表字节已发出，必须等待 Bootloader 校验后返回 XYB3。 */
     if (!m_busy) {
         return;
     }
@@ -475,8 +476,23 @@ void FirmwareUploader::sendNextPacket()
 
 void FirmwareUploader::handleSerialReadyRead(const QByteArray &data)
 {
+    appendRxLog(data);
     m_rxBuffer.append(data);
     consumeRxBuffer();
+}
+
+void FirmwareUploader::appendRxLog(const QByteArray &data)
+{
+    QByteArray ascii;
+    ascii.reserve(data.size());
+    for (const unsigned char byte : data) {
+        ascii.append((byte >= 0x20U && byte <= 0x7EU) ? static_cast<char>(byte) : '.');
+    }
+
+    appendLog(QStringLiteral("[AUTO] RX len=%1 HEX=%2 ASCII=%3")
+                  .arg(data.size())
+                  .arg(QString::fromLatin1(data.toHex(' ').toUpper()))
+                  .arg(QString::fromLatin1(ascii)));
 }
 
 void FirmwareUploader::handleWriteFinished(qint64, int tag)
@@ -541,6 +557,7 @@ void FirmwareUploader::handleHandshakeTimeout()
 
 QByteArray FirmwareUploader::makeHeader() const
 {
+    // Bootloader 头固定 12 字节，三个 uint32 字段均按小端序发送。
     QByteArray header;
     header.reserve(12);
     appendLe32(&header, SimpleAppMagic);
@@ -572,6 +589,7 @@ quint16 FirmwareUploader::protocolCrc16(const QByteArray &data) const
 
 QByteArray FirmwareUploader::makeProtocolUpgradeHandshake() const
 {
+    // APP 握手采用大端 info_len/CRC；帧体中的 0x10 重复转义，帧头帧尾不转义。
     QByteArray frame;
     frame.reserve(32);
 
@@ -890,6 +908,9 @@ void FirmwareUploader::stopHandshakeTimer()
 void FirmwareUploader::consumeRxBuffer()
 {
     if (tryConsumeProtocolUpgradeAck()) {
+        if (m_autoStage != AutoStage::WaitAppVersionAck) {
+            consumeRxBuffer();
+        }
         return;
     }
 
@@ -959,13 +980,20 @@ bool FirmwareUploader::tryConsumeProtocolUpgradeAck()
                     return true;
                 }
 
+                const quint16 infoLen = static_cast<quint16>(static_cast<quint8>(decoded[2]) << 8) |
+                                         static_cast<quint16>(static_cast<quint8>(decoded[3]));
+                if (infoLen < 8 || decoded.size() != infoLen + 6) {
+                    return true;
+                }
+
                 const quint8 originPort = static_cast<quint8>(decoded[4]);
                 const quint8 goalPort = static_cast<quint8>(decoded[6]);
                 const quint8 model = static_cast<quint8>(decoded[8]);
                 const quint8 cmd = static_cast<quint8>(decoded[9]);
-                const int dataLen = decoded.size() - 14;
+                const int dataLen = infoLen - 8;
 
-                if (originPort == ProtocolPortDevice &&
+                const bool deviceAck = originPort == 0x22 || originPort == ProtocolPortDevice;
+                if (deviceAck &&
                     goalPort == ProtocolPortPc &&
                     model == ProtocolModelWrite &&
                     cmd == ProtocolCmdUpgradeHandshake &&

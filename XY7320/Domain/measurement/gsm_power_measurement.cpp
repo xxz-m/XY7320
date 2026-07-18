@@ -7,8 +7,11 @@
 #include "calibration_table.h"
 
 namespace {
+/* 5906 检测链路到天线端的硬件校准补偿，单位 dB。 */
 constexpr float GSM_LINK_OFFSET_DB = 35.1f;
+/* 信号失效后保留最近有效值的时间窗口，单位 ms。 */
 constexpr uint32_t GSM_TIMEOUT_MS = 1500u;
+/* 小于 1 uW 的结果按无有效功率处理。 */
 constexpr uint32_t GSM_VALID_POWER_UW = 1u;
 
 /**

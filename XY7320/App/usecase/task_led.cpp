@@ -10,7 +10,7 @@
 #include "os.h"
 
 /**
- * @brief 任务入口：每 10ms 驱动一次 LedService 状态机
+ * @brief 任务入口：每 20ms 驱动一次 LedService 状态机
  *
  * 协作式调度：调用一次 Update 后立即 DelayMs 让出 CPU。
  */
@@ -18,5 +18,5 @@ extern "C" void Task_LED(void *arg)
 {
     (void)arg;
     LedService::Instance().Update();
-    OS_DelayMs(10);
+    OS_DelayMs(20);
 }

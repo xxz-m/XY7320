@@ -231,6 +231,16 @@ void SerialDebug::switchMode(const QString &mode)
     }
 
     const QByteArray frame = encodeProtocolFrame(command, payload);
+    const quint16 expectedInfoLength = static_cast<quint16>(8 + payload.size());
+    const quint16 expectedFrameLength = static_cast<quint16>(expectedInfoLength + 6);
+    appendLog(QStringLiteral("[模式切换] frame_len=%1 info_len=%2 payload_len=%3")
+                  .arg(frame.size())
+                  .arg(expectedInfoLength)
+                  .arg(payload.size()));
+    if (frame.size() != expectedFrameLength) {
+        appendLog(QStringLiteral("[模式切换失败] frame length mismatch"));
+        return;
+    }
     if (!m_serialPortManager->write(frame, SerialPortManager::WriteTag::DebugTx)) {
         appendLog(QStringLiteral("[模式切换失败] 提交发送失败"));
         return;
@@ -510,33 +520,40 @@ QVariantList SerialDebug::decodeBusiness(quint8 command, const QByteArray &paylo
 
 QByteArray SerialDebug::encodeProtocolFrame(quint8 command, const QByteArray &payload) const
 {
-    QByteArray body;
-    const quint16 infoLength = static_cast<quint16>(6 + payload.size());
-    body.append(char(0x10));
-    body.append(char(0x02));
-    body.append(char((infoLength >> 8) & 0xff));
-    body.append(char(infoLength & 0xff));
-    body.append(char(0x01));
-    body.append(char(0x00));
-    body.append(char(0x22));
-    body.append(char(0x00));
-    body.append(char(0x02));
-    body.append(char(command));
-    body.append(payload);
-    const quint16 crc = crc16Xmodem(body.mid(2));
-    QByteArray encoded = body.left(2);
-    for (int index = 2; index < body.size(); ++index) {
-        encoded.append(body.at(index));
-        if (static_cast<quint8>(body.at(index)) == 0x10) encoded.append(char(0x10));
+    const quint16 infoLength = static_cast<quint16>(8 + payload.size());
+    QByteArray content;
+    content.reserve(infoLength);
+    content.append(static_cast<char>((infoLength >> 8) & 0xFFU));
+    content.append(static_cast<char>(infoLength & 0xFFU));
+    content.append(static_cast<char>(0x01));
+    content.append(static_cast<char>(0x00));
+    content.append(static_cast<char>(0x21));
+    content.append(static_cast<char>(0x00));
+    content.append(static_cast<char>(0x02));
+    content.append(static_cast<char>(command));
+    content.append(payload.constData(), payload.size());
+
+    const quint16 crc = crc16Xmodem(content);
+    QByteArray frame;
+    frame.reserve(static_cast<int>(infoLength) + 6);
+    frame.append(static_cast<char>(0x10));
+    frame.append(static_cast<char>(0x02));
+
+    const auto appendEscaped = [&frame](char byte) {
+        frame.append(byte);
+        if (static_cast<quint8>(byte) == 0x10U) {
+            frame.append(static_cast<char>(0x10));
+        }
+    };
+
+    for (const char byte : content) {
+        appendEscaped(byte);
     }
-    const QByteArray crcBytes = {char((crc >> 8) & 0xff), char(crc & 0xff)};
-    for (const char byte : crcBytes) {
-        encoded.append(byte);
-        if (static_cast<quint8>(byte) == 0x10) encoded.append(char(0x10));
-    }
-    encoded.append(char(0x10));
-    encoded.append(char(0x03));
-    return encoded;
+    appendEscaped(static_cast<char>((crc >> 8) & 0xFFU));
+    appendEscaped(static_cast<char>(crc & 0xFFU));
+    frame.append(static_cast<char>(0x10));
+    frame.append(static_cast<char>(0x03));
+    return frame;
 }
 
 QByteArray SerialDebug::parseHexString(const QString &data) const

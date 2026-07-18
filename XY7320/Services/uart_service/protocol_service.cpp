@@ -108,10 +108,11 @@ void ProtocolService::ProcessStream()
 
 bool ProtocolService::ValidatePacket(const Protocol::ProtocolPacket &packet)
 {
+    /* 正式下发方向为 PC -> 设备；旧端口分支仅用于兼容 XY7000XMAIN 协议名称。 */
     const bool currentDirection = packet.goal_port == Protocol::XY_7320 &&
                                    packet.origin_port == Protocol::XY_PC;
-    const bool legacyDirection = packet.goal_port == Protocol::XY_PC &&
-                                  packet.origin_port == Protocol::XY_7000XMAIN;
+    const bool legacyDirection = packet.goal_port == Protocol::XY_7000XMAIN &&
+                                  packet.origin_port == Protocol::XY_PC;
     if (!currentDirection && !legacyDirection) {
         return false;
     }
@@ -124,6 +125,7 @@ bool ProtocolService::ValidatePacket(const Protocol::ProtocolPacket &packet)
 }
 void ProtocolService::DispatchPacket(const Protocol::ProtocolPacket &packet)
 {
+    /* F0-F2 保留为升级命令族，当前 APP 只实际处理 F0 握手。 */
     switch (packet.cmd) {
     case 0xF0:
     case 0xF1:
@@ -195,6 +197,7 @@ void ProtocolService::HandleUpgradePacket(const Protocol::ProtocolPacket &packet
                 break;
             }
 
+            /* 只有 ACK 已进入 USART2 控制队列，才能在队列排空后安全复位。 */
             const bool ackQueued = SendPacket(packet.cmd, nullptr, 0);
 
             if (should_reset && ackQueued) {

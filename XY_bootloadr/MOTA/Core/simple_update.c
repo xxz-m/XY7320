@@ -1,4 +1,4 @@
-﻿//
+//
 // Created by XYKJ on 2026/6/4.
 //
 
@@ -10,6 +10,11 @@
 #include "usart.h"
 #include "string.h"
 
+/*
+ * 升级头和 ACK 必须与上位机 FirmwareUploader 保持字节级一致：
+ * 头为小端 magic/app_size/app_crc，XYB2 表示可发送固件，XYB3
+ * 表示校验通过且 Bootloader 即将跳转到 APP。
+ */
 #define SIMPLE_APP_MAGIC        0x41505055U
 #define SIMPLE_UPDATE_MAX_FRAME 1024U
 #define SIMPLE_UPDATE_ACK_HEADER_READY "XYB2"
@@ -43,6 +48,10 @@ static uint8_t Simple_Update_CheckAppValid(void);
 static void Simple_Update_JumpToApp(void);
 static void Simple_Update_SendAck(const char *ack);
 
+/**
+ * 升级状态从 WAIT_HEAD 开始，避免复位后的残留缓冲被误当作固件数据。
+ * APP 分区地址和大小由 bootloader_config.h 提供，必须与链接脚本一致。
+ */
 void Simple_Update_Init(void)
 {
     BSP_Flash_Init(&app_flash_part, APP_PART_NAME, APP_ADDRESS, APP_PART_SIZE);
@@ -113,6 +122,7 @@ void Simple_Update_Process(uint8_t *data, uint16_t len)
 
             BSP_Printf("[simple update] erase app ok\r\n");
 
+            /* 只有完整头校验和 APP 分区擦除都成功，才允许接收固件数据。 */
             upgrade_received_size = 0;
             upgrade_write_offset = 0;
             upgrade_state = SIMPLE_UPGRADE_RECV_APP;
@@ -155,6 +165,8 @@ void Simple_Update_Process(uint8_t *data, uint16_t len)
             memset(write_buf, 0xFF, sizeof(write_buf));
             memcpy(write_buf, data, write_len);
 
+            /* Flash 按 32 位写入；最后一包的逻辑长度和实际写入长度可能不同，
+             * 补齐区保持 0xFF，避免把无效数据写入 APP。 */
             if ((aligned_len % 4U) != 0U)
             {
                 aligned_len = (aligned_len + 3U) & ~3U;
@@ -203,6 +215,7 @@ void Simple_Update_Process(uint8_t *data, uint16_t len)
 
                     upgrade_state = SIMPLE_UPGRADE_DONE;
 
+                    /* XYB3 必须先发出并留出串口发送时间，再跳转，避免上位机收不到完成 ACK。 */
                     Simple_Update_SendAck(SIMPLE_UPDATE_ACK_FINISH);
                     HAL_Delay(100);
                     Simple_Update_JumpToApp();
@@ -232,6 +245,7 @@ void Simple_Update_Process(uint8_t *data, uint16_t len)
     }
 }
 
+/* Bootloader 尚未接入 APP 的 UartTxService，只能在主循环中阻塞发送升级 ACK。 */
 static void Simple_Update_SendAck(const char *ack)
 {
     if (ack == NULL)

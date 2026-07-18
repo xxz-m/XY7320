@@ -1,10 +1,10 @@
 /**
  * @file    bsp_tim_capture.c
- * @brief   TIM2/TIM5 单通道双边沿输入捕获 BSP 实现
+ * @brief   TIM2/TIM4 单通道双边沿输入捕获 BSP 实现
  *
  * 说明：
  *   - TIM2_CH1（PA15）采集信号 A；
- *   - TIM5_CH3（PA2）采集信号 B；
+ *   - TIM4_CH3（PD14）采集信号 B；
  *   - 当前 CubeMX 配置为双边沿输入捕获、1 MHz 计数频率；
  *   - 本文件只把捕获事件转换为统一的原始事件回调。
  */
@@ -46,7 +46,7 @@ static uint32_t BspTimCapture_ReadValue(const TIM_HandleTypeDef *htim)
                                          TIM_CHANNEL_1);
     }
 
-    if (htim->Instance == TIM5) {
+    if (htim->Instance == TIM4) {
         return HAL_TIM_ReadCapturedValue((TIM_HandleTypeDef *)htim,
                                          TIM_CHANNEL_3);
     }
@@ -66,7 +66,7 @@ static uint32_t BspTimCapture_ReadValue(const TIM_HandleTypeDef *htim)
 static BspTimCaptureEdge_t BspTimCapture_GetExpectedEdge(
     const TIM_HandleTypeDef *htim)
 {
-    if (htim != NULL && htim->Instance == TIM5) {
+    if (htim != NULL && htim->Instance == TIM4) {
         return s_nextEdgeB;
     }
 
@@ -92,14 +92,14 @@ static void BspTimCapture_SelectNextEdge(
             ? TIM_INPUTCHANNELPOLARITY_FALLING
             : TIM_INPUTCHANNELPOLARITY_RISING;
 
-    /* TIM2/PA15 对应 DMR，TIM5/PA2 对应 GSM；两路边沿状态必须独立维护。 */
+    /* TIM2/PA15 对应 DMR，TIM4/PD14 对应 GSM；两路边沿状态必须独立维护。 */
     if (htim->Instance == TIM2) {
         __HAL_TIM_SET_CAPTUREPOLARITY(htim, TIM_CHANNEL_1, nextPolarity);
         s_nextEdgeA = (edge == BSP_TIM_CAPTURE_EDGE_RISING)
             ? BSP_TIM_CAPTURE_EDGE_FALLING
             : BSP_TIM_CAPTURE_EDGE_RISING;
     }
-    else if (htim->Instance == TIM5) {
+    else if (htim->Instance == TIM4) {
         __HAL_TIM_SET_CAPTUREPOLARITY(htim, TIM_CHANNEL_3, nextPolarity);
         s_nextEdgeB = (edge == BSP_TIM_CAPTURE_EDGE_RISING)
             ? BSP_TIM_CAPTURE_EDGE_FALLING
@@ -112,12 +112,12 @@ static void BspTimCapture_SelectNextEdge(
  *
  * @param htim 触发捕获的定时器句柄。
  * @return BSP 信号实例；未知定时器返回信号 A 作为占位值，
- *         调用方应先判断是否为 TIM2/TIM5。
+ *         调用方应先判断是否为 TIM2/TIM4。
  */
 static BspTimCaptureSignal_t BspTimCapture_GetSignal(
     const TIM_HandleTypeDef *htim)
 {
-    if (htim != NULL && htim->Instance == TIM5) {
+    if (htim != NULL && htim->Instance == TIM4) {
         return BSP_TIM_CAPTURE_SIGNAL_B;
     }
 
@@ -141,7 +141,7 @@ HAL_StatusTypeDef BspTimCapture_Start(void)
     __HAL_TIM_SET_CAPTUREPOLARITY(
         &htim2, TIM_CHANNEL_1, TIM_INPUTCHANNELPOLARITY_RISING);
     __HAL_TIM_SET_CAPTUREPOLARITY(
-        &htim5, TIM_CHANNEL_3, TIM_INPUTCHANNELPOLARITY_RISING);
+        &htim4, TIM_CHANNEL_3, TIM_INPUTCHANNELPOLARITY_RISING);
     s_nextEdgeA = BSP_TIM_CAPTURE_EDGE_RISING;
     s_nextEdgeB = BSP_TIM_CAPTURE_EDGE_RISING;
 
@@ -154,7 +154,7 @@ HAL_StatusTypeDef BspTimCapture_Start(void)
         return statusA;
     }
 
-    statusB = HAL_TIM_IC_Start_IT(&htim5, TIM_CHANNEL_3);
+    statusB = HAL_TIM_IC_Start_IT(&htim4, TIM_CHANNEL_3);
     if (statusB != HAL_OK) {
         (void)HAL_TIM_IC_Stop_IT(&htim2, TIM_CHANNEL_1);
         return statusB;
@@ -172,7 +172,7 @@ HAL_StatusTypeDef BspTimCapture_Stop(void)
 
     /* 先停止硬件中断，再清除运行标志，防止停止过程中继续上报事件。 */
     statusA = HAL_TIM_IC_Stop_IT(&htim2, TIM_CHANNEL_1);
-    statusB = HAL_TIM_IC_Stop_IT(&htim5, TIM_CHANNEL_3);
+    statusB = HAL_TIM_IC_Stop_IT(&htim4, TIM_CHANNEL_3);
     s_running = 0U;
 
     if (statusA != HAL_OK) {
@@ -203,7 +203,7 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
         return;
     }
 
-    if (htim->Instance != TIM2 && htim->Instance != TIM5) {
+    if (htim->Instance != TIM2 && htim->Instance != TIM4) {
         return;
     }
 

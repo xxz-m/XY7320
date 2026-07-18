@@ -101,14 +101,18 @@ private slots:
     void sendNextPacket();
     void checkSelectedFile();
     void handleSerialReadyRead(const QByteArray &data);
+    void appendRxLog(const QByteArray &data);
     void handleHandshakeTimeout();
     void handleWriteFinished(qint64 totalBytes, int tag);
     void handleSerialError(int error, const QString &message);
     void handleWriteTimeout(int tag);
 
 private:
+    // Bootloader 12 字节头中的 magic；后续 app_size/app_crc 使用小端序。
     static constexpr quint32 SimpleAppMagic = 0x41505055U;
+    // 固件单包上限；当前默认发送参数由 QML/属性配置为 256 字节、30 ms。
     static constexpr int MaxPacketSize = 1024;
+    // APP 升级握手中的 ASCII 版本号长度，不包含最后的 flag 字节。
     static constexpr int VersionTextLength = 12;
     static constexpr int HandshakeTimeoutMs = 8000;
     static constexpr quint8 ProtocolHead1 = 0x10;
@@ -117,9 +121,11 @@ private:
     static constexpr quint8 ProtocolEnd2 = 0x03;
     static constexpr quint8 ProtocolModelWrite = 0x02;
     static constexpr quint8 ProtocolCmdUpgradeHandshake = 0xF0;
+    // APP 握手采用大端 info_len/CRC；帧体中的 0x10 需要重复转义。
     static constexpr quint8 ProtocolPortPc = 0x01;
-    static constexpr quint8 ProtocolPortDevice = 0x22;
+    static constexpr quint8 ProtocolPortDevice = 0x21;
 
+    // 自动升级状态：APP ACK -> XYB1 -> XYB2 -> 固件数据 -> XYB3。
     enum class AutoStage {
         Idle,
         WaitAppVersionAck,
@@ -170,9 +176,9 @@ private:
     int m_versionFlag = 0;
     QString m_versionFrameHex;
     QString m_headerHex;
-    int m_packetSize = 1024;
+    int m_packetSize = 256;
     int m_headerDelayMs = 3000;
-    int m_packetDelayMs = 10;
+    int m_packetDelayMs = 30;
     double m_progress = 0.0;
     bool m_busy = false;
     bool m_serialOpen = false;

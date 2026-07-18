@@ -78,86 +78,64 @@ uint16_t Protocol::Get_Crc16(uint8_t *ptr, int len)
  * @param info  解析结果输出
  * @return 本次消费掉的字节数（调用方据此移动缓冲区）
  */
-uint16_t Protocol::DecodeBuffer(uint8_t *src, uint16_t len, ProtocolPacket *info) {
-    if (!info || !len) {
-        info->state = unDataNone;
-        return 0;
-    }
-    info->state = unNoError;
-    uint8_t _head = 0;  // 帧头已找到标志
-    uint8_t _end = 0;   // 帧尾已找到标志
-    uint8_t *data = src;
-    uint16_t Packet_len = 0;
-
-    /* 第一步：扫描帧头和帧尾 */
-    for (int i = 1; i < len; i++) {
-        if (!_head) {
-            // 查找帧头 0x10 0x02
-            if (src[i - 1] == HEAD1 && src[i] == HEAD2) {
-                Packet_len = 2;
-                _head = 1;
-            }
-        } else {
-            Packet_len++;
-            // 查找帧尾 0x10 0x03
-            if (src[i - 1] == END1 && src[i] == END2) {
-                // 排除转义情况：如果 END1 前面还是 0x10，说明这是转义的 0x10 而非帧尾
-                for (int j = 2; j <= i; j++) {
-                    if (END1 != src[i - j]) {
-                        Packet_len++;
-                        _end = 1;
-                        break;
-                    }
-                }
-            }
+uint16_t Protocol::DecodeBuffer(uint8_t *src, uint16_t len, ProtocolPacket *info)
+{
+    if (info == nullptr || src == nullptr || len == 0U) {
+        if (info != nullptr) {
+            info->state = unDataNone;
         }
-        data++;
-        if (_end == 1) {
+        return 0U;
+    }
+
+    uint16_t start = len;
+    for (uint16_t index = 1U; index < len; ++index) {
+        if (src[index - 1U] == HEAD1 && src[index] == HEAD2) {
+            start = static_cast<uint16_t>(index - 1U);
             break;
         }
     }
-
-    // 未找到帧头：丢弃所有数据（都是无效数据）
-    if (_head == 0) {
+    if (start == len) {
         info->state = unHeadErr;
-        return data - src + 1;
-    }
-    // 找到帧头但未找到帧尾：数据不完整，等下次继续接收
-    if (_end == 0) {
-        info->state = unENDErr;
-        return data - src + 1;
+        return len;
     }
 
-    /* 第二步：找到完整帧，去除转义字符 */
-    if (_head == 1 && _end == 1) {
-        uint8_t dPacket[256];  // 去转义后的帧缓冲（栈上分配）
-        if (Packet_len > sizeof(dPacket)) {
-            info->state = unInfo_lenErr;
-            return data - src + 1;
-        }
-
-        int Packet_len2 = 0;
-        int start = data - src + 1 - Packet_len;  // 帧在原始缓冲区中的起始位置
-
-        // 去转义：连续的 0x10 0x10 合并为单个 0x10
-        for (int i = 0; i < Packet_len; i++, Packet_len2++) {
-            if (src[start + i] == HEAD1 && src[start + i + 1] == HEAD1) {
-                i++;  // 跳过重复的 0x10
+    uint16_t end = len;
+    for (uint16_t index = static_cast<uint16_t>(start + 2U); index < len; ++index) {
+        if (src[index - 1U] == END1 && src[index] == END2) {
+            uint16_t repeated = 0U;
+            for (uint16_t cursor = index - 1U; cursor > start && src[cursor - 1U] == END1; --cursor) {
+                ++repeated;
             }
-            dPacket[Packet_len2] = src[start + i];
+            if ((repeated & 1U) == 0U) {
+                end = index;
+                break;
+            }
         }
-        Packet_len = Packet_len2;  // 去转义后的实际帧长度
-
-#ifdef PROTOCOL_LOG
-        for (int i = 0; i < Packet_len; i++) {
-            PROTOCOL_Printf("%02x ", dPacket[i]);
-        }
-#endif
-        // 第三步：解析去转义后的帧内容
-        DecodeRibbon(dPacket, Packet_len, info);
     }
-    return data - src + 1;
+    if (end == len) {
+        info->state = unENDErr;
+        return start;
+    }
+
+    uint8_t decoded[256]{};
+    uint16_t decodedLen = 0U;
+    for (uint16_t index = start; index <= end; ++index) {
+        if (decodedLen >= sizeof(decoded)) {
+            info->state = unInfo_lenErr;
+            return static_cast<uint16_t>(end + 1U);
+        }
+        if (index > start + 1U && index < end - 1U &&
+            src[index] == HEAD1 && index + 1U < end && src[index + 1U] == HEAD1) {
+            decoded[decodedLen++] = src[index++];
+        } else {
+            decoded[decodedLen++] = src[index];
+        }
+    }
+
+    DecodeRibbon(decoded, decodedLen, info);
+    return static_cast<uint16_t>(end + 1U);
 }
+
 /**
  * 协议帧字段解析
  *
@@ -194,14 +172,25 @@ void Protocol::DecodeRibbon(uint8_t *src, uint16_t len, ProtocolPacket *info)
     // 提取 info_len（偏移 2-3，大端序）
     info->info_len = src[2] << 8 | src[3];
     info_len = src[2] << 8 | src[3];
+    /*
+     * info_len 覆盖自身的 2 字节、地址字段、model/cmd 和 data；CRC
+     * 紧随 info 段之后，因此先确认 info 段没有越过当前去转义帧。
+     */
     if (info_len > (len - 4)) {
         info->state = unInfo_lenErr;
         return;
     }
 
-    // CRC 校验：对 src[2] 开始的 info_len 字节计算 CRC
+    // CRC 校验遵循源协议：从 info_len 开始校验 info_len 个字节
     info->crcValue = Get_Crc16(src + 2, info_len);
-    crcValue = src[info_len + 4] << 8 | src[info_len + 5];  // 帧中携带的 CRC
+    crcValue = static_cast<uint16_t>(src[info_len + 2] << 8) |
+               static_cast<uint16_t>(src[info_len + 3]);
+    PROTOCOL_Printf("Protocol,CRC,calc=%04X,recv=%04X,len=%u,info=%u,raw=", info->crcValue,
+                    crcValue, len, info_len);
+    for (uint16_t index = 0U; index < len; ++index) {
+        PROTOCOL_Printf("%02X", src[index]);
+    }
+    PROTOCOL_Printf("\\r\\n");
     if (info->crcValue == crcValue) {
         int offset = 4;  // 当前读取偏移（跳过帧头2 + info_len 2）
 
@@ -226,8 +215,8 @@ void Protocol::DecodeRibbon(uint8_t *src, uint16_t len, ProtocolPacket *info)
         // 命令码
         info->cmd = src[offset++];
 
-        // 数据段：info_len - 源地址长度 - 目的地址长度 - 固定开销6字节
-        data_len = info_len - info->origin_Address_len - info->goal_Address_len - 6;
+        // 数据段遵循源协议：固定开销为 8 字节
+        data_len = info_len - info->origin_Address_len - info->goal_Address_len - 8;
         memset(info->data, 0, MAX_PROTOCOL_LEN);
         for (i = 0; i < data_len; i++) {
             info->data[i] = src[offset++];
@@ -272,8 +261,8 @@ uint16_t Protocol::EncodePacket(const ProtocolPacket *Packet, uint8_t *dest)
     buff[len++] = Packet->Head1;
     buff[len++] = Packet->Head2;
 
-    // info_len = 固定开销(6) + 源地址长度 + 目的地址长度 + 数据长度
-    uint16_t info_len = 6 + Packet->origin_Address_len + Packet->goal_Address_len + Packet->data_len;
+    // info_len 遵循源协议，固定开销为 8 字节
+    uint16_t info_len = 8 + Packet->origin_Address_len + Packet->goal_Address_len + Packet->data_len;
     buff[len++] = (info_len >> 8) & 0xff;  // 大端序高字节
     buff[len++] = info_len & 0xff;          // 大端序低字节
 
@@ -298,7 +287,7 @@ uint16_t Protocol::EncodePacket(const ProtocolPacket *Packet, uint8_t *dest)
         buff[len++] = Packet->data[i];
     }
 
-    // CRC16 校验（对 info_len 到 CRC 之间的内容计算）
+    // CRC16 校验遵循源协议：从 info_len 开始校验 info_len 个字节
     uint16_t crcValue = Get_Crc16(buff + 2, info_len);
     buff[len++] = (crcValue >> 8) & 0xff;
     buff[len++] = crcValue & 0xff;

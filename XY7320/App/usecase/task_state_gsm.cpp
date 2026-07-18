@@ -34,7 +34,7 @@ void WriteU32Be(uint8_t *dst, uint32_t value)
 }
 
 /**
- * GSM 状态对应 PA2/TIM5_CH3 比较器输入。
+ * GSM 状态对应 PD14/TIM4_CH3 比较器输入。
  * 进入状态后先等待周期和脉宽形成有效结果，再启动 GSM 功率采集。
  */
 TaskStateGsm& TaskStateGsm::Instance()
@@ -104,7 +104,7 @@ void TaskStateGsm::tick()
         }
 
         /*
-         * PA2 的比较器结果有效后，切换 ADC 到 GSM 模式，启动正向和
+         * PD14 的比较器结果有效后，切换 ADC 到 GSM 模式，启动正向和
          * 反向功率通道；后续采样由 AdcService::Update() 消费。
          */
         AdcService::Instance().SetScopeMode(SCOPE_MODE_GSM);
