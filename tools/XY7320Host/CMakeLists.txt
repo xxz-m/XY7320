@@ -29,6 +29,8 @@ qt_add_qml_module(XY7320Host
         Main.qml
         ${QML_COMPONENTS}
         ${QML_PAGES}
+        SOURCES
+        SOURCES backend/usbmanager.h backend/usbmanager.cpp
 )
 
 qt_add_resources(APP_RESOURCES

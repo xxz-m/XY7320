@@ -16,7 +16,6 @@ EProgressBar 1.0 components/EProgressBar.qml
 ESwitchButton 1.0 components/ESwitchButton.qml
 ETheme 1.0 components/ETheme.qml
 EToast 1.0 components/EToast.qml
-LogsPage 1.0 pages/LogsPage.qml
 MeasurementPage 1.0 pages/MeasurementPage.qml
 SerialDebugPage 1.0 pages/SerialDebugPage.qml
 SettingsPage 1.0 pages/SettingsPage.qml

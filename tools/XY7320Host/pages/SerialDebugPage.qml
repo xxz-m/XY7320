@@ -75,7 +75,9 @@ Item {
             }
 
             Text {
-                text: qsTr("通过 USART1 调试串口收发数据，查看下位机 LOG_Printf 输出。")
+                text: firmwareUploader.busy
+                      ? qsTr("固件升级正在独占设备串口，调试发送已暂停。")
+                      : qsTr("使用设置 → 参数配置中的全局设备串口收发与查看数据。")
                 color: Qt.rgba(theme.textColor.r, theme.textColor.g, theme.textColor.b, 0.68)
                 font.pixelSize: 13
                 Layout.leftMargin: 20
@@ -103,6 +105,8 @@ Item {
                     // 串口配置卡片
                     ECard {
                         id: serialConfigCard
+                        visible: false
+                        Layout.preferredHeight: 0
                         z: (portDropdown.opened || baudDropdown.opened) ? 1000 : 0
                         Layout.fillWidth: true
                         radius: 10
@@ -366,7 +370,7 @@ Item {
                                     size: "xs"
                                     radius: 8
                                     shadowEnabled: false
-                                    enabled: serialDebug.isOpen
+                                    enabled: serialDebug.isOpen && !firmwareUploader.busy
                                     Layout.fillWidth: true
                                     Layout.preferredHeight: 36
                                     onClicked: serialDebug.switchMode("idle")
@@ -377,7 +381,7 @@ Item {
                                     size: "xs"
                                     radius: 8
                                     shadowEnabled: false
-                                    enabled: serialDebug.isOpen
+                                    enabled: serialDebug.isOpen && !firmwareUploader.busy
                                     Layout.fillWidth: true
                                     Layout.preferredHeight: 36
                                     onClicked: serialDebug.switchMode("dmr")
@@ -388,7 +392,7 @@ Item {
                                     size: "xs"
                                     radius: 8
                                     shadowEnabled: false
-                                    enabled: serialDebug.isOpen
+                                    enabled: serialDebug.isOpen && !firmwareUploader.busy
                                     Layout.fillWidth: true
                                     Layout.preferredHeight: 36
                                     onClicked: serialDebug.switchMode("gsm")
@@ -399,7 +403,7 @@ Item {
                                     size: "xs"
                                     radius: 8
                                     shadowEnabled: false
-                                    enabled: serialDebug.isOpen
+                                    enabled: serialDebug.isOpen && !firmwareUploader.busy
                                     Layout.fillWidth: true
                                     Layout.preferredHeight: 36
                                     onClicked: serialDebug.switchMode("gnss")
@@ -592,7 +596,7 @@ Item {
                                     hoverColor: Qt.darker(theme.focusColor, 1.12)
                                     textColor: "white"
                                     iconColor: "white"
-                                    enabled: serialDebug.isOpen && sendInput.text.length > 0
+                                    enabled: serialDebug.isOpen && !firmwareUploader.busy && sendInput.text.length > 0
                                     Layout.preferredWidth: 100
                                     Layout.preferredHeight: 38
                                     onClicked: {
@@ -649,7 +653,7 @@ Item {
                                     size: "xs"
                                     radius: 8
                                     shadowEnabled: false
-                                    enabled: serialDebug.isOpen
+                                    enabled: serialDebug.isOpen && !firmwareUploader.busy
                                     Layout.fillWidth: true
                                     Layout.preferredHeight: 36
                                     onClicked: serialDebug.sendHex("10 02 00 15 01 00 22 00 02 F0 32 30 32 36 30 36 30 38 32 32 35 37 00 9E 6D 10 03")
@@ -661,7 +665,7 @@ Item {
                                     size: "xs"
                                     radius: 8
                                     shadowEnabled: false
-                                    enabled: serialDebug.isOpen
+                                    enabled: serialDebug.isOpen && !firmwareUploader.busy
                                     Layout.fillWidth: true
                                     Layout.preferredHeight: 36
                                     onClicked: serialDebug.sendHex("10 02 00 08 22 00 01 00 02 F0 33 4B 10 03")
@@ -673,7 +677,7 @@ Item {
                                     size: "xs"
                                     radius: 8
                                     shadowEnabled: false
-                                    enabled: serialDebug.isOpen
+                                    enabled: serialDebug.isOpen && !firmwareUploader.busy
                                     Layout.fillWidth: true
                                     Layout.preferredHeight: 36
                                     onClicked: serialDebug.send("XYB1")
@@ -685,7 +689,7 @@ Item {
                                     size: "xs"
                                     radius: 8
                                     shadowEnabled: false
-                                    enabled: serialDebug.isOpen
+                                    enabled: serialDebug.isOpen && !firmwareUploader.busy
                                     Layout.fillWidth: true
                                     Layout.preferredHeight: 36
                                     onClicked: serialDebug.send("XYB3")
@@ -698,7 +702,7 @@ Item {
                                     size: "xs"
                                     radius: 8
                                     shadowEnabled: false
-                                    enabled: serialDebug.isOpen
+                                    enabled: serialDebug.isOpen && !firmwareUploader.busy
                                     Layout.fillWidth: true
                                     Layout.preferredHeight: 36
                                     onClicked: serialDebug.sendHex("10 02 00 08 01 00 22 00 02 10 10 78 78 10 03")
@@ -710,7 +714,7 @@ Item {
                                     size: "xs"
                                     radius: 8
                                     shadowEnabled: false
-                                    enabled: serialDebug.isOpen
+                                    enabled: serialDebug.isOpen && !firmwareUploader.busy
                                     Layout.fillWidth: true
                                     Layout.preferredHeight: 36
                                     onClicked: serialDebug.sendHex("10 02 00 08 01 00 22 00 02 11 68 59 10 03")
@@ -722,7 +726,7 @@ Item {
                                     size: "xs"
                                     radius: 8
                                     shadowEnabled: false
-                                    enabled: serialDebug.isOpen
+                                    enabled: serialDebug.isOpen && !firmwareUploader.busy
                                     Layout.fillWidth: true
                                     Layout.preferredHeight: 36
                                     onClicked: serialDebug.sendHex("10 02 00 08 01 00 22 00 02 12 58 3A 10 03")

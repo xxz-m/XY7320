@@ -2,3 +2,4 @@
 #include "FVSNT77ZGO/moc_FirmwareUploader.cpp"
 #include "FVSNT77ZGO/moc_SerialDebug.cpp"
 #include "FVSNT77ZGO/moc_SerialPortManager.cpp"
+#include "FVSNT77ZGO/moc_usbmanager.cpp"

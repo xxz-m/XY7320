@@ -11,48 +11,17 @@ Item {
     required property var startDialog
     required property var toast
 
-    readonly property bool wideLayout: width >= 900
+    readonly property bool wideLayout: width >= 980
     readonly property color mutedText: Qt.rgba(theme.textColor.r, theme.textColor.g, theme.textColor.b, 0.62)
     readonly property color subtleText: Qt.rgba(theme.textColor.r, theme.textColor.g, theme.textColor.b, 0.46)
-    readonly property int labelWidth: 82
-    readonly property var baudRates: [
-        { text: "9600" },
-        { text: "57600" },
-        { text: "115200" },
-        { text: "230400" },
-        { text: "460800" },
-        { text: "921600" }
-    ]
-
-    function portModel() {
-        var items = []
-        for (var i = 0; i < firmwareUploader.ports.length; ++i) {
-            items.push({ text: firmwareUploader.ports[i].text, portName: firmwareUploader.ports[i].portName })
-        }
-        return items
-    }
-
-    function currentPort() {
-        for (var i = 0; i < firmwareUploader.ports.length; ++i) {
-            if (firmwareUploader.ports[i].portName === firmwareUploader.portName) return i
-        }
-        return firmwareUploader.ports.length > 0 ? 0 : -1
-    }
-
-    function currentBaud() {
-        for (var i = 0; i < baudRates.length; ++i) {
-            if (baudRates[i].text === String(firmwareUploader.baudRate)) return i
-        }
-        return 2
-    }
 
     function requestStart() {
-        if (firmwareUploader.portName.length === 0) {
-            toast.show(qsTr("请先选择串口。"))
+        if (firmwareUploader.portName.length === 0 || !firmwareUploader.serialOpen) {
+            toast.show(qsTr("请先在 设置 → 参数配置 中选择并打开设备串口。"))
             return
         }
         if (firmwareUploader.filePath.length === 0) {
-            toast.show(qsTr("请先选择 APP bin 固件。"))
+            toast.show(qsTr("请先从 U 盘固件包中选择 APP .bin 固件。"))
             return
         }
         startDialog.open()
@@ -64,7 +33,7 @@ Item {
         clip: true
 
         ColumnLayout {
-            width: Math.max(parent.width, 1120)
+            width: Math.max(parent.width, 1080)
             spacing: 16
 
             Item { Layout.preferredHeight: 10 }
@@ -73,34 +42,20 @@ Item {
                 Layout.fillWidth: true
                 Layout.leftMargin: 28
                 Layout.rightMargin: 28
-                spacing: 16
 
                 ColumnLayout {
                     Layout.fillWidth: true
                     spacing: 4
-                    Text {
-                        text: qsTr("固件升级")
-                        color: theme.textColor
-                        font.pixelSize: 25
-                        font.bold: true
-                    }
-                    Text {
-                        text: qsTr("将 APP 固件安全发送到设备")
-                        color: root.mutedText
-                        font.pixelSize: 13
-                    }
+                    Text { text: qsTr("固件升级"); color: theme.textColor; font.pixelSize: 25; font.bold: true }
+                    Text { text: qsTr("从 U 盘选择 APP 固件，并通过设置页配置的设备串口完成升级"); color: root.mutedText; font.pixelSize: 13 }
                 }
 
-                EButton {
-                    text: qsTr("刷新串口")
-                    iconCharacter: "\uf021"
-                    size: "xs"
-                    radius: 8
-                    shadowEnabled: false
-                    enabled: !firmwareUploader.busy
-                    Layout.preferredWidth: 112
-                    Layout.preferredHeight: 38
-                    onClicked: firmwareUploader.refreshPorts()
+                Text {
+                    text: firmwareUploader.serialOpen
+                          ? qsTr("设备串口：%1 / %2").arg(firmwareUploader.portName).arg(firmwareUploader.baudRate)
+                          : qsTr("设备串口未连接，请前往设置配置")
+                    color: firmwareUploader.serialOpen ? theme.focusColor : root.mutedText
+                    font.pixelSize: 12
                 }
             }
 
@@ -118,243 +73,26 @@ Item {
                 RowLayout {
                     Layout.fillWidth: true
                     spacing: 4
-                    StepItem { title: qsTr("选择固件"); number: "1"; active: firmwareUploader.filePath.length > 0; complete: firmwareUploader.filePath.length > 0; Layout.fillWidth: true }
+                    StepItem { title: qsTr("选择固件包"); number: "1"; active: firmwareUploader.filePath.length > 0; complete: firmwareUploader.filePath.length > 0; Layout.fillWidth: true }
                     StepLine { Layout.fillWidth: true }
-                    StepItem { title: qsTr("设备连接"); number: "2"; active: firmwareUploader.serialOpen; complete: firmwareUploader.serialOpen; Layout.fillWidth: true }
-                    StepLine { Layout.fillWidth: true }
-                    StepItem { title: qsTr("开始升级"); number: "3"; active: firmwareUploader.busy || firmwareUploader.progress > 0; complete: firmwareUploader.progress >= 1; Layout.fillWidth: true }
+                    StepItem { title: qsTr("开始升级"); number: "2"; active: firmwareUploader.busy || firmwareUploader.progress > 0; complete: firmwareUploader.progress >= 1; Layout.fillWidth: true }
                 }
             }
 
-            RowLayout {
+            GridLayout {
                 Layout.fillWidth: true
                 Layout.leftMargin: 28
                 Layout.rightMargin: 28
                 Layout.bottomMargin: 28
-                spacing: 16
+                columns: root.wideLayout ? 2 : 1
+                columnSpacing: 16
+                rowSpacing: 16
 
                 ColumnLayout {
                     Layout.fillWidth: true
-                    Layout.preferredWidth: 910
-                    Layout.minimumWidth: 700
+                    Layout.minimumWidth: root.wideLayout ? 620 : 0
                     Layout.alignment: Qt.AlignTop
                     spacing: 16
-
-                    ECard {
-                        Layout.fillWidth: true
-                        padding: 20
-                        radius: 10
-                        shadowEnabled: false
-                        cardColor: theme.instrumentPanelColor
-                        borderColor: theme.instrumentBorderColor
-                        borderWidth: 1
-
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            spacing: 16
-
-                            SectionTitle { text: qsTr("选择固件") }
-
-                            Rectangle {
-                                Layout.fillWidth: true
-                                Layout.preferredHeight: 132
-                                radius: 8
-                                color: theme.instrumentInsetColor
-                                border.color: theme.instrumentBorderColor
-                                border.width: 1
-
-                                RowLayout {
-                                    anchors.fill: parent
-                                    anchors.margins: 18
-                                    spacing: 16
-
-                                    Text {
-                                        text: "\uf1c6"
-                                        font.family: "Font Awesome 6 Free"
-                                        font.pixelSize: 40
-                                        color: theme.focusColor
-                                        Layout.preferredWidth: 54
-                                        horizontalAlignment: Text.AlignHCenter
-                                    }
-
-                                    ColumnLayout {
-                                        Layout.fillWidth: true
-                                        spacing: 5
-                                        Text {
-                                            text: firmwareUploader.fileName.length > 0 ? firmwareUploader.fileName : qsTr("尚未选择固件")
-                                            color: theme.textColor
-                                            font.pixelSize: 15
-                                            font.bold: true
-                                            Layout.fillWidth: true
-                                            elide: Text.ElideRight
-                                        }
-                                        Text {
-                                            text: firmwareUploader.filePath.length > 0 ? qsTr("固件已载入，可以开始检查设备连接") : qsTr("请选择 APP .bin 固件文件")
-                                            color: root.mutedText
-                                            font.pixelSize: 12
-                                            Layout.fillWidth: true
-                                            elide: Text.ElideRight
-                                        }
-                                    }
-
-                                    EButton {
-                                        text: qsTr("浏览")
-                                        iconCharacter: "\uf07c"
-                                        size: "xs"
-                                        radius: 8
-                                        shadowEnabled: false
-                                        enabled: !firmwareUploader.busy
-                                        Layout.preferredWidth: 100
-                                        Layout.preferredHeight: 40
-                                        onClicked: root.firmwareDialog.open()
-                                    }
-                                }
-                            }
-
-                            RowLayout {
-                                Layout.fillWidth: true
-                                spacing: 12
-                                InfoBox { label: qsTr("版本"); value: firmwareUploader.versionText.length > 0 ? firmwareUploader.versionText : qsTr("未设置"); Layout.fillWidth: true }
-                                InfoBox { label: qsTr("文件大小"); value: firmwareUploader.fileSizeText; Layout.fillWidth: true }
-                            }
-                        }
-                    }
-
-                    ECard {
-                        id: connectionCard
-                        z: (portDropdown.opened || baudDropdown.opened) ? 10 : 0
-                        Layout.fillWidth: true
-                        padding: 20
-                        radius: 10
-                        shadowEnabled: false
-                        cardColor: theme.instrumentPanelColor
-                        borderColor: theme.instrumentBorderColor
-                        borderWidth: 1
-
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            spacing: 16
-                            SectionTitle { text: qsTr("设备连接") }
-                            RowLayout {
-                                Layout.fillWidth: true
-                                spacing: 12
-                                Text { text: qsTr("串口"); color: root.mutedText; font.pixelSize: 12; Layout.preferredWidth: root.labelWidth }
-                                EDropdown {
-                                    id: portDropdown
-                                    enabled: !firmwareUploader.busy && !firmwareUploader.serialOpen
-                                    model: root.portModel()
-                                    selectedIndex: root.currentPort()
-                                    title: qsTr("选择串口")
-                                    headerHeight: 40
-                                    radius: 8
-                                    fontSize: 13
-                                    popupMaxHeight: 300
-                                    scrollBarAlwaysVisible: true
-                                    shadowEnabled: false
-                                    Layout.fillWidth: true
-                                    Layout.preferredHeight: 40
-                                    onSelectionChanged: function(index, item) { firmwareUploader.portName = item.portName }
-                                }
-                                Text { text: firmwareUploader.serialOpen ? qsTr("已连接") : qsTr("未连接"); color: firmwareUploader.serialOpen ? theme.focusColor : root.mutedText; font.pixelSize: 13; font.bold: firmwareUploader.serialOpen; Layout.preferredWidth: 64; horizontalAlignment: Text.AlignRight }
-                            }
-                            RowLayout {
-                                Layout.fillWidth: true
-                                spacing: 12
-                                Text { text: qsTr("波特率"); color: root.mutedText; font.pixelSize: 12; Layout.preferredWidth: root.labelWidth }
-                                EDropdown {
-                                    id: baudDropdown
-                                    enabled: !firmwareUploader.busy && !firmwareUploader.serialOpen
-                                    model: root.baudRates
-                                    selectedIndex: root.currentBaud()
-                                    title: qsTr("115200")
-                                    headerHeight: 40
-                                    radius: 8
-                                    fontSize: 13
-                                    popupMaxHeight: 220
-                                    shadowEnabled: false
-                                    Layout.fillWidth: true
-                                    Layout.preferredHeight: 40
-                                    onSelectionChanged: function(index, item) { firmwareUploader.baudRate = Number(item.text) }
-                                }
-                                ESwitchButton {
-                                    text: firmwareUploader.serialOpen ? qsTr("已连接") : qsTr("打开串口")
-                                    checked: firmwareUploader.serialOpen
-                                    autoToggle: false
-                                    enabled: !firmwareUploader.busy && firmwareUploader.portName.length > 0
-                                    size: "s"
-                                    radius: 8
-                                    fontSize: 13
-                                    shadowEnabled: false
-                                    Layout.preferredWidth: 128
-                                    Layout.preferredHeight: 40
-                                    onToggled: function(nextChecked) {
-                                        if (nextChecked) firmwareUploader.openPort()
-                                        else firmwareUploader.closePort()
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    ECard {
-                        Layout.fillWidth: true
-                        padding: 20
-                        radius: 10
-                        shadowEnabled: false
-                        cardColor: theme.instrumentPanelColor
-                        borderColor: theme.instrumentBorderColor
-                        borderWidth: 1
-
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            spacing: 16
-                            SectionTitle { text: qsTr("升级准备") }
-                            RowLayout {
-                                Layout.fillWidth: true
-                                spacing: 12
-                                Text { text: qsTr("头包（12字节）"); color: root.mutedText; font.pixelSize: 12; Layout.preferredWidth: 104 }
-                                EInput {
-                                    text: firmwareUploader.headerHex
-                                    readOnly: true
-                                    placeholderText: qsTr("选择固件后自动生成 12 字节头包")
-                                    radius: 8
-                                    fontSize: 13
-                                    shadowEnabled: false
-                                    Layout.fillWidth: true
-                                    Layout.preferredHeight: 40
-                                }
-                                EButton {
-                                    text: qsTr("复制")
-                                    iconCharacter: "\uf0c5"
-                                    size: "xs"
-                                    radius: 8
-                                    shadowEnabled: false
-                                    enabled: firmwareUploader.headerHex.length > 0
-                                    Layout.preferredWidth: 92
-                                    Layout.preferredHeight: 40
-                                    onClicked: { firmwareUploader.copyHeaderToClipboard(); toast.show(qsTr("头包已复制。")) }
-                                }
-                            }
-                            RowLayout {
-                                Layout.fillWidth: true
-                                spacing: 12
-                                EButton {
-                                    text: firmwareUploader.busy ? qsTr("升级中") : qsTr("开始升级")
-                                    iconCharacter: firmwareUploader.busy ? "\uf110" : "\uf35b"
-                                    size: "s"
-                                    radius: 8
-                                    containerColor: theme.focusColor
-                                    hoverColor: Qt.darker(theme.focusColor, 1.12)
-                                    textColor: "white"
-                                    iconColor: "white"
-                                    enabled: !firmwareUploader.busy
-                                    Layout.fillWidth: true
-                                    Layout.preferredHeight: 48
-                                    onClicked: root.requestStart()
-                                }
-                            }
-                        }
-                    }
 
                     ECard {
                         Layout.fillWidth: true
@@ -368,117 +106,142 @@ Item {
                         ColumnLayout {
                             Layout.fillWidth: true
                             spacing: 14
+
+                            RowLayout {
+                                Layout.fillWidth: true
+                                SectionTitle { text: qsTr("固件包"); Layout.fillWidth: true }
+                                Text { text: usbManager.usbConnected ? qsTr("U盘已连接") : qsTr("未检测到U盘"); color: usbManager.usbConnected ? theme.focusColor : root.mutedText; font.pixelSize: 12 }
+                                EButton { text: qsTr("刷新"); iconCharacter: "\uf021"; size: "xs"; radius: 8; shadowEnabled: false; Layout.preferredWidth: 88; Layout.preferredHeight: 36; onClicked: usbManager.refreshDrives() }
+                                EButton { text: qsTr("浏览"); iconCharacter: "\uf07c"; size: "xs"; radius: 8; shadowEnabled: false; enabled: !firmwareUploader.busy; Layout.preferredWidth: 88; Layout.preferredHeight: 36; onClicked: root.firmwareDialog.open() }
+                            }
+
+                            Rectangle {
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 88
+                                radius: 8
+                                color: theme.instrumentInsetColor
+                                border.color: theme.instrumentBorderColor
+                                border.width: 1
+                                RowLayout {
+                                    anchors.fill: parent
+                                    anchors.margins: 14
+                                    spacing: 12
+                                    Text { text: "\uf1c6"; font.family: "Font Awesome 6 Free"; font.pixelSize: 30; color: theme.focusColor; Layout.preferredWidth: 38 }
+                                    ColumnLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 3
+                                        Text { text: firmwareUploader.filePath.length > 0 ? firmwareUploader.fileName : qsTr("尚未选择固件"); color: theme.textColor; font.pixelSize: 14; font.bold: true; Layout.fillWidth: true; elide: Text.ElideRight }
+                                        Text { text: firmwareUploader.filePath.length > 0 ? firmwareUploader.filePath : qsTr("点击下方 U 盘中的 .bin 文件加载"); color: root.mutedText; font.pixelSize: 11; Layout.fillWidth: true; elide: Text.ElideMiddle }
+                                    }
+                                }
+                            }
+
+                            RowLayout {
+                                Layout.fillWidth: true
+                                spacing: 12
+                                InfoBox { label: qsTr("文件大小"); value: firmwareUploader.fileSizeText; Layout.fillWidth: true }
+                                InfoBox { label: qsTr("CRC32"); value: firmwareUploader.crcHex; Layout.fillWidth: true }
+                            }
+
+                            Text { text: qsTr("U盘根目录固件"); color: root.mutedText; font.pixelSize: 12; font.bold: true }
+                            ListView {
+                                id: firmwareList
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: Math.min(contentHeight, 190)
+                                clip: true
+                                spacing: 6
+                                model: usbManager.files
+                                ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+                                delegate: Rectangle {
+                                    required property var modelData
+                                    width: firmwareList.width
+                                    height: 52
+                                    radius: 7
+                                    color: firmwareUploader.filePath === modelData.path
+                                           ? Qt.rgba(theme.focusColor.r, theme.focusColor.g, theme.focusColor.b, 0.14)
+                                           : fileMouse.containsMouse ? Qt.rgba(theme.textColor.r, theme.textColor.g, theme.textColor.b, 0.05) : theme.instrumentInsetColor
+                                    border.color: firmwareUploader.filePath === modelData.path ? theme.focusColor : theme.instrumentBorderColor
+                                    border.width: 1
+                                    RowLayout {
+                                        anchors.fill: parent
+                                        anchors.leftMargin: 12
+                                        anchors.rightMargin: 12
+                                        spacing: 10
+                                        Text { text: "\uf1c6"; font.family: "Font Awesome 6 Free"; font.pixelSize: 18; color: theme.focusColor; Layout.preferredWidth: 24 }
+                                        ColumnLayout {
+                                            Layout.fillWidth: true
+                                            spacing: 1
+                                            Text { text: modelData.name; color: theme.textColor; font.pixelSize: 13; font.bold: true; Layout.fillWidth: true; elide: Text.ElideRight }
+                                            Text { text: "%1 · %2".arg(modelData.sizeText).arg(modelData.modifiedText); color: root.mutedText; font.pixelSize: 11; Layout.fillWidth: true; elide: Text.ElideRight }
+                                        }
+                                    }
+                                    MouseArea { id: fileMouse; anchors.fill: parent; hoverEnabled: true; cursorShape: firmwareUploader.busy ? Qt.ForbiddenCursor : Qt.PointingHandCursor; onClicked: { if (!firmwareUploader.busy) firmwareUploader.filePath = modelData.path } }
+                                }
+                            }
+                            Text { visible: usbManager.files.length === 0; text: qsTr("未在可移动盘根目录发现 .bin 固件。") ; color: root.subtleText; font.pixelSize: 12 }
+                        }
+                    }
+
+                    ECard {
+                        Layout.fillWidth: true
+                        padding: 20
+                        radius: 10
+                        shadowEnabled: false
+                        cardColor: theme.instrumentPanelColor
+                        borderColor: theme.instrumentBorderColor
+                        borderWidth: 1
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 14
                             RowLayout {
                                 Layout.fillWidth: true
                                 SectionTitle { text: qsTr("升级进度"); Layout.fillWidth: true }
                                 ELoader { visible: firmwareUploader.busy; running: firmwareUploader.busy; size: 20; Layout.preferredWidth: 22; Layout.preferredHeight: 22 }
                                 Text { text: qsTr("%1%").arg(Math.round(firmwareUploader.progress * 100)); color: theme.focusColor; font.pixelSize: 15; font.bold: true }
-                                EButton {
-                                    text: qsTr("取消")
-                                    iconCharacter: "\uf00d"
-                                    size: "xs"
-                                    radius: 8
-                                    shadowEnabled: false
-                                    visible: firmwareUploader.busy
-                                    enabled: firmwareUploader.busy
-                                    Layout.preferredWidth: 88
-                                    Layout.preferredHeight: 34
-                                    onClicked: firmwareUploader.cancel()
-                                }
+                                EButton { text: qsTr("取消"); iconCharacter: "\uf00d"; size: "xs"; radius: 8; shadowEnabled: false; visible: firmwareUploader.busy; enabled: firmwareUploader.busy; Layout.preferredWidth: 88; Layout.preferredHeight: 34; onClicked: firmwareUploader.cancel() }
                             }
-                            EProgressBar {
-                                value: firmwareUploader.progress
-                                label: ""
-                                showHeader: false
-                                Layout.fillWidth: true
-                                Layout.preferredHeight: 12
-                            }
-                            Text {
-                                text: firmwareUploader.status
-                                color: root.mutedText
-                                font.pixelSize: 12
-                                Layout.fillWidth: true
-                                elide: Text.ElideRight
-                            }
-                            Rectangle {
-                                Layout.fillWidth: true
-                                Layout.preferredHeight: 56
-                                radius: 8
-                                color: Qt.rgba(theme.focusColor.r, theme.focusColor.g, theme.focusColor.b, 0.08)
-                                border.color: Qt.rgba(theme.focusColor.r, theme.focusColor.g, theme.focusColor.b, 0.28)
-                                border.width: 1
-                                RowLayout {
-                                    anchors.fill: parent
-                                    anchors.margins: 12
-                                    spacing: 10
-                                    Text { text: "\uf023"; font.family: "Font Awesome 6 Free"; font.pixelSize: 17; color: theme.focusColor; Layout.preferredWidth: 22 }
-                                    Text { text: qsTr("安全提示：升级过程中请保持串口连接稳定，不要关闭设备电源。"); color: root.mutedText; font.pixelSize: 12; wrapMode: Text.WordWrap; Layout.fillWidth: true }
-                                }
-                            }
+                            EProgressBar { value: firmwareUploader.progress; label: ""; showHeader: false; Layout.fillWidth: true; Layout.preferredHeight: 12 }
+                            Text { text: firmwareUploader.status; color: root.mutedText; font.pixelSize: 12; Layout.fillWidth: true; elide: Text.ElideRight }
+                            EButton { text: firmwareUploader.busy ? qsTr("升级中") : qsTr("开始升级"); iconCharacter: firmwareUploader.busy ? "\uf110" : "\uf35b"; size: "s"; radius: 8; containerColor: theme.focusColor; hoverColor: Qt.darker(theme.focusColor, 1.12); textColor: "white"; iconColor: "white"; enabled: !firmwareUploader.busy; Layout.fillWidth: true; Layout.preferredHeight: 48; onClicked: root.requestStart() }
                         }
                     }
                 }
 
-                ColumnLayout {
-                    Layout.preferredWidth: 410
-                    Layout.minimumWidth: 360
-                    Layout.alignment: Qt.AlignTop
-                    spacing: 16
-
-                    ECard {
+                ECard {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    Layout.minimumHeight: 470
+                    radius: 10
+                    padding: 18
+                    shadowEnabled: false
+                    cardColor: theme.instrumentPanelColor
+                    borderColor: theme.instrumentBorderColor
+                    borderWidth: 1
+                    ColumnLayout {
                         Layout.fillWidth: true
-                        padding: 20
-                        radius: 10
-                        shadowEnabled: false
-                        cardColor: theme.instrumentPanelColor
-                        borderColor: theme.instrumentBorderColor
-                        borderWidth: 1
-                        ColumnLayout {
+                        Layout.fillHeight: true
+                        spacing: 10
+                        RowLayout {
                             Layout.fillWidth: true
-                            spacing: 12
-                            SectionTitle { text: qsTr("固件信息") }
-                            InfoRow { label: qsTr("文件名"); value: firmwareUploader.fileName }
-                            Divider {}
-                            InfoRow { label: qsTr("文件大小"); value: firmwareUploader.fileSizeText }
-                            Divider {}
-                            InfoRow { label: qsTr("CRC32"); value: firmwareUploader.crcHex }
+                            SectionTitle { text: qsTr("升级日志"); Layout.fillWidth: true }
+                            EButton { text: qsTr("清空"); iconCharacter: "\uf2ed"; size: "xs"; radius: 8; shadowEnabled: false; enabled: !firmwareUploader.busy; Layout.preferredWidth: 82; Layout.preferredHeight: 34; onClicked: firmwareUploader.clearLog() }
                         }
-                    }
-
-                    ECard {
-                        Layout.fillWidth: true
-                        padding: 20
-                        radius: 10
-                        shadowEnabled: false
-                        cardColor: theme.instrumentPanelColor
-                        borderColor: theme.instrumentBorderColor
-                        borderWidth: 1
-                        ColumnLayout {
+                        Text { text: qsTr("APP: 0x08010000  ·  包大小: %1 B  ·  包间隔: %2 ms  ·  擦除等待: %3 ms").arg(firmwareUploader.packetSize).arg(firmwareUploader.packetDelayMs).arg(firmwareUploader.headerDelayMs); color: root.subtleText; font.pixelSize: 11; Layout.fillWidth: true; wrapMode: Text.WordWrap }
+                        Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: theme.instrumentBorderColor }
+                        TextArea {
+                            id: logArea
                             Layout.fillWidth: true
-                            spacing: 12
-                            SectionTitle { text: qsTr("协议参数") }
-                            InfoRow { label: qsTr("Magic"); value: "0x41505055" }
-                            InfoRow { label: qsTr("APP地址"); value: "0x08010000" }
-                            InfoRow { label: qsTr("最大包"); value: "1024 B" }
-                            InfoRow { label: qsTr("串口"); value: "USART2 / 8N1" }
-                        }
-                    }
-
-                    ECard {
-                        Layout.fillWidth: true
-                        padding: 20
-                        radius: 10
-                        shadowEnabled: false
-                        cardColor: theme.instrumentPanelColor
-                        borderColor: theme.instrumentBorderColor
-                        borderWidth: 1
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            spacing: 12
-                            SectionTitle { text: qsTr("发送设置") }
-                            InfoRow { label: qsTr("擦除等待"); value: firmwareUploader.headerDelayMs + " ms" }
-                            InfoRow { label: qsTr("包大小"); value: firmwareUploader.packetSize + " B" }
-                            InfoRow { label: qsTr("间隔"); value: firmwareUploader.packetDelayMs + " ms" }
+                            Layout.fillHeight: true
+                            text: firmwareUploader.logText
+                            readOnly: true
+                            selectByMouse: true
+                            wrapMode: TextArea.Wrap
+                            placeholderText: qsTr("升级日志会显示在这里。")
+                            color: theme.textColor
+                            font.family: "Consolas"
+                            font.pixelSize: 12
+                            background: Rectangle { radius: 7; color: theme.instrumentInsetColor }
+                            onTextChanged: cursorPosition = length
                         }
                     }
                 }
@@ -486,13 +249,7 @@ Item {
         }
     }
 
-    component SectionTitle: Text {
-        color: theme.textColor
-        font.pixelSize: 15
-        font.bold: true
-        Layout.fillWidth: true
-    }
-
+    component SectionTitle: Text { color: theme.textColor; font.pixelSize: 15; font.bold: true; Layout.fillWidth: true }
     component StepItem: ColumnLayout {
         id: stepItem
         property string title: ""
@@ -501,40 +258,10 @@ Item {
         property bool complete: false
         spacing: 6
         Layout.alignment: Qt.AlignVCenter
-        Rectangle {
-            Layout.alignment: Qt.AlignHCenter
-            Layout.preferredWidth: 28
-            Layout.preferredHeight: 28
-            radius: 14
-            color: stepItem.complete ? theme.focusColor : (stepItem.active ? Qt.rgba(theme.focusColor.r, theme.focusColor.g, theme.focusColor.b, 0.18) : theme.secondaryColor)
-            border.color: stepItem.active || stepItem.complete ? theme.focusColor : theme.instrumentBorderColor
-            border.width: 1
-            Text {
-                anchors.centerIn: parent
-                text: stepItem.complete ? "\uf00c" : stepItem.number
-                color: stepItem.complete ? "white" : (stepItem.active ? theme.focusColor : root.mutedText)
-                font.family: stepItem.complete ? "Font Awesome 6 Free" : "Arial"
-                font.pixelSize: stepItem.complete ? 12 : 13
-                font.bold: true
-            }
-        }
-        Text {
-            text: stepItem.title
-            color: stepItem.active || stepItem.complete ? theme.textColor : root.mutedText
-            font.pixelSize: 12
-            font.bold: stepItem.active || stepItem.complete
-            horizontalAlignment: Text.AlignHCenter
-            Layout.fillWidth: true
-        }
+        Rectangle { Layout.alignment: Qt.AlignHCenter; Layout.preferredWidth: 28; Layout.preferredHeight: 28; radius: 14; color: stepItem.complete ? theme.focusColor : (stepItem.active ? Qt.rgba(theme.focusColor.r, theme.focusColor.g, theme.focusColor.b, 0.18) : theme.secondaryColor); border.color: stepItem.active || stepItem.complete ? theme.focusColor : theme.instrumentBorderColor; border.width: 1; Text { anchors.centerIn: parent; text: stepItem.complete ? "\uf00c" : stepItem.number; color: stepItem.complete ? "white" : (stepItem.active ? theme.focusColor : root.mutedText); font.family: stepItem.complete ? "Font Awesome 6 Free" : "Arial"; font.pixelSize: stepItem.complete ? 12 : 13; font.bold: true } }
+        Text { text: stepItem.title; color: stepItem.active || stepItem.complete ? theme.textColor : root.mutedText; font.pixelSize: 12; font.bold: stepItem.active || stepItem.complete; horizontalAlignment: Text.AlignHCenter; Layout.fillWidth: true }
     }
-
-    component StepLine: Rectangle {
-        Layout.preferredHeight: 1
-        Layout.alignment: Qt.AlignVCenter
-        color: theme.instrumentBorderColor
-        Layout.minimumWidth: 20
-    }
-
+    component StepLine: Rectangle { Layout.preferredHeight: 1; Layout.alignment: Qt.AlignVCenter; color: theme.instrumentBorderColor; Layout.minimumWidth: 20 }
     component InfoBox: Rectangle {
         id: infoBox
         property string label: ""
@@ -550,29 +277,6 @@ Item {
             spacing: 3
             Text { text: infoBox.label; color: root.mutedText; font.pixelSize: 11 }
             Text { text: infoBox.value; color: theme.textColor; font.pixelSize: 13; font.bold: true; elide: Text.ElideRight; Layout.fillWidth: true }
-        }
-    }
-
-    component InfoRow: RowLayout {
-        id: infoRow
-        property string label: ""
-        property string value: ""
-        Layout.fillWidth: true
-        spacing: 10
-        Text { text: infoRow.label; color: root.mutedText; font.pixelSize: 12; Layout.fillWidth: true; elide: Text.ElideRight }
-        Text { text: infoRow.value; color: theme.textColor; font.pixelSize: 12; horizontalAlignment: Text.AlignRight; Layout.preferredWidth: 190; elide: Text.ElideLeft }
-    }
-
-    component Divider: Rectangle {
-        Layout.fillWidth: true
-        Layout.preferredHeight: 1
-        color: theme.borderColor
-    }
-
-    Connections {
-        target: firmwareUploader
-        function onSerialOpenChanged() {
-            if (firmwareUploader.serialOpen) toast.show(qsTr("串口已打开。"))
         }
     }
 }

@@ -23,8 +23,7 @@ ApplicationWindow {
         case 1: return qsTr("GSM 功率驻波监测")
         case 2: return qsTr("DMR 功率驻波监测")
         case 3: return qsTr("串口调试")
-        case 4: return qsTr("升级日志")
-        case 5: return qsTr("设置")
+        case 4: return qsTr("设置")
         default: return qsTr("APP 固件升级与上位机启动框架")
         }
     }
@@ -150,6 +149,27 @@ ApplicationWindow {
                         elide: Text.ElideRight
                     }
 
+                    RowLayout {
+                        spacing: 6
+                        Layout.preferredWidth: 104
+
+                        Text {
+                            text: "\uf0a0"
+                            font.family: iconFont.name
+                            font.pixelSize: 14
+                            color: usbManager.usbConnected ? theme.focusColor : Qt.rgba(theme.textColor.r, theme.textColor.g, theme.textColor.b, 0.38)
+                        }
+
+                        Text {
+                            text: usbManager.usbConnected ? qsTr("U盘 已连接") : qsTr("U盘 未连接")
+                            color: usbManager.usbConnected ? theme.focusColor : Qt.rgba(theme.textColor.r, theme.textColor.g, theme.textColor.b, 0.52)
+                            font.pixelSize: 12
+                            font.bold: usbManager.usbConnected
+                            Layout.fillWidth: true
+                            elide: Text.ElideRight
+                        }
+                    }
+
                     Text {
                         text: firmwareUploader.status
                         color: firmwareUploader.busy ? theme.focusColor : theme.textColor
@@ -232,11 +252,10 @@ ApplicationWindow {
                             { name: qsTr("GSM"), icon: "\uf1e6", page: 1, enabled: true },
                             { name: qsTr("DMR"), icon: "\uf1e6", page: 2, enabled: true },
                             { name: qsTr("串口调试"), icon: "\uf120", page: 3, enabled: true },
-                            { name: qsTr("升级日志"), icon: "\uf15c", page: 4, enabled: true },
-                            { name: qsTr("设置"), icon: "\uf013", page: 5, enabled: true },
-                            { name: qsTr("设备监控"), icon: "\uf201", page: 1, enabled: false },
-                            { name: qsTr("参数配置"), icon: "\uf085", page: 6, enabled: false },
-                            { name: qsTr("系统维护"), icon: "\uf0ad", page: 7, enabled: false }
+                            { name: qsTr("设置"), icon: "\uf013", page: 4, enabled: true },
+                            { name: qsTr("设备监控"), icon: "\uf201", page: 7, enabled: false },
+                            { name: qsTr("参数配置"), icon: "\uf085", page: 8, enabled: false },
+                            { name: qsTr("系统维护"), icon: "\uf0ad", page: 9, enabled: false }
                         ]
 
                         delegate: Rectangle {
@@ -376,11 +395,6 @@ ApplicationWindow {
                 }
 
                 SerialDebugPage {
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                }
-
-                LogsPage {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                 }

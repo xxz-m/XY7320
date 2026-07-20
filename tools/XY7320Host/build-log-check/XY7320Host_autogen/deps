@@ -38,6 +38,8 @@ XY7320Host_autogen/timestamp: \
 	C:/Users/XYKJ/Desktop/esp32/XY7320_ST/tools/XY7320Host/backend/SerialDebug.h \
 	C:/Users/XYKJ/Desktop/esp32/XY7320_ST/tools/XY7320Host/backend/SerialPortManager.cpp \
 	C:/Users/XYKJ/Desktop/esp32/XY7320_ST/tools/XY7320Host/backend/SerialPortManager.h \
+	C:/Users/XYKJ/Desktop/esp32/XY7320_ST/tools/XY7320Host/backend/usbmanager.cpp \
+	C:/Users/XYKJ/Desktop/esp32/XY7320_ST/tools/XY7320Host/backend/usbmanager.h \
 	C:/Users/XYKJ/Desktop/esp32/XY7320_ST/tools/XY7320Host/build-log-check/.qt/qml_imports/XY7320Host_conf.cmake \
 	C:/Users/XYKJ/Desktop/esp32/XY7320_ST/tools/XY7320Host/build-log-check/CMakeFiles/3.28.1/CMakeCXXCompiler.cmake \
 	C:/Users/XYKJ/Desktop/esp32/XY7320_ST/tools/XY7320Host/build-log-check/CMakeFiles/3.28.1/CMakeRCCompiler.cmake \
@@ -252,11 +254,13 @@ XY7320Host_autogen/timestamp: \
 	D:/StrawebrryPrel/c/x86_64-w64-mingw32/include/wchar.h \
 	D:/qt/6.8.3/mingw_64/include/QtCore/QByteArray \
 	D:/qt/6.8.3/mingw_64/include/QtCore/QDateTime \
+	D:/qt/6.8.3/mingw_64/include/QtCore/QList \
 	D:/qt/6.8.3/mingw_64/include/QtCore/QObject \
 	D:/qt/6.8.3/mingw_64/include/QtCore/QQueue \
 	D:/qt/6.8.3/mingw_64/include/QtCore/QTimer \
 	D:/qt/6.8.3/mingw_64/include/QtCore/QUrl \
 	D:/qt/6.8.3/mingw_64/include/QtCore/QVariant \
+	D:/qt/6.8.3/mingw_64/include/QtCore/QVariantList \
 	D:/qt/6.8.3/mingw_64/include/QtCore/q20functional.h \
 	D:/qt/6.8.3/mingw_64/include/QtCore/q20memory.h \
 	D:/qt/6.8.3/mingw_64/include/QtCore/q20type_traits.h \
@@ -376,6 +380,7 @@ XY7320Host_autogen/timestamp: \
 	D:/qt/6.8.3/mingw_64/include/QtCore/qurl.h \
 	D:/qt/6.8.3/mingw_64/include/QtCore/qutf8stringview.h \
 	D:/qt/6.8.3/mingw_64/include/QtCore/qvariant.h \
+	D:/qt/6.8.3/mingw_64/include/QtCore/qvariantlist.h \
 	D:/qt/6.8.3/mingw_64/include/QtCore/qvarlengtharray.h \
 	D:/qt/6.8.3/mingw_64/include/QtCore/qversiontagging.h \
 	D:/qt/6.8.3/mingw_64/include/QtCore/qxptype_traits.h \

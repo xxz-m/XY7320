@@ -7,6 +7,7 @@
 #include "backend/FirmwareUploader.h"
 #include "backend/SerialPortManager.h"
 #include "backend/SerialDebug.h"
+#include "backend/usbmanager.h"
 
 int main(int argc, char *argv[])
 {
@@ -20,6 +21,8 @@ int main(int argc, char *argv[])
     QQmlApplicationEngine engine;
     engine.rootContext()->setContextProperty(QStringLiteral("firmwareUploader"), &firmwareUploader);
     engine.rootContext()->setContextProperty(QStringLiteral("serialDebug"), &serialDebug);
+    UsbManager usbManager;
+    engine.rootContext()->setContextProperty(QStringLiteral("usbManager"),&usbManager);
 
     QObject::connect(
         &engine,
